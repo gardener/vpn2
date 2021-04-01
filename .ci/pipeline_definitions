@@ -1,4 +1,4 @@
-vpn:
+vpn2:
   template: 'default'
   base_definition:
     repo: ~
