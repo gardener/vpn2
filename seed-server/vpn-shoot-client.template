@@ -1,0 +1,3 @@
+# client specific configuration file
+iroute ${SERVICE_NETWORK_ADDRESS} ${SERVICE_NETWORK_NETMASK}
+iroute ${POD_NETWORK_ADDRESS} ${POD_NETWORK_NETMASK}
