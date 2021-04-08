@@ -34,8 +34,7 @@ route ${SERVICE_NETWORK_ADDRESS} ${SERVICE_NETWORK_NETMASK}
 route ${POD_NETWORK_ADDRESS} ${POD_NETWORK_NETMASK}
 
 # the vpn client in the shoot will expose its pod, service and node network.
-# hence, we need client-to-client enabled and client-config-dir to specify the shoot client.
-client-to-client
+# hence, we need a client-config-dir to specify the shoot client.
 client-config-dir /client-config-dir
 
 key "/srv/secrets/vpn-server/tls.key"
