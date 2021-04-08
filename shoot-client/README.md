@@ -1,6 +1,6 @@
 # VPN Shoot Client
 
-The VPN Shoot Client is a tool that is used for [Shoot clusters](https://github.com/gardener/documentation/wiki/Architecture). It connects to the vpn server running in the seed cluster, but allows contacting any IP address within its network and routes the packets back to the caller (usually the [vpn-seed](../seed-client)). By that, it connects the components running in the Seed cluster with those running in the Shoot cluster.
+The VPN Shoot Client is a tool that is used for [Shoot clusters](https://github.com/gardener/documentation/wiki/Architecture). It connects to the vpn server running in the seed cluster, but allows contacting any IP address within its network and routes the packets back to the caller (usually through the [vpn-seed-server](../seed-server)). By that, it connects the components running in the Seed cluster with those running in the Shoot cluster.
 
 ## Constraints
 

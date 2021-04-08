@@ -30,10 +30,8 @@ port 1194
 keepalive 10 60
 server 192.168.123.0 255.255.255.0
 
-push "route ${SERVICE_NETWORK_ADDRESS} ${SERVICE_NETWORK_NETMASK}"
-push "route ${POD_NETWORK_ADDRESS} ${POD_NETWORK_NETMASK}"
-
-duplicate-cn
+route ${SERVICE_NETWORK_ADDRESS} ${SERVICE_NETWORK_NETMASK}
+route ${POD_NETWORK_ADDRESS} ${POD_NETWORK_NETMASK}
 
 # the vpn client in the shoot will expose its pod, service and node network.
 # hence, we need client-to-client enabled and client-config-dir to specify the shoot client.

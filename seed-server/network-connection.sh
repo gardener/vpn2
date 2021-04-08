@@ -87,7 +87,7 @@ if [[ ! -z "$node_network" ]]; then
     do
         node_network_address=$(echo $n | cut -f1 -d/)
         node_network_netmask=$(CIDR2Netmask $n)
-        echo "push \"route ${node_network_address} ${node_network_netmask}\"" >> openvpn.config
+        echo "route ${node_network_address} ${node_network_netmask}" >> openvpn.config
         echo "iroute ${node_network_address} ${node_network_netmask}" >> /client-config-dir/vpn-shoot-client
     done
 fi

@@ -8,14 +8,10 @@ vpn2:
           'inject-commit-hash'
       publish:
         dockerimages:
-          vpn-seed-client:
+          vpn-seed-server:
             inputs:
               repos:
                 source: ~ # default
-            registry: 'gcr-readwrite'
-            image: 'eu.gcr.io/gardener-project/gardener/vpn-seed-client'
-            dockerfile: 'seed-client/Dockerfile'
-          vpn-seed-server:
             registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/vpn-seed-server'
             dockerfile: 'seed-server/Dockerfile'
