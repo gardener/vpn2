@@ -17,7 +17,7 @@ FROM alpine:3.10.3
 RUN apk add --update bash curl openvpn bc && \
     rm -rf /var/cache/apk/*
 
-ADD seed-server/network-connection.sh seed-server/openvpn.config.template /
+ADD seed-server/network-connection.sh seed-server/openvpn.config.template seed-server/firewall.sh /
 
 RUN mkdir /client-config-dir
 ADD seed-server/vpn-shoot-client.template /client-config-dir
