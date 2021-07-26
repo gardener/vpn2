@@ -62,6 +62,8 @@ pod_network="${pod_network:-100.96.0.0/11}"
 node_network="${NODE_NETWORK:-${fileNodeNetwork}}"
 node_network="${node_network:-}"
 
+reversed_vpn_header="${REVERSED_VPN_HEADER:-invalid-host}"
+
 # calculate netmask for given CIDR (required by openvpn)
 CIDR2Netmask() {
     local cidr="$1"
@@ -125,7 +127,7 @@ iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
 
 while : ; do
     if [[ ! -z $ENDPOINT ]]; then
-        openvpn --remote ${ENDPOINT} --port ${openvpn_port} --http-proxy ${ENDPOINT} ${openvpn_port} --config openvpn.config
+        openvpn --remote ${ENDPOINT} --port ${openvpn_port} --http-proxy ${ENDPOINT} ${openvpn_port} --http-proxy-option CUSTOM-HEADER Reversed-VPN "${reversed_vpn_header}" --config openvpn.config
     else
         log "No tunnel endpoint found"
     fi
