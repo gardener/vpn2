@@ -92,4 +92,7 @@ if [[ ! -z "$node_network" ]]; then
     done
 fi
 
-openvpn --config openvpn.config
+local_node_ip="${LOCAL_NODE_IP:-255.255.255.255}"
+
+# filter log output to remove readiness/liveness probes from local node
+openvpn --config openvpn.config | grep -v -E "TCP connection established with \[AF_INET\]${local_node_ip}|${local_node_ip}:[0-9]{1,5} Connection reset, restarting"
