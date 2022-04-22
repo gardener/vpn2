@@ -12,9 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.13.5
+FROM alpine:3.15.4
 
-RUN apk add --update bash curl openvpn bc && \
+RUN apk add --update bash curl openvpn bc iptables && \
     rm -rf /var/cache/apk/*
 
 ADD seed-server/network-connection.sh seed-server/openvpn.config.template seed-server/firewall.sh /
