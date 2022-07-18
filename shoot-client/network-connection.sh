@@ -44,7 +44,16 @@ function configure_tcp() {
   set_value /proc/sys/net/ipv4/tcp_retries2 $tcp_retries2
 }
 
-configure_tcp
+if [[ -z "$DO_NOT_CONFIGURE_KERNEL_SETTINGS" ]]; then
+  configure_tcp
+
+  # make sure forwarding is enabled
+  echo 1 > /proc/sys/net/ipv4/ip_forward
+fi
+
+if [[ ! -z "$EXIT_AFTER_CONFIGURING_KERNEL_SETTINGS" ]]; then
+  exit
+fi
 
 # for each cidr config, it looks first at its env var, then a local file (which may be a volume mount), then the default
 baseConfigDir="/init-config"
@@ -117,9 +126,6 @@ echo "pull-filter ignore \"route\"" >> openvpn.config
 echo "pull-filter ignore redirect-gateway" >> openvpn.config
 echo "pull-filter ignore route-ipv6" >> openvpn.config
 echo "pull-filter ignore redirect-gateway-ipv6" >> openvpn.config
-
-# make sure forwarding is enabled
-echo 1 > /proc/sys/net/ipv4/ip_forward
 
 # enable forwarding and NAT
 iptables --append FORWARD --in-interface tun0 -j ACCEPT
