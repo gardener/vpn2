@@ -131,6 +131,11 @@ echo "pull-filter ignore redirect-gateway-ipv6" >> openvpn.config
 iptables --append FORWARD --in-interface tun0 -j ACCEPT
 iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
 
+if [[ ! -c /dev/net/tun ]]; then
+    mkdir -p /dev/net
+    mknod /dev/net/tun c 10 200
+fi
+
 while : ; do
     if [[ ! -z $ENDPOINT ]]; then
         openvpn --remote ${ENDPOINT} --port ${openvpn_port} --http-proxy ${ENDPOINT} ${openvpn_port} --http-proxy-option CUSTOM-HEADER Reversed-VPN "${reversed_vpn_header}" --config openvpn.config
