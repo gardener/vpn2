@@ -44,6 +44,7 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /bin/echo ./bin \
     && cp -d /bin/sed ./bin \
     && cp -d /bin/sh ./bin \
+    && cp -d /bin/sleep ./bin \
     && cp -d /sbin/ip ./sbin \
     && cp -d /sbin/iptables* ./sbin \
     && cp -d /sbin/xtables* ./sbin \
