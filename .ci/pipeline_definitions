@@ -46,3 +46,7 @@ vpn2:
               slack_cfg_name: 'scp_workspace'
         component_descriptor:
           component_name: 'github.com/gardener/vpn2'
+          component_labels:
+          - name: 'cloud.gardener.cnudie/dso/scanning-hints/source_analysis/v1'
+            value:
+              policy: 'skip'
