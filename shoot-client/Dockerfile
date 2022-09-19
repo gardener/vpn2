@@ -44,6 +44,7 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /bin/cat ./bin                                                 && echo "package coreutils" \
     && cp -d /bin/date ./bin                                                && echo "package coreutils" \
     && cp -d /bin/echo ./bin                                                && echo "package coreutils" \
+    && cp -d /bin/sleep ./bin                                               && echo "package coreutils" \
     && cp -d /usr/bin/cut ./usr/bin                                         && echo "package coreutils" \
     && cp -d /usr/bin/bc ./usr/bin                                          && echo "package bc" \
     && cp -d /bin/sed ./bin                                                 && echo "package sed" \
