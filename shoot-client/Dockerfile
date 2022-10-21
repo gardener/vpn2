@@ -19,7 +19,7 @@ RUN apk add --update bash openvpn iptables bc && \
 
 WORKDIR /volume
 
-ADD shoot-client/network-connection.sh shoot-client/openvpn.config.template ./
+ADD shoot-client/network-connection.sh shoot-client/openvpn.config.template shoot-client/path-controller.sh ./
 
 RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables ./usr/lib/bash ./tmp ./run ./etc/bash ./etc/openvpn ./usr/lib/openvpn/plugins ./etc/iproute2 ./etc/terminfo ./etc/logrotate.d ./etc/network/if-up.d ./usr/share/udhcpc ./etc/ssl/misc ./usr/lib/engines-1.1 \
     && cp -d /lib/ld-musl-* ./lib                                           && echo "package musl" \
@@ -45,6 +45,7 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /bin/date ./bin                                                && echo "package coreutils" \
     && cp -d /bin/echo ./bin                                                && echo "package coreutils" \
     && cp -d /bin/sleep ./bin                                               && echo "package coreutils" \
+    && cp -d /bin/ping ./bin                                                && echo "package iputils" \
     && cp -d /usr/bin/cut ./usr/bin                                         && echo "package coreutils" \
     && cp -d /usr/bin/bc ./usr/bin                                          && echo "package bc" \
     && cp -d /bin/sed ./bin                                                 && echo "package sed" \
@@ -85,5 +86,5 @@ FROM scratch
 COPY --from=builder /volume /
 
 # We use "exec" and "trap 'exit' TERM" in the bash script, otherwise,
-# the script won't recieve and react to SIGTERM
+# the script won't receive and react to SIGTERM
 CMD exec /network-connection.sh

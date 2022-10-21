@@ -44,98 +44,84 @@ function configure_tcp() {
   set_value /proc/sys/net/ipv4/tcp_retries2 $tcp_retries2
 }
 
-if [[ -z "$DO_NOT_CONFIGURE_KERNEL_SETTINGS" ]]; then
+function add_iptables_rule() {
+  rule=$1
+
+  set +e
+  iptables -C $rule > /dev/null
+  rc=$?
+  set -e
+  if [[ "$rc" != "0" ]]; then
+    iptables -A $rule
+  fi
+}
+
+if [[ "$DO_NOT_CONFIGURE_KERNEL_SETTINGS" != "true" ]]; then
+  log "configure kernel settings"
   configure_tcp
 
   # make sure forwarding is enabled
   echo 1 > /proc/sys/net/ipv4/ip_forward
 fi
 
-if [[ ! -z "$EXIT_AFTER_CONFIGURING_KERNEL_SETTINGS" ]]; then
+if [[ -n "$EXIT_AFTER_CONFIGURING_KERNEL_SETTINGS" ]]; then
   exit
 fi
 
-# for each cidr config, it looks first at its env var, then a local file (which may be a volume mount), then the default
-baseConfigDir="/init-config"
-fileServiceNetwork=
-filePodNetwork=
-fileNodeNetwork=
-[ -e "${baseConfigDir}/serviceNetwork" ] && fileServiceNetwork=$(cat ${baseConfigDir}/serviceNetwork)
-[ -e "${baseConfigDir}/podNetwork" ] && filePodNetwork=$(cat ${baseConfigDir}/podNetwork)
-[ -e "${baseConfigDir}/nodeNetwork" ] && fileNodeNetwork=$(cat ${baseConfigDir}/nodeNetwork)
-
-service_network="${SERVICE_NETWORK:-${fileServiceNetwork}}"
-service_network="${service_network:-100.64.0.0/13}"
-pod_network="${POD_NETWORK:-${filePodNetwork}}"
-pod_network="${pod_network:-100.96.0.0/11}"
-node_network="${NODE_NETWORK:-${fileNodeNetwork}}"
-node_network="${node_network:-}"
+if [[ -n "$REVERSED_VPN_HEADER" ]]; then
+  is_shoot_client="true"
+fi
 
 reversed_vpn_header="${REVERSED_VPN_HEADER:-invalid-host}"
 
-# calculate netmask for given CIDR (required by openvpn)
-CIDR2Netmask() {
-    local cidr="$1"
+vpn_seed_server="vpn-seed-server"
+dev="tun0"
+if [[ -n "$VPN_SERVER_INDEX" ]]; then
+  vpn_seed_server="vpn-seed-server-$VPN_SERVER_INDEX"
+  dev="tap$VPN_SERVER_INDEX"
+fi
+log "using $vpn_seed_server, dev $dev"
 
-    local ip=$(echo $cidr | cut -f1 -d/)
-    local numon=$(echo $cidr | cut -f2 -d/)
-
-    local numoff=$(( 32 - $numon ))
-    while [ "$numon" -ne "0" ]; do
-            start=1${start}
-            numon=$(( $numon - 1 ))
-    done
-    while [ "$numoff" -ne "0" ]; do
-        end=0${end}
-        numoff=$(( $numoff - 1 ))
-    done
-    local bitstring=$start$end
-
-    bitmask=$(echo "obase=16 ; $(( 2#$bitstring )) " | bc | sed 's/.\{2\}/& /g')
-
-    for t in $bitmask ; do
-        str=$str.$((16#$t))
-    done
-
-    echo $str | cut -f2-  -d\.
-}
-
-service_network_address=$(echo $service_network | cut -f1 -d/)
-service_network_netmask=$(CIDR2Netmask $service_network)
-
-pod_network_address=$(echo $pod_network | cut -f1 -d/)
-pod_network_netmask=$(CIDR2Netmask $pod_network)
-
-sed -e "s/\${SERVICE_NETWORK_ADDRESS}/${service_network_address}/" \
-    -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask}/" \
-    -e "s/\${POD_NETWORK_ADDRESS}/${pod_network_address}/" \
-    -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask}/" \
-    openvpn.config.template > openvpn.config
-
-if [[ ! -z "$node_network" ]]; then
-  for n in $(echo $node_network |  sed 's/[][]//g' | sed 's/,/ /g')
-  do
-      node_network_address=$(echo $n | cut -f1 -d/)
-      node_network_netmask=$(CIDR2Netmask $n)
-      echo "pull-filter ignore \"route ${node_network_address} ${node_network_netmask}\"" >> openvpn.config
-  done
+# suffix for vpn client secret directory
+suffix=""
+if [[ $POD_NAME =~ .*-([0-4])$ ]]; then
+  suffix="-${BASH_REMATCH[1]}"
 fi
 
-echo "pull-filter accept \"route 192.168.123.\"" >> openvpn.config
-echo "pull-filter ignore \"route\"" >> openvpn.config
+sed -e "s/\${SUFFIX}/${suffix}/" \
+    openvpn.config.template > openvpn.config
+
 echo "pull-filter ignore redirect-gateway" >> openvpn.config
 echo "pull-filter ignore route-ipv6" >> openvpn.config
 echo "pull-filter ignore redirect-gateway-ipv6" >> openvpn.config
 
-# enable forwarding and NAT
-iptables --append FORWARD --in-interface tun0 -j ACCEPT
-iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
+echo "port ${openvpn_port}" >> openvpn.config
+if [[ "$is_shoot_client" == "true" ]]; then
+  # use http proxy only for vpn-shoot-client
+  echo "http-proxy ${ENDPOINT} ${openvpn_port}" >> openvpn.config
+  echo "http-proxy-option CUSTOM-HEADER Reversed-VPN ${reversed_vpn_header}" >> openvpn.config
+
+  # enable forwarding and NAT
+  iptables --append FORWARD --in-interface $dev -j ACCEPT
+  iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
+else
+  if [[ "$VPN_SERVER_INDEX" == "0" ]]; then
+    # start vpn-path-controller for selecting routing path
+    log "starting vpn-path-controller (logs see /path-controller.log)"
+    /path-controller.sh &
+  fi
+
+  # Add firewall rules to block all traffic originating from the shoot cluster.
+  add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT"
+  add_iptables_rule "INPUT -i $dev -j DROP"
+fi
 
 while : ; do
-    if [[ ! -z $ENDPOINT ]]; then
-        openvpn --remote ${ENDPOINT} --port ${openvpn_port} --http-proxy ${ENDPOINT} ${openvpn_port} --http-proxy-option CUSTOM-HEADER Reversed-VPN "${reversed_vpn_header}" --config openvpn.config
-    else
-        log "No tunnel endpoint found"
-    fi
-    sleep 1
+  if [[ -n $ENDPOINT ]]; then
+    log "openvpn --dev $dev --remote $ENDPOINT --config openvpn.config"
+    openvpn --dev $dev --remote $ENDPOINT --config openvpn.config
+  else
+    log "No tunnel endpoint found"
+  fi
+  sleep 1
 done
