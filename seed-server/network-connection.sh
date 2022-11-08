@@ -83,9 +83,6 @@ openvpn_network_netmask=$(CIDR2Netmask $openvpn_network)
 service_network_address=$(echo $service_network | cut -f1 -d/)
 service_network_netmask=$(CIDR2Netmask $service_network)
 
-service_network_address=$(echo $service_network | cut -f1 -d/)
-service_network_netmask=$(CIDR2Netmask $service_network)
-
 pod_network_address=$(echo $pod_network | cut -f1 -d/)
 pod_network_netmask=$(CIDR2Netmask $pod_network)
 
