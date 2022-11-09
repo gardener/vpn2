@@ -26,19 +26,14 @@ function log() {
     fi
 }
 
-# dummy group 2 for fallback
-ip nexthop replace id 2 dev lo
-
+# reuse group after restart
 oldgroup=$(ip nexthop show id 1 | cut -f4 -d ' ')
-if [[ -z "$oldgroup" ]]; then
-    ip nexthop add id 1 group 2
-fi
 
 declare -A client
-client["10"]="192.168.123.2"
-client["11"]="192.168.123.3"
-client["20"]="192.168.124.2"
-client["21"]="192.168.124.3"
+client["100"]="192.168.123.2" # routing path through vpn-seed-server-0, vpn-shoot-0 (container vpn-shoot-s0)
+client["101"]="192.168.123.3" # routing path through vpn-seed-server-0, vpn-shoot-1 (container vpn-shoot-s0)
+client["110"]="192.168.124.2" # routing path through vpn-seed-server-1, vpn-shoot-0 (container vpn-shoot-s1)
+client["111"]="192.168.124.3" # routing path through vpn-seed-server-1, vpn-shoot-1 (container vpn-shoot-s1)
 
 declare -A ping_pid
 declare -A ping_return
@@ -56,19 +51,26 @@ function pingAllShootClients() {
 }
 
 function selectNewGroup() {
+    local good=()
     for key in ${!client[@]}; do
         if [[ "${ping_return[$key]}" == "0" ]]; then
-            group=$key
-            return
+            good+=($key)
         fi
     done
-    group="2"
+    local len=${#good[@]}
+    if (( len > 0 )); then
+        # select random good path
+        group=${good[$(( $RANDOM % len ))]}
+    else
+        # keep last value
+        group=$oldgroup
+    fi
 }
 
 function updateRouting() {
     # ensure nexthop configuration
     for key in ${!client[@]}; do
-        ip nexthop replace id $key via ${client[$key]} dev tap$(( (key / 10) - 1 ))
+        ip nexthop replace id $key via ${client[$key]} dev tap$(( (key - 100) / 10 ))
     done
 
     log "switching from $oldgroup to $group: ip nexthop replace id 1 group $group"
@@ -87,11 +89,11 @@ while : ; do
     pingAllShootClients
 
     group=$oldgroup
-    if [[ "${ping_return[$oldgroup]}" != "0" ]]; then
+    if [[ "$oldgroup" == "" || "${ping_return[$oldgroup]}" != "0" ]]; then
         selectNewGroup
     fi
 
-    log "10:${client[10]}=${ping_return[10]} 11:${client[11]}=${ping_return[11]} 20:${client[20]}=${ping_return[20]} 21:${client[21]}=${ping_return[21]} old=$oldgroup new=$group"
+    log "100:${client[100]}=${ping_return[100]} 101:${client[101]}=${ping_return[101]} 110:${client[110]}=${ping_return[110]} 111:${client[111]}=${ping_return[111]} old=$oldgroup new=$group"
     if [[ "$oldgroup" != "$group" ]]; then
         updateRouting
     fi
