@@ -30,10 +30,19 @@ function log() {
 oldgroup=$(ip nexthop show id 1 | cut -f4 -d ' ')
 
 declare -A client
-client["100"]="192.168.123.2" # routing path through vpn-seed-server-0, vpn-shoot-0 (container vpn-shoot-s0)
-client["101"]="192.168.123.3" # routing path through vpn-seed-server-0, vpn-shoot-1 (container vpn-shoot-s0)
-client["110"]="192.168.124.2" # routing path through vpn-seed-server-1, vpn-shoot-0 (container vpn-shoot-s1)
-client["111"]="192.168.124.3" # routing path through vpn-seed-server-1, vpn-shoot-1 (container vpn-shoot-s1)
+# build group to IP mapping
+# e.g client["100"]="192.168.123.2" # routing path through vpn-seed-server-0, vpn-shoot-0 (container vpn-shoot-s0)
+#     client["101"]="192.168.123.3" # routing path through vpn-seed-server-0, vpn-shoot-1 (container vpn-shoot-s0)
+for (( s=0; s<$HA_VPN_SERVERS; s++ )); do
+  base=$(( 123 + $s ))
+  for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
+    group="1$s$c"
+    client[$group]="192.168.$base.$(( c+2 ))"
+    logline+="$group:\${client[$group]}=\${ping_return[$group]} "
+  done
+done
+logline+='old=$oldgroup new=$group'
+group=""
 
 declare -A ping_pid
 declare -A ping_return
@@ -93,7 +102,7 @@ while : ; do
         selectNewGroup
     fi
 
-    log "100:${client[100]}=${ping_return[100]} 101:${client[101]}=${ping_return[101]} 110:${client[110]}=${ping_return[110]} 111:${client[111]}=${ping_return[111]} old=$oldgroup new=$group"
+    log $(eval echo $logline)
     if [[ "$oldgroup" != "$group" ]]; then
         updateRouting
     fi
