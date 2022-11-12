@@ -103,7 +103,7 @@ sed -e "s/\${SERVICE_NETWORK_ADDRESS}/${service_network_address}/" \
     /client-config-dir/vpn-shoot-client.template > /client-config-dir/vpn-shoot-client
 
 if [[ -n $is_ha ]]; then
-    for ((i=0; i < 2; i++))
+    for ((i=0; i < $HA_VPN_CLIENTS; i++))
     do
         sed -e "s/\${SERVICE_NETWORK_ADDRESS}/${service_network_address}/" \
             -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask}/" \
