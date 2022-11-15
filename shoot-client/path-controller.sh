@@ -33,8 +33,8 @@ declare -A client
 # build group to IP mapping
 # e.g client["100"]="192.168.123.2" # routing path through vpn-seed-server-0, vpn-shoot-0 (container vpn-shoot-s0)
 #     client["101"]="192.168.123.3" # routing path through vpn-seed-server-0, vpn-shoot-1 (container vpn-shoot-s0)
-for (( s=0; s<$HA_VPN_SERVERS; s++ )); do
-  base=$(( 123 + $s ))
+for (( s=0; s<1; s++ )); do
+  base=$(( 120 + $s ))
   for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
     group="1$s$c"
     client[$group]="192.168.$base.$(( c+2 ))"
@@ -79,7 +79,7 @@ function selectNewGroup() {
 function updateRouting() {
     # ensure nexthop configuration
     for key in ${!client[@]}; do
-        ip nexthop replace id $key via ${client[$key]} dev tap$(( (key - 100) / 10 ))
+        ip nexthop replace id $key via ${client[$key]} dev bond0
     done
 
     log "switching from $oldgroup to $group: ip nexthop replace id 1 group $group"

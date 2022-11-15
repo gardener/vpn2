@@ -22,6 +22,8 @@ trap 'exit' TERM SIGINT
 
 openvpn_port="${OPENVPN_PORT:-8132}"
 
+bondPrefix="192.168.120"
+
 tcp_keepalive_time="${TCP_KEEPALIVE_TIME:-7200}"
 tcp_keepalive_intvl="${TCP_KEEPALIVE_INTVL:-75}"
 tcp_keepalive_probes="${TCP_KEEPALIVE_PROBES:-9}"
@@ -44,6 +46,47 @@ function configure_tcp() {
   set_value /proc/sys/net/ipv4/tcp_retries2 $tcp_retries2
 }
 
+function configure_bonding() {
+  local addr
+
+  if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
+    # IP address is fixed on shoot side
+    addr="$bondPrefix.$((vpn_client_index+2))/24"
+  else
+    # for each kube-apiserver pod acquire an IP via consensus
+    # based on pod annotations (details see go part)
+    log "acquiring ip address for bonding"
+    OUTPUT=/tmp/acquired-ip ./acquire-ip
+    addr="$(</tmp/acquired-ip)/24"
+  fi
+  log "bonding address is $addr"
+
+  ip link del bond0 || true
+  local checkoptions
+  local targets
+  for ((i=0; i < $HA_VPN_CLIENTS; i++))
+  do
+    if (( i > 0 )); then
+      targets+=','
+    fi
+    targets+="${bondPrefix}.$((i+2))"
+  done
+  checkoptions="arp_interval 1000 arp_ip_target \"$targets\" arp_all_targets 0"
+
+  #ip link add bond0 type bond mode 1 fail_over_mac 1
+  local cmd=$(echo ip link add bond0 type bond mode 1 fail_over_mac 1 $checkoptions)
+  echo $cmd
+  $(eval echo $cmd)
+  for ((i=0; i < $HA_VPN_SERVERS; i++))
+  do
+    # create tunnel devices and make them slaves of bond0
+    openvpn --mktun --dev tap$i
+    ip link set tap$i master bond0
+  done
+  ip link set bond0 up
+  ip addr add $addr dev bond0
+}
+
 function add_iptables_rule() {
   rule=$1
 
@@ -64,12 +107,22 @@ if [[ "$DO_NOT_CONFIGURE_KERNEL_SETTINGS" != "true" ]]; then
   echo 1 > /proc/sys/net/ipv4/ip_forward
 fi
 
-if [[ -n "$EXIT_AFTER_CONFIGURING_KERNEL_SETTINGS" ]]; then
-  exit
+# suffix for vpn client secret directory
+suffix=""
+if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
+  if [[ $POD_NAME =~ .*-([0-4])$ ]]; then
+    suffix="-${BASH_REMATCH[1]}"
+    vpn_client_index="${BASH_REMATCH[1]}"
+  fi
 fi
 
-if [[ -n "$REVERSED_VPN_HEADER" ]]; then
-  is_shoot_client="true"
+if [[ "$CONFIGURE_BONDING" == "true" ]]; then
+  log "configure bonding"
+  configure_bonding
+fi
+
+if [[ -n "$EXIT_AFTER_CONFIGURING_KERNEL_SETTINGS" ]]; then
+  exit
 fi
 
 reversed_vpn_header="${REVERSED_VPN_HEADER:-invalid-host}"
@@ -82,12 +135,6 @@ if [[ -n "$VPN_SERVER_INDEX" ]]; then
 fi
 log "using $vpn_seed_server, dev $dev"
 
-# suffix for vpn client secret directory
-suffix=""
-if [[ $POD_NAME =~ .*-([0-4])$ ]]; then
-  suffix="-${BASH_REMATCH[1]}"
-fi
-
 sed -e "s/\${SUFFIX}/${suffix}/" \
     openvpn.config.template > openvpn.config
 
@@ -96,7 +143,7 @@ echo "pull-filter ignore route-ipv6" >> openvpn.config
 echo "pull-filter ignore redirect-gateway-ipv6" >> openvpn.config
 
 echo "port ${openvpn_port}" >> openvpn.config
-if [[ "$is_shoot_client" == "true" ]]; then
+if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
   # use http proxy only for vpn-shoot-client
   echo "http-proxy ${ENDPOINT} ${openvpn_port}" >> openvpn.config
   echo "http-proxy-option CUSTOM-HEADER Reversed-VPN ${reversed_vpn_header}" >> openvpn.config
@@ -111,9 +158,11 @@ else
     /path-controller.sh &
   fi
 
+  # TODO fix firewall rules
   # Add firewall rules to block all traffic originating from the shoot cluster.
-  add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT"
-  add_iptables_rule "INPUT -i $dev -j DROP"
+  #add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT"
+  #add_iptables_rule "INPUT -i $dev -j DROP"
+  iptables --append FORWARD --in-interface $dev -j ACCEPT
 fi
 
 while : ; do
