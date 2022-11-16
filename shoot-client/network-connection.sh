@@ -153,10 +153,9 @@ if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
   iptables --append FORWARD --in-interface $forward_device -j ACCEPT
   iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
 else
-  echo TODO fix firewall rules
   # Add firewall rules to block all traffic originating from the shoot cluster.
-  add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT"
-  add_iptables_rule "INPUT -i $dev -j DROP"
+  add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $forward_device -j ACCEPT"
+  add_iptables_rule "INPUT -i $forward_device -j DROP"
 fi
 
 while : ; do
