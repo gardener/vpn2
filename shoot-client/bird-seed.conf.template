@@ -1,0 +1,37 @@
+log stderr all;
+
+# Set router ID. It is a unique identification of your router, usually one of
+# IPv4 addresses of the router. It is recommended to configure it explicitly.
+router id ${ROUTER_ID};
+
+protocol device {
+    scan time 10;
+    interface "bond0";
+}
+
+protocol direct direct1 {
+    ipv4;
+    interface "bond0";
+}
+
+protocol kernel {
+    ipv4 {
+        export filter {
+        if proto = "direct1" then reject;
+        accept;
+        };
+    };
+}
+
+protocol babel {
+    interface "bond0" {
+        hello interval 1s;
+        update interval 15s;
+        check link off;
+        limit 6;
+    };
+
+    ipv4 {
+        export where (source = RTS_DEVICE) || (source = RTS_BABEL);
+    };
+}
