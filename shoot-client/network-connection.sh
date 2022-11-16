@@ -22,7 +22,7 @@ trap 'exit' TERM SIGINT
 
 openvpn_port="${OPENVPN_PORT:-8132}"
 
-bondPrefix="192.168.120"
+bondPrefix="192.168.122"
 
 tcp_keepalive_time="${TCP_KEEPALIVE_TIME:-7200}"
 tcp_keepalive_intvl="${TCP_KEEPALIVE_INTVL:-75}"
@@ -48,34 +48,33 @@ function configure_tcp() {
 
 function configure_bonding() {
   local addr
+  local targets
 
   if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
     # IP address is fixed on shoot side
-    addr="$bondPrefix.$((vpn_client_index+2))/24"
+    addr="$bondPrefix.$((vpn_client_index+10))/24"
+    targets="${bondPrefix}.1" # using a dummy address as kube-apiserver IPs are unknown
   else
     # for each kube-apiserver pod acquire an IP via consensus
     # based on pod annotations (details see go part)
     log "acquiring ip address for bonding"
     OUTPUT=/tmp/acquired-ip ./acquire-ip
     addr="$(</tmp/acquired-ip)/24"
+
+    for ((i=0; i < $HA_VPN_CLIENTS; i++))
+    do
+      if (( i > 0 )); then
+        targets+=','
+      fi
+      targets+="${bondPrefix}.$((i+10))"
+    done
   fi
   log "bonding address is $addr"
 
-  ip link del bond0 || true
-  local checkoptions
-  local targets
-  for ((i=0; i < $HA_VPN_CLIENTS; i++))
-  do
-    if (( i > 0 )); then
-      targets+=','
-    fi
-    targets+="${bondPrefix}.$((i+2))"
-  done
-  checkoptions="arp_interval 1000 arp_ip_target \"$targets\" arp_all_targets 0"
-
-  #ip link add bond0 type bond mode 1 fail_over_mac 1
-  local cmd=$(echo ip link add bond0 type bond mode 1 fail_over_mac 1 $checkoptions)
-  echo $cmd
+  ip link del bond0 2> /dev/null || true
+  # use bonding with active-backup mode and activate ARP link monitoring
+  local cmd=$(echo ip link add bond0 type bond mode active-backup fail_over_mac 1 arp_interval 1000 arp_ip_target \"$targets\" arp_all_targets 0)
+  log $cmd
   $(eval echo $cmd)
   for ((i=0; i < $HA_VPN_SERVERS; i++))
   do
@@ -129,9 +128,11 @@ reversed_vpn_header="${REVERSED_VPN_HEADER:-invalid-host}"
 
 vpn_seed_server="vpn-seed-server"
 dev="tun0"
+forward_device="tun0"
 if [[ -n "$VPN_SERVER_INDEX" ]]; then
   vpn_seed_server="vpn-seed-server-$VPN_SERVER_INDEX"
   dev="tap$VPN_SERVER_INDEX"
+  forward_device="bond0"
 fi
 log "using $vpn_seed_server, dev $dev"
 
@@ -149,20 +150,13 @@ if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
   echo "http-proxy-option CUSTOM-HEADER Reversed-VPN ${reversed_vpn_header}" >> openvpn.config
 
   # enable forwarding and NAT
-  iptables --append FORWARD --in-interface $dev -j ACCEPT
+  iptables --append FORWARD --in-interface $forward_device -j ACCEPT
   iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
 else
-  if [[ "$VPN_SERVER_INDEX" == "0" ]]; then
-    # start vpn-path-controller for selecting routing path
-    log "starting vpn-path-controller (logs see /path-controller.log)"
-    /path-controller.sh &
-  fi
-
-  # TODO fix firewall rules
+  echo TODO fix firewall rules
   # Add firewall rules to block all traffic originating from the shoot cluster.
-  #add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT"
-  #add_iptables_rule "INPUT -i $dev -j DROP"
-  iptables --append FORWARD --in-interface $dev -j ACCEPT
+  add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT"
+  add_iptables_rule "INPUT -i $dev -j DROP"
 fi
 
 while : ; do

@@ -84,7 +84,7 @@ func TestBroker(t *testing.T) {
 	brokers := make([]IPAddressBroker, count)
 	var err error
 	for i := 0; i < count; i++ {
-		brokers[i], err = newIPAddressBroker(manager, base, 10, 10+count, podName(i), baseWait)
+		brokers[i], err = NewIPAddressBroker(manager, base, 10, 10+count, podName(i), baseWait)
 		if err != nil {
 			t.Errorf("new failed: %s", err)
 		}

@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"os"
-	"strconv"
-	"strings"
 	"time"
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 type ipAddressBroker struct {
 	manager    IPPoolManager
@@ -22,11 +23,13 @@ type ipAddressBroker struct {
 	ownUsed    bool
 }
 
+// IPAddressBroker is the broker to retrieve a IP from the IP pool
 type IPAddressBroker = *ipAddressBroker
 
 var logName bool
 
-func newIPAddressBroker(manager IPPoolManager, base net.IP, startIndex, endIndex int, ownName string, waitTime time.Duration) (IPAddressBroker, error) {
+// NewIPAddressBroker creates a new instance
+func NewIPAddressBroker(manager IPPoolManager, base net.IP, startIndex, endIndex int, ownName string, waitTime time.Duration) (IPAddressBroker, error) {
 	return &ipAddressBroker{
 		manager:    manager,
 		base:       base,
@@ -129,52 +132,4 @@ func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 	}
 	b.log("using ip %s", b.ownIP)
 	return b.ownIP, nil
-}
-
-func mustGetEnv(name string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		panic(fmt.Errorf("missing env variable '%s'", name))
-	}
-	return value
-}
-
-func optionalGetEnv(name, defaultValue string) string {
-	value := os.Getenv(name)
-	if value == "" {
-		return defaultValue
-	}
-	return value
-}
-
-func optionalGetEnvInt(name string, defaultValue, min, max int) int {
-	value := os.Getenv(name)
-	if value == "" {
-		return defaultValue
-	}
-	v, err := strconv.Atoi(value)
-	if err != nil || v < min || v > max {
-		panic(fmt.Errorf("invalid value for %s: %s (min=%d,max=%d)", name, value, min, max))
-	}
-	return v
-}
-
-// NewIPAddressBrokerFromEnv initialises the broker with values from env and for in-cluster usage.
-func NewIPAddressBrokerFromEnv() (IPAddressBroker, error) {
-	podName := mustGetEnv("POD_NAME")
-	namespace := mustGetEnv("NAMESPACE")
-	baseStr := optionalGetEnv("IP_BASE", "192.168.120.0")
-	base := net.ParseIP(baseStr)
-	if base == nil || !strings.HasSuffix(baseStr, ".0") {
-		return nil, fmt.Errorf("invalid IP_BASE: %s", baseStr)
-	}
-	startIndex := optionalGetEnvInt("START_INDEX", 32, 32, 254)
-	endIndex := optionalGetEnvInt("END_INDEX", 254, startIndex, 254)
-	labelSelector := optionalGetEnv("POD_LABEL_SELECTOR", "app=kubernetes,role=apiserver")
-	waitSeconds := optionalGetEnvInt("WAIT_SECONDS", 2, 1, 30)
-	manager, err := newPodIPPoolManager(namespace, labelSelector)
-	if err != nil {
-		return nil, err
-	}
-	return newIPAddressBroker(manager, base, startIndex, endIndex, podName, time.Duration(waitSeconds)*time.Second)
 }

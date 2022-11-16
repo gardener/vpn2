@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -e
 #
 # Copyright (c) 2022 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
 #
@@ -18,92 +18,89 @@ trap 'exit' TERM SIGINT
 
 loglen=0
 function log() {
-    echo "[$(date -u)]: $*" >> /path-controller.log
-    ((loglen++))
-    if (( $loglen > 1800 )); then
-        mv -f /path-controller.log /path-controller.log.1
-        loglen=0
-    fi
+    echo "[$(date -u)]: $*"
 }
 
-# reuse group after restart
-oldgroup=$(ip nexthop show id 1 | cut -f4 -d ' ')
+bondPrefix="192.168.122"
 
-declare -A client
-# build group to IP mapping
-# e.g client["100"]="192.168.123.2" # routing path through vpn-seed-server-0, vpn-shoot-0 (container vpn-shoot-s0)
-#     client["101"]="192.168.123.3" # routing path through vpn-seed-server-0, vpn-shoot-1 (container vpn-shoot-s0)
-for (( s=0; s<1; s++ )); do
-  base=$(( 120 + $s ))
-  for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
-    group="1$s$c"
-    client[$group]="192.168.$base.$(( c+2 ))"
-    logline+="$group:\${client[$group]}=\${ping_return[$group]} "
-  done
+for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
+  ip="${bondPrefix}.$((c+10))"
+  logline+="$((c+10))=\${ping_return[$ip]} "
 done
-logline+='old=$oldgroup new=$group'
-group=""
+logline+=' using $new_ip'
+new_ip=""
+
+if [[ -n "${NODE_NETWORK}" ]]; then
+  check_network="${NODE_NETWORK}"
+else
+  check_network="${SERVICE_NETWORK}"
+fi
 
 declare -A ping_pid
 declare -A ping_return
 
 function pingAllShootClients() {
-    for key in ${!client[@]}; do
-        ping -W 2 -w 2 -c 1 ${client[$key]} > /dev/null &
-        ping_pid[$key]=$!
+    set +e
+    for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
+        ip="${bondPrefix}.$((c+10))"
+        ping -W 2 -w 2 -c 1 $ip > /dev/null &
+        ping_pid[$ip]=$!
     done
 
-    for key in ${!client[@]}; do
-        wait ${ping_pid[$key]}
-        ping_return[$key]=$?
+    local result=$(ip route list ${check_network})
+    old_ip=
+    if [[ $result =~ via[[:blank:]]([0-9.]+)[[:blank:]] ]]; then
+      old_ip="${BASH_REMATCH[1]}"
+    fi
+
+    for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
+        ip="${bondPrefix}.$((c+10))"
+        wait ${ping_pid[$ip]}
+        ping_return[$ip]=$?
     done
+    set -e
 }
 
-function selectNewGroup() {
+function selectNewShootClient() {
     local good=()
-    for key in ${!client[@]}; do
-        if [[ "${ping_return[$key]}" == "0" ]]; then
-            good+=($key)
+    for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
+        ip="${bondPrefix}.$((c+10))"
+        if [[ "${ping_return[$ip]}" == "0" ]]; then
+            good+=($ip)
         fi
     done
     local len=${#good[@]}
     if (( len > 0 )); then
         # select random good path
-        group=${good[$(( $RANDOM % len ))]}
+        new_ip=${good[$(( $RANDOM % len ))]}
     else
         # keep last value
-        group=$oldgroup
+        new_ip=$old_ip
     fi
 }
 
 function updateRouting() {
-    # ensure nexthop configuration
-    for key in ${!client[@]}; do
-        ip nexthop replace id $key via ${client[$key]} dev bond0
-    done
-
-    log "switching from $oldgroup to $group: ip nexthop replace id 1 group $group"
-    ip nexthop replace id 1 group $group
+    log "switching from $old_ip to $new_ip"
 
     # ensure routes
-    ip route replace ${POD_NETWORK} nhid 1
-    ip route replace ${SERVICE_NETWORK} nhid 1
+    ip route replace ${POD_NETWORK} dev bond0 via $new_ip
+    ip route replace ${SERVICE_NETWORK} dev bond0 via $new_ip
     if [[ -n "${NODE_NETWORK}" ]]; then
-      ip route replace ${NODE_NETWORK} nhid 1
+      ip route replace ${NODE_NETWORK} dev bond0 via $new_ip
     fi
-    oldgroup=$group
+    old_ip=$new_ip
 }
 
 while : ; do
     pingAllShootClients
 
-    group=$oldgroup
-    if [[ "$oldgroup" == "" || "${ping_return[$oldgroup]}" != "0" ]]; then
-        selectNewGroup
+    new_ip=$old_ip
+    if [[ "$old_ip" == "" || "${ping_return[$old_ip]}" != "0" ]]; then
+        selectNewShootClient
     fi
 
     log $(eval echo $logline)
-    if [[ "$oldgroup" != "$group" ]]; then
+    if [[ "$old_ip" != "$new_ip" ]]; then
         updateRouting
     fi
     sleep 2

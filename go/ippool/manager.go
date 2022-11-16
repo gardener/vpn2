@@ -49,7 +49,8 @@ type podIPPoolManager struct {
 
 var _ IPPoolManager = &podIPPoolManager{}
 
-func newPodIPPoolManager(namespace, labelSelector string) (IPPoolManager, error) {
+// NewPodIPPoolManager create a new IPPoolManager based on pod annotations.
+func NewPodIPPoolManager(namespace, labelSelector string) (IPPoolManager, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
 		return nil, fmt.Errorf("error on InClusterConfig: %s", err)
