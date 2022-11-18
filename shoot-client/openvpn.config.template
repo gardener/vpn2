@@ -21,9 +21,6 @@ auth-nocache
 # stop process if something goes wrong
 remap-usr1 SIGTERM
 
-# Use a dynamic tun device.
-dev tun
-
 # Additonal optimizations
 txqueuelen 1000
 
@@ -34,15 +31,11 @@ cipher AES-256-CBC
 data-ciphers AES-256-CBC
 
 tls-client
-key "/srv/secrets/vpn-shoot/tls.key"
-cert "/srv/secrets/vpn-shoot/tls.crt"
-ca "/srv/secrets/vpn-shoot/ca.crt"
+key "/srv/secrets/vpn-client${SUFFIX}/tls.key"
+cert "/srv/secrets/vpn-client${SUFFIX}/tls.crt"
+ca "/srv/secrets/vpn-client${SUFFIX}/ca.crt"
 
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
 
 # https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
 remote-cert-tls server
-
-# pull filter
-pull-filter ignore "route ${SERVICE_NETWORK_ADDRESS} ${SERVICE_NETWORK_NETMASK}"
-pull-filter ignore "route ${POD_NETWORK_ADDRESS} ${POD_NETWORK_NETMASK}"

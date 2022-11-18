@@ -22,7 +22,7 @@ WORKDIR /volume
 ADD seed-server/network-connection.sh seed-server/openvpn.config.template seed-server/firewall.sh ./
 
 RUN mkdir -p ./client-config-dir
-ADD seed-server/vpn-shoot-client.template ./client-config-dir
+ADD seed-server/vpn-shoot-client.template seed-server/vpn-shoot-client-n.template ./client-config-dir/
 
 RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables ./usr/lib/bash ./tmp ./run ./etc/bash ./etc/openvpn ./usr/lib/openvpn/plugins ./etc/iproute2 ./etc/terminfo ./etc/logrotate.d ./etc/network/if-up.d ./usr/share/udhcpc ./etc/ssl/misc ./usr/lib/engines-1.1 \
     && cp -d /lib/ld-musl-* ./lib                                           && echo "package musl" \

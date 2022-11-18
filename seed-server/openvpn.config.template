@@ -15,7 +15,6 @@
 mode server
 tls-server
 proto tcp4-server
-dev tun0
 topology subnet
 
 # Additonal optimizations
@@ -29,21 +28,11 @@ data-ciphers AES-256-CBC
 # manifest
 port 1194
 
-# Add firewall rules to block all traffic originating from the shoot cluster.
-# The scripts are run after the tun device has been created (up) or removed
-# (down).
-script-security 2
-up "/firewall.sh on"
-down "/firewall.sh off"
-
 keepalive 10 60
-server 192.168.123.0 255.255.255.0
+server ${OPENVPN_NETWORK_ADDRESS} ${OPENVPN_NETWORK_NETMASK} nopool
+ifconfig-pool ${POOL_START_IP} ${POOL_END_IP}
 
-route ${SERVICE_NETWORK_ADDRESS} ${SERVICE_NETWORK_NETMASK}
-route ${POD_NETWORK_ADDRESS} ${POD_NETWORK_NETMASK}
-
-# the vpn client in the shoot will expose its pod, service and node network.
-# hence, we need a client-config-dir to specify the shoot client.
+# client-config-dir to push client specific configuration
 client-config-dir /client-config-dir
 
 key "/srv/secrets/vpn-server/tls.key"

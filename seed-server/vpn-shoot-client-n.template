@@ -1,0 +1,2 @@
+# client specific configuration file
+ifconfig-push ${LOCAL_ADDRESS} ${OPENVPN_NETWORK_NETMASK}
