@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -76,15 +77,22 @@ func podName(i int) string {
 	return fmt.Sprintf("pod-%d", i)
 }
 
-func TestBroker(t *testing.T) {
+func TestBrokerFullPoolUsage(t *testing.T) {
+	testBroker(t, 10, 10)
+}
+
+func TestBrokerOverbookedPool(t *testing.T) {
+	testBroker(t, 11, 10)
+}
+
+func testBroker(t *testing.T, count, space int) {
 	logName = true
 	manager := newMockIPPoolManager()
 	base := net.IPv4(192, 168, 120, 0)
-	count := 10
 	brokers := make([]IPAddressBroker, count)
 	var err error
 	for i := 0; i < count; i++ {
-		brokers[i], err = NewIPAddressBroker(manager, base, 10, 10+count, podName(i), baseWait)
+		brokers[i], err = NewIPAddressBroker(manager, base, 10, 10+space, podName(i), baseWait)
 		if err != nil {
 			t.Errorf("new failed: %s", err)
 		}
@@ -105,9 +113,21 @@ func TestBroker(t *testing.T) {
 	waitGroup.Wait()
 	time.Sleep(baseWait / 2) // wait for delayed update of mockManager
 
+	if space < count {
+		if err == nil {
+			t.Errorf("expected to fail as no free IP available")
+		} else {
+			if !strings.Contains(err.Error(), "cannot find any free IP address") {
+				t.Errorf("unexpected error: %s (should contain 'cannot find any free IP address')", err)
+			}
+		}
+		return
+	}
+
 	if err != nil {
 		t.Errorf("acquire failed: %s", err)
 	}
+
 	if len(manager.data) != count {
 		t.Errorf("pod count mismatch: %d != %d", len(manager.data), count)
 	}

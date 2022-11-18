@@ -126,6 +126,10 @@ func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 		time.Sleep(b.waitTime * time.Duration(rand.Intn(10)/10))
 	}
 
+	if b.hasConflict(result) {
+		return "", fmt.Errorf("cannot find any free IP address")
+	}
+
 	err = b.announceIPAddress(ctx, true, result)
 	if err != nil {
 		return "", fmt.Errorf("using IP address failed: %w", err)
