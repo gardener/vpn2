@@ -1,0 +1,226 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: Gardener VPN2
+Upstream-Contact: The Gardener project <gardener@googlegroups.com>
+Source: https://github.com/gardener/vpn2
+
+# --------------------------------------------------
+# source code
+
+Files:
+  .ci/*
+  .github/*
+  .gitignore
+  go/go.mod
+  go/go.sum
+  go/vendor/modules.txt
+  CODEOWNERS
+  NOTICE.md
+  VERSION
+  seed-server/*
+  shoot-client/*
+Copyright: 2022 SAP SE or an SAP affiliate company and Gardener contributors
+License: Apache-2.0
+
+# --------------------------------------------------
+# documentation
+
+Files:
+  CONTRIBUTING.md
+  README.md
+Copyright: 2020 SAP SE or an SAP affiliate company and Gardener contributors
+License: CC-BY-4.0
+
+# --------------------------------------------------
+# source dependencies
+
+Files: go/vendor/github.com/beorn7/perks/*
+Copyright: 2012-2015 The Prometheus Authors, 2013-2015 Blake Mizerany, Bjorn Rabenstein, 2010 The Go Authors, 2013 Matt T. Proud
+License: MIT
+
+Files: go/vendor/github.com/cespare/xxhash/v2/*
+Copyright: 2016 Caleb Spare
+License: MIT
+
+Files: go/vendor/github.com/davecgh/go-spew/*
+Copyright: 2015-2016 Dave Collins
+License: ISC
+
+Files: go/vendor/github.com/emicklei/go-restful/*
+Copyright: 2013 Ernest Micklei
+License: MIT
+
+Files: go/vendor/github.com/go-logr/logr/*
+Copyright: 2020 The logr
+License: Apache-2.0
+
+Files: go/vendor/github.com/go-openapi/jsonpointer/*
+Copyright: 2013 sigu-399 ( https://github.com/sigu-399 )
+License: Apache-2.0
+
+Files: go/vendor/github.com/go-openapi/jsonreference/*
+Copyright: 2013 sigu-399 ( https://github.com/sigu-399 )
+License: Apache-2.0
+
+Files: go/vendor/github.com/go-openapi/swag/*
+Copyright: 2015 go-swagger maintainers
+License: Apache-2.0
+
+Files: go/vendor/github.com/gogo/protobuf/*
+Copyright: 2015 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/github.com/golang/protobuf/*
+Copyright: 2010 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/github.com/google/gnostic/*
+Copyright: 2017 Google LLC.
+License: Apache-2.0
+
+Files: go/vendor/github.com/google/gofuzz/*
+Copyright: 2014 Google Inc.
+License: Apache-2.0
+
+Files: go/vendor/github.com/josharian/intern/*
+Copyright: n/a
+License: MIT
+
+Files: go/vendor/github.com/json-iterator/go/*
+Copyright: 2016 json-iterator
+License: MIT
+
+Files: go/vendor/github.com/kumina/openvpn_exporter/*
+Copyright: 2017 Kumina, https://kumina.nl/
+License: Apache-2.0
+
+Files: go/vendor/github.com/mailru/easyjson/*
+Copyright: 2016 Mail.Ru Group
+License: MIT
+
+Files: go/vendor/github.com/matttproud/golang_protobuf_extensions/*
+Copyright: 2012 Matt T. Proud (matt.proud@gmail.com)
+License: Apache-2.0
+
+Files: go/vendor/github.com/miekg/dns/*
+Copyright: 2009 The Go Authors, 2011 Miek Gieben, 2014 CloudFlare
+License: BSD-3-Clause
+
+Files: go/vendor/github.com/modern-go/concurrent/*
+Copyright: n/a
+License: Apache-2.0
+
+Files: go/vendor/github.com/modern-go/reflect2/*
+Copyright: n/a
+License: Apache-2.0
+
+Files: go/vendor/github.com/munnerz/goautoneg/*
+Copyright: 2011, Open Knowledge Foundation Ltd.
+License: BSD-3-Clause
+
+Files: go/vendor/github.com/prometheus/client_golang/*
+Copyright: 2012-2015 The Prometheus Authors, 2013-2015 Blake Mizerany, Bjorn Rabenstein, 2010 The Go Authors, 2013 Matt T. Proud
+License: Apache-2.0
+
+Files: go/vendor/github.com/prometheus/client_model/*
+Copyright: 2012-2015 The Prometheus Authors
+License: Apache-2.0
+
+Files: go/vendor/github.com/prometheus/common/*
+Copyright: 2015 The Prometheus Authors
+License: Apache-2.0
+
+Files: go/vendor/github.com/prometheus/procfs/*
+Copyright: 2014 Prometheus Team
+License: Apache-2.0
+
+Files: go/vendor/github.com/PuerkitoBio/purell/*
+Copyright: 2012-2022, The Go Authors, 2012-2022, Martin Angers, Yuki Okushi & Contributors
+License: BSD-3-Clause
+
+Files: go/vendor/github.com/PuerkitoBio/urlesc/*
+Copyright: 2009 The Go Authors.
+License: BSD-3-Clause
+
+Files: go/vendor/golang.org/x/net/*
+Copyright: 2009 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/golang.org/x/oauth2/*
+Copyright: 2009 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/golang.org/x/sys/*
+Copyright: 2009 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/golang.org/x/term/*
+Copyright: 2009 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/golang.org/x/text/*
+Copyright: 2009 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/golang.org/x/time/*
+Copyright: 2009 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/golang.org/x/xerrors/*
+Copyright: 2018 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/google.golang.org/appengine/*
+Copyright: 2011 Google Inc.
+License: Apache-2.0
+
+Files: go/vendor/google.golang.org/protobuf/*
+Copyright: 2008 Google Inc.
+License: BSD-3-Clause
+
+Files: go/vendor/gopkg.in/inf.v0/*
+Copyright: 2012 Peter Suranyi, Portions 2009 The Go Authors
+License: BSD-3-Clause
+
+Files: go/vendor/gopkg.in/yaml.v2/*
+Copyright: 2011-2016 Canonical Ltd.
+License: Apache-2.0 and MIT
+
+Files: go/vendor/gopkg.in/yaml.v3/*
+Copyright: 2011-2019 Canonical Ltd, 2006-2010 Kirill Simonov
+License: MIT and Apache-2.0
+
+Files: go/vendor/k8s.io/api/*
+Copyright: 2019 The Kubernetes Authors
+License: Apache-2.0
+
+Files: go/vendor/k8s.io/apimachinery/*
+Copyright: 2014 The Kubernetes Authors
+License: Apache-2.0 and BSD-3-Clause
+
+Files: go/vendor/k8s.io/client-go/*
+Copyright: 2015 The Kubernetes Authors
+License: Apache-2.0
+
+Files: go/vendor/k8s.io/klog/v2/*
+Copyright: 2013 Google Inc.
+License: Apache-2.0
+
+Files: go/vendor/k8s.io/kube-openapi/*
+Copyright: 2016 The Kubernetes Authors.
+License: Apache-2.0
+
+Files: go/vendor/k8s.io/utils/*
+Copyright: 2017 The Kubernetes Authors
+License: Apache-2.0
+
+Files: go/vendor/sigs.k8s.io/json/*
+Copyright: 2021 The Kubernetes Authors.
+License: Apache-2.0
+
+Files: go/vendor/sigs.k8s.io/structured-merge-diff/v4/*
+Copyright: 2018 The Kubernetes Authors
+License: Apache-2.0
+
+Files: go/vendor/sigs.k8s.io/yaml/*
+Copyright: 2014 Sam Ghods, 2012 The Go Authors
+License: MIT and BSD-3-Clause

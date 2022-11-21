@@ -1,5 +1,7 @@
 # VPN2
 
+[![reuse compliant](https://reuse.software/badge/reuse-compliant.svg)](https://reuse.software/)
+
 This repository contains components to establish network connectivity for Shoot clusters.
 
 ## What's inside

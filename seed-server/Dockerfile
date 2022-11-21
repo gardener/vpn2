@@ -12,12 +12,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+############# gobuilder
+FROM golang:1.19.3 AS gobuilder
+
+WORKDIR /build
+COPY ./VERSION ./VERSION
+COPY ./.git ./.git
+COPY ./go ./go
+ARG TARGETARCH
+RUN cd go; make build-openvpn-exporter GOARCH=$TARGETARCH
+
+############# builder
 FROM alpine:3.16.3 as builder
 
 RUN apk add --update bash openvpn bc iptables && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /volume
+
+COPY --from=gobuilder /build/go/openvpn-exporter ./openvpn-exporter
 
 ADD seed-server/network-connection.sh seed-server/openvpn.config.template seed-server/firewall.sh ./
 
@@ -83,6 +96,7 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /usr/lib/libxtables* ./usr/lib                                 && echo "package iptables" \
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables"
 
+############# vpn-seed-server
 FROM scratch
 
 COPY --from=builder /volume /

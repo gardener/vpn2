@@ -3,6 +3,7 @@
 /tmp/*
 /dev
 /go/acquire-ip
+/go/openvpn-exporter
 
 .vscode
 .idea
