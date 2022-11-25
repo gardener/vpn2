@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM alpine:3.16.2 as builder
+FROM alpine:3.16.3 as builder
 
 RUN apk add --update bash openvpn bc iptables && \
     rm -rf /var/cache/apk/*
