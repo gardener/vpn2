@@ -17,6 +17,7 @@ FROM golang:1.19.3 AS gobuilder
 
 WORKDIR /build
 COPY ./VERSION ./VERSION
+COPY ./.git ./.git
 COPY ./go ./go
 ARG TARGETARCH
 RUN cd go; make build GOARCH=$TARGETARCH
