@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-############# builder
+############# gobuilder
 FROM golang:1.19.3 AS gobuilder
 
 WORKDIR /build
@@ -20,9 +20,9 @@ COPY ./VERSION ./VERSION
 COPY ./.git ./.git
 COPY ./go ./go
 ARG TARGETARCH
-RUN cd go; make build GOARCH=$TARGETARCH
+RUN cd go; make build-acquire-ip GOARCH=$TARGETARCH
 
-
+############# builder
 FROM alpine:3.16.3 as builder
 
 RUN apk add --update bash openvpn iptables bc && \
@@ -97,6 +97,7 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /usr/lib/libxtables* ./usr/lib                                 && echo "package iptables" \
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables"
 
+############# vpn-shoot-client
 FROM scratch
 
 COPY --from=builder /volume /

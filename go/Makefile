@@ -1,22 +1,11 @@
-# Copyright (c) 2022 SAP SE or an SAP affiliate company. All rights reserved. This file is licensed under the Apache Software License, v. 2 except as noted otherwise in the LICENSE file
+# SPDX-FileCopyrightText: 2022 SAP SE or an SAP affiliate company and Gardener contributors
 #
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#      http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# SPDX-License-Identifier: Apache-2.0
 
 VERSION               := $(shell cat ../VERSION)
 IMAGE_TAG             := $(VERSION)
 EFFECTIVE_VERSION     := $(VERSION)-$(shell git rev-parse HEAD)
 GOARCH                := amd64
-EXECUTABLE            := "acquire-ip"
 
 .PHONY: revendor
 revendor:
@@ -33,10 +22,19 @@ test:
 	go test ./...
 
 .PHONY: build
-build:
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) GO111MODULE=on go build -o $(EXECUTABLE) \
+build: build-acquire-ip build-openvpn-exporter
+
+.PHONY: build-acquire-ip
+build-acquire-ip:
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) GO111MODULE=on go build -o acquire-ip \
         -mod=vendor \
 	    -ldflags "-X 'main.Version=$(EFFECTIVE_VERSION)' -X 'main.ImageTag=$(IMAGE_TAG)'"\
-	    ./main.go
+	    ./cmd/acquire_ip/main.go
 
+.PHONY: build-openvpn-exporter
+build-openvpn-exporter:
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(GOARCH) GO111MODULE=on go build -o openvpn-exporter \
+        -mod=vendor \
+	    -ldflags "-X 'main.Version=$(EFFECTIVE_VERSION)' -X 'main.ImageTag=$(IMAGE_TAG)'"\
+	    ./cmd/openvpn_exporter/main.go
 

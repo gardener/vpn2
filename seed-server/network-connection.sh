@@ -158,6 +158,10 @@ echo "script-security 2" >> openvpn.config
 echo "up \"/firewall.sh on $dev\"" >> openvpn.config
 echo "down \"/firewall.sh off $dev\"" >> openvpn.config
 
+if [[ -n "$OPENVPN_STATUS_PATH" ]]; then
+  echo "status \"$OPENVPN_STATUS_PATH\" 15" >> openvpn.config
+  echo "status-version 2" >> openvpn.config
+fi
 
 local_node_ip="${LOCAL_NODE_IP:-255.255.255.255}"
 
