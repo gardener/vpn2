@@ -25,11 +25,10 @@ spec:
       app: vpn-seed-server
   template:
     metadata:
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ''
       labels:
         app: vpn-seed-server
     spec:
+      priorityClassName: system-cluster-critical
       tolerations:
       - effect: NoExecute
         operator: Exists
