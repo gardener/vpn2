@@ -21,11 +21,14 @@ function log() {
     echo "[$(date -u)]: $*"
 }
 
-bondPrefix="192.168.122"
+# cidr for bonding network: 192.168.123.192/26
+bondPrefix="192.168.123"
+bondBits="26"
+bondStart="192"
 
 for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
-  ip="${bondPrefix}.$((c+10))"
-  logline+="$((c+10))=\${ping_return[$ip]} "
+  ip="${bondPrefix}.$((bondStart+c+2))"
+  logline+="$((bondStart+c+2))=\${ping_return[$ip]} "
 done
 logline+=' using $new_ip'
 new_ip=""
@@ -42,7 +45,7 @@ declare -A ping_return
 function pingAllShootClients() {
     set +e
     for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
-        ip="${bondPrefix}.$((c+10))"
+        ip="${bondPrefix}.$((bondStart+c+2))"
         ping -W 2 -w 2 -c 1 $ip > /dev/null &
         ping_pid[$ip]=$!
     done
@@ -54,7 +57,7 @@ function pingAllShootClients() {
     fi
 
     for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
-        ip="${bondPrefix}.$((c+10))"
+        ip="${bondPrefix}.$((bondStart+c+2))"
         wait ${ping_pid[$ip]}
         ping_return[$ip]=$?
     done
@@ -64,7 +67,7 @@ function pingAllShootClients() {
 function selectNewShootClient() {
     local good=()
     for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
-        ip="${bondPrefix}.$((c+10))"
+        ip="${bondPrefix}.$((bondStart+c+2))"
         if [[ "${ping_return[$ip]}" == "0" ]]; then
             good+=($ip)
         fi

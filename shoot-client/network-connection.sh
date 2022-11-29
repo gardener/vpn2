@@ -22,7 +22,10 @@ trap 'exit' TERM SIGINT
 
 openvpn_port="${OPENVPN_PORT:-8132}"
 
-bondPrefix="192.168.122"
+# cidr for bonding network: 192.168.123.192/26
+bondPrefix="192.168.123"
+bondBits="26"
+bondStart="192"
 
 tcp_keepalive_time="${TCP_KEEPALIVE_TIME:-7200}"
 tcp_keepalive_intvl="${TCP_KEEPALIVE_INTVL:-75}"
@@ -52,21 +55,21 @@ function configure_bonding() {
 
   if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
     # IP address is fixed on shoot side
-    addr="$bondPrefix.$((vpn_client_index+10))/24"
-    targets="${bondPrefix}.1" # using a dummy address as kube-apiserver IPs are unknown
+    addr="${bondPrefix}.$((bondStart+vpn_client_index+2))/$bondBits"
+    targets="${bondPrefix}.$((bondStart+1))" # using a dummy address as kube-apiserver IPs are unknown
   else
     # for each kube-apiserver pod acquire an IP via consensus
     # based on pod annotations (details see go part)
     log "acquiring ip address for bonding"
     OUTPUT=/tmp/acquired-ip ./acquire-ip
-    addr="$(</tmp/acquired-ip)/24"
+    addr="$(</tmp/acquired-ip)/$bondBits"
 
     for ((i=0; i < $HA_VPN_CLIENTS; i++))
     do
       if (( i > 0 )); then
         targets+=','
       fi
-      targets+="${bondPrefix}.$((i+10))"
+      targets+="${bondPrefix}.$((bondStart+i+2))"
     done
   fi
   log "bonding address is $addr"
@@ -109,7 +112,7 @@ fi
 # suffix for vpn client secret directory
 suffix=""
 if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
-  if [[ $POD_NAME =~ .*-([0-4])$ ]]; then
+  if [[ $POD_NAME =~ .*-([0-2])$ ]]; then
     suffix="-${BASH_REMATCH[1]}"
     vpn_client_index="${BASH_REMATCH[1]}"
   fi

@@ -29,16 +29,27 @@ fileNodeNetwork=
 [ -e "${baseConfigDir}/podNetwork" ] && filePodNetwork=$(cat ${baseConfigDir}/podNetwork)
 [ -e "${baseConfigDir}/nodeNetwork" ] && fileNodeNetwork=$(cat ${baseConfigDir}/nodeNetwork)
 
-n=123
 is_ha=
-if [[ $POD_NAME =~ .*-([0-4])$ ]]; then
+if [[ $POD_NAME =~ .*-([0-2])$ ]]; then
   is_ha=true
-  n=$((123 + ${BASH_REMATCH[1]}))
+  vpn_index=${BASH_REMATCH[1]}
 fi
-openvpn_prefix="192.168.${n}"
-openvpn_network="${openvpn_prefix}.0/24"
-pool_start_ip="${openvpn_prefix}.32"
-pool_end_ip="${openvpn_prefix}.254"
+
+if [[ -n $is_ha ]]; then
+  # HA VPN tunnels split the 192.168.123.0/24 into four ranges:
+  # vpn-server-0: 192.168.123.0/26
+  # vpn-server-1: 192.168.123.64/26
+  # vpn-server-2: 192.168.123.128/26 (optional)
+  # bonding:      192.168.123.192/26
+  openvpn_network="192.168.123.$(( vpn_index * 64 ))/26"
+  pool_start_ip="192.168.123.$(( vpn_index * 64 + 8 ))"
+  pool_end_ip="192.168.123.$(( vpn_index * 64 + 62 ))"
+else
+  openvpn_network="192.168.123.0/24"
+  pool_start_ip="192.168.123.10"
+  pool_end_ip="192.168.123.254"
+fi
+
 echo "using openvpn_network=$openvpn_network"
 
 service_network="${SERVICE_NETWORK:-${fileServiceNetwork}}"
@@ -57,6 +68,8 @@ CIDR2Netmask() {
     local numon=$(echo $cidr | cut -f2 -d/)
 
     local numoff=$(( 32 - $numon ))
+    local start
+    local end
     while [ "$numon" -ne "0" ]; do
             start=1${start}
             numon=$(( $numon - 1 ))
@@ -67,8 +80,9 @@ CIDR2Netmask() {
     done
     local bitstring=$start$end
 
-    bitmask=$(echo "obase=16 ; $(( 2#$bitstring )) " | bc | sed 's/.\{2\}/& /g')
+    local bitmask=$(echo "obase=16 ; $(( 2#$bitstring )) " | bc | sed 's/.\{2\}/& /g')
 
+    local str
     for t in $bitmask ; do
         str=$str.$((16#$t))
     done
@@ -109,7 +123,7 @@ if [[ -n $is_ha ]]; then
             -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask}/" \
             -e "s/\${POD_NETWORK_ADDRESS}/${pod_network_address}/" \
             -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask}/" \
-            -e "s/\${LOCAL_ADDRESS}/${openvpn_prefix}.$((i + 2))/" \
+            -e "s/\${LOCAL_ADDRESS}/192.168.123.$(( vpn_index * 64 + i + 2 ))/" \
             -e "s/\${OPENVPN_NETWORK_NETMASK}/${openvpn_network_netmask}/" \
             /client-config-dir/vpn-shoot-client-n.template > /client-config-dir/vpn-shoot-client-$i
     done
