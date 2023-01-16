@@ -28,7 +28,7 @@ bondStart="192"
 
 for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
   ip="${bondPrefix}.$((bondStart+c+2))"
-  logline+="$((bondStart+c+2))=\${ping_return[$ip]} "
+  logline+="$((bondStart+c+2))=\${ping_return_msg[$ip]} "
 done
 logline+=' using $new_ip'
 new_ip=""
@@ -41,6 +41,7 @@ fi
 
 declare -A ping_pid
 declare -A ping_return
+declare -A ping_return_msg
 
 function pingAllShootClients() {
     set +e
@@ -60,6 +61,11 @@ function pingAllShootClients() {
         ip="${bondPrefix}.$((bondStart+c+2))"
         wait ${ping_pid[$ip]}
         ping_return[$ip]=$?
+        if [[ "${ping_return[$ip]}" == "0" ]]; then
+          ping_return_msg[$ip]="ok"
+        else
+          ping_return_msg[$ip]="err"
+        fi
     done
     set -e
 }

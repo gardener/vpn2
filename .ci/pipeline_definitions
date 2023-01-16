@@ -28,7 +28,8 @@ vpn2:
     head-update:
       traits:
         draft_release: ~
-        component_descriptor: ~
+        component_descriptor:
+          retention_policy: 'clean-snapshots'
     pull-request:
       traits:
         pull-request: ~
