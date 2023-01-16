@@ -75,14 +75,23 @@ function configure_bonding() {
   log "bonding address is $addr"
 
   ip link del bond0 2> /dev/null || true
-  # use bonding with active-backup mode and activate ARP link monitoring
-  local cmd=$(echo ip link add bond0 type bond mode active-backup fail_over_mac 1 arp_interval 1000 arp_ip_target \"$targets\" arp_all_targets 0)
+  for ((i=0; i < $HA_VPN_SERVERS; i++))
+  do
+    # create tunnel devices
+    ip link del tap$i 2> /dev/null || true
+    openvpn --mktun --dev tap$i
+  done
+  # use bonding
+  # - with active-backup mode
+  # - activate ARP requests (but not used for monitoring as use_carrier=1 and arp_validate=none by default)
+  # - using `primary tap0` to avoid ambiguity of selection if multiple devices are up (primary_reselect=always by default)
+  # - using `num_grat_arp 5` as safe-guard on switching device
+  local cmd=$(echo ip link add bond0 type bond mode active-backup fail_over_mac 1 arp_interval 1000 arp_ip_target \"$targets\" arp_all_targets 0 primary tap0 num_grat_arp 5)
   log $cmd
   $(eval echo $cmd)
   for ((i=0; i < $HA_VPN_SERVERS; i++))
   do
-    # create tunnel devices and make them slaves of bond0
-    openvpn --mktun --dev tap$i
+    # make tunnel devices slaves of bond0
     ip link set tap$i master bond0
   done
   ip link set bond0 up
