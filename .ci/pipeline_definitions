@@ -35,7 +35,7 @@ vpn2:
             resource_labels:
             - name: 'gardener.cloud/cve-categorisation'
               value:
-                network_exposure: 'public'
+                network_exposure: 'protected'
                 authentication_enforced: false
                 user_interaction: 'end-user'
                 confidentiality_requirement: 'low'
