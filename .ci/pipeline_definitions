@@ -19,10 +19,28 @@ vpn2:
             registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/vpn-seed-server'
             dockerfile: 'seed-server/Dockerfile'
+            resource_labels:
+            - name: 'gardener.cloud/cve-categorisation'
+              value:
+                network_exposure: 'public'
+                authentication_enforced: true
+                user_interaction: 'end-user'
+                confidentiality_requirement: 'low'
+                integrity_requirement: 'high'
+                availability_requirement: 'high'
           vpn-shoot-client:
             registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/vpn-shoot-client'
             dockerfile: 'shoot-client/Dockerfile'
+            resource_labels:
+            - name: 'gardener.cloud/cve-categorisation'
+              value:
+                network_exposure: 'protected'
+                authentication_enforced: false
+                user_interaction: 'end-user'
+                confidentiality_requirement: 'low'
+                integrity_requirement: 'high'
+                availability_requirement: 'high'
     steps: ~
   jobs:
     head-update:
