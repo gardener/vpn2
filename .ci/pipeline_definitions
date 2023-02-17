@@ -3,6 +3,12 @@ vpn2:
   base_definition:
     repo: ~
     traits:
+      component_descriptor:
+        component_labels:
+        - name: 'cloud.gardener.cnudie/responsibles'
+          value:
+          - type: 'codeowners'
+        retention_policy: 'clean-snapshots'
       version:
         preprocess:
           'inject-commit-hash'
@@ -46,8 +52,6 @@ vpn2:
     head-update:
       traits:
         draft_release: ~
-        component_descriptor:
-          retention_policy: 'clean-snapshots'
     pull-request:
       traits:
         pull-request: ~
