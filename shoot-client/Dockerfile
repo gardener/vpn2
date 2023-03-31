@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ############# gobuilder
-FROM golang:1.19.5 AS gobuilder
+FROM golang:1.20.2 AS gobuilder
 
 WORKDIR /build
 COPY ./VERSION ./VERSION
@@ -23,7 +23,7 @@ ARG TARGETARCH
 RUN cd go; make build-acquire-ip GOARCH=$TARGETARCH
 
 ############# builder
-FROM alpine:3.16.3 as builder
+FROM alpine:3.16.5 as builder
 
 RUN apk add --update bash openvpn iptables bc && \
     rm -rf /var/cache/apk/*
