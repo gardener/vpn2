@@ -22,6 +22,14 @@ trap 'exit' TERM SIGINT
 
 openvpn_port="${OPENVPN_PORT:-8132}"
 
+if [[ "${IP_FAMILIES:-}" = "IPv4" ]] ; then
+  tcp_proto=tcp4
+  iptables=iptables
+else
+  tcp_proto=tcp6
+  iptables=ip6tables
+fi
+
 # cidr for bonding network: 192.168.123.192/26
 bondPrefix="192.168.123"
 bondBits="26"
@@ -102,11 +110,11 @@ function add_iptables_rule() {
   rule=$1
 
   set +e
-  iptables -C $rule > /dev/null
+  $iptables -C $rule > /dev/null
   rc=$?
   set -e
   if [[ "$rc" != "0" ]]; then
-    iptables -A $rule
+    $iptables -A $rule
   fi
 }
 
@@ -128,6 +136,7 @@ if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
 fi
 
 if [[ "$CONFIGURE_BONDING" == "true" ]]; then
+  # HA VPN is currently not supported in combination with IPv6
   log "configure bonding"
   configure_bonding
 fi
@@ -149,11 +158,11 @@ fi
 log "using $vpn_seed_server, dev $dev"
 
 sed -e "s/\${SUFFIX}/${suffix}/" \
+    -e "s/\${TCP_PROTO}/${tcp_proto}/" \
     openvpn.config.template > openvpn.config
 
 echo "pull-filter ignore redirect-gateway" >> openvpn.config
-echo "pull-filter ignore route-ipv6" >> openvpn.config
-echo "pull-filter ignore redirect-gateway-ipv6" >> openvpn.config
+echo "pull-filter ignore redirect-gateway-ipv6" >>openvpn.config
 
 echo "port ${openvpn_port}" >> openvpn.config
 if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
@@ -162,8 +171,10 @@ if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
   echo "http-proxy-option CUSTOM-HEADER Reversed-VPN ${reversed_vpn_header}" >> openvpn.config
 
   # enable forwarding and NAT
-  iptables --append FORWARD --in-interface $forward_device -j ACCEPT
-  iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
+  if [[ "${IP_FAMILIES:-}" = "IPv4" ]] ; then
+    $iptables --append FORWARD --in-interface $forward_device -j ACCEPT
+  fi
+  $iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
 else
   # Add firewall rules to block all traffic originating from the shoot cluster.
   add_iptables_rule "INPUT -m state --state RELATED,ESTABLISHED -i $forward_device -j ACCEPT"

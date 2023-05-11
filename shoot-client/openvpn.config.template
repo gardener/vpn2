@@ -13,7 +13,7 @@
 # limitations under the License.
 
 # use TCP instead of UDP (commonly not supported by load balancers)
-proto tcp-client
+proto ${TCP_PROTO}-client
 
 # don't cache authorization information in memory
 auth-nocache
