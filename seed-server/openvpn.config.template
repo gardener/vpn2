@@ -14,7 +14,7 @@
 
 mode server
 tls-server
-proto tcp4-server
+proto ${TCP_PROTO}-server
 topology subnet
 
 # Additonal optimizations
@@ -29,7 +29,7 @@ data-ciphers AES-256-CBC
 port 1194
 
 keepalive 10 60
-server ${OPENVPN_NETWORK_ADDRESS} ${OPENVPN_NETWORK_NETMASK} nopool
+server${DIRECTIVE_IP_SUFFIX} ${OPENVPN_NETWORK_ADDRESS} ${OPENVPN_NETWORK_NETMASK} nopool
 ifconfig-pool ${POOL_START_IP} ${POOL_END_IP}
 
 # client-config-dir to push client specific configuration

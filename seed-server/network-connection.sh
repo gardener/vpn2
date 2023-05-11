@@ -45,9 +45,16 @@ if [[ -n $is_ha ]]; then
   pool_start_ip="192.168.123.$(( vpn_index * 64 + 8 ))"
   pool_end_ip="192.168.123.$(( vpn_index * 64 + 62 ))"
 else
-  openvpn_network="192.168.123.0/24"
-  pool_start_ip="192.168.123.10"
-  pool_end_ip="192.168.123.254"
+  if [[ "${IP_FAMILIES:-}" = "IPv4" ]] ; then
+    openvpn_network="192.168.123.0/24"
+    pool_start_ip="192.168.123.10"
+    pool_end_ip="192.168.123.254"
+  else
+    # HA VPN is currently not supported in combination with IPv6
+    openvpn_network="fd8f:6d53:b97a:1::/120"
+    pool_start_ip="fd8f:6d53:b97a:1::a"
+    pool_end_ip="fd8f:6d53:b97a:1::fe"
+  fi
 fi
 
 echo "using openvpn_network=$openvpn_network"
@@ -90,41 +97,54 @@ CIDR2Netmask() {
     echo $str | cut -f2-  -d\.
 }
 
+if [[ "${IP_FAMILIES:-}" = "IPv4" ]] ; then
+  tcp_proto=tcp4
 
-openvpn_network_address=$(echo $openvpn_network | cut -f1 -d/)
-openvpn_network_netmask=$(CIDR2Netmask $openvpn_network)
+  openvpn_network_address=$(echo $openvpn_network | cut -f1 -d/)
+  openvpn_network_netmask=$(CIDR2Netmask $openvpn_network)
 
-service_network_address=$(echo $service_network | cut -f1 -d/)
-service_network_netmask=$(CIDR2Netmask $service_network)
+  service_network_address=$(echo $service_network | cut -f1 -d/)
+  service_network_netmask=$(CIDR2Netmask $service_network)
 
-pod_network_address=$(echo $pod_network | cut -f1 -d/)
-pod_network_netmask=$(CIDR2Netmask $pod_network)
+  pod_network_address=$(echo $pod_network | cut -f1 -d/)
+  pod_network_netmask=$(CIDR2Netmask $pod_network)
+else
+  tcp_proto=tcp6
+  directive_ip_suffix=-ipv6
+
+  openvpn_network_address="$openvpn_network"
+  service_network_address="$service_network"
+  pod_network_address="$pod_network"
+fi
 
 sed -e "s/\${SERVICE_NETWORK_ADDRESS}/${service_network_address}/" \
-    -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask}/" \
+    -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask:-}/" \
     -e "s/\${POD_NETWORK_ADDRESS}/${pod_network_address}/" \
-    -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask}/" \
+    -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask:-}/" \
     -e "s/\${OPENVPN_NETWORK_ADDRESS}/${openvpn_network_address}/" \
-    -e "s/\${OPENVPN_NETWORK_NETMASK}/${openvpn_network_netmask}/" \
+    -e "s/\${OPENVPN_NETWORK_NETMASK}/${openvpn_network_netmask:-}/" \
     -e "s/\${POOL_START_IP}/${pool_start_ip}/" \
     -e "s/\${POOL_END_IP}/${pool_end_ip}/" \
+    -e "s/\${TCP_PROTO}/${tcp_proto}/" \
+    -e "s/\${DIRECTIVE_IP_SUFFIX}/${directive_ip_suffix:-}/" \
     openvpn.config.template > openvpn.config
 
 sed -e "s/\${SERVICE_NETWORK_ADDRESS}/${service_network_address}/" \
-    -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask}/" \
+    -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask:-}/" \
     -e "s/\${POD_NETWORK_ADDRESS}/${pod_network_address}/" \
-    -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask}/" \
+    -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask:-}/" \
+    -e "s/\${DIRECTIVE_IP_SUFFIX}/${directive_ip_suffix:-}/" \
     /client-config-dir/vpn-shoot-client.template > /client-config-dir/vpn-shoot-client
 
 if [[ -n $is_ha ]]; then
     for ((i=0; i < $HA_VPN_CLIENTS; i++))
     do
         sed -e "s/\${SERVICE_NETWORK_ADDRESS}/${service_network_address}/" \
-            -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask}/" \
+            -e "s/\${SERVICE_NETWORK_NETMASK}/${service_network_netmask:-}/" \
             -e "s/\${POD_NETWORK_ADDRESS}/${pod_network_address}/" \
-            -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask}/" \
+            -e "s/\${POD_NETWORK_NETMASK}/${pod_network_netmask:-}/" \
             -e "s/\${LOCAL_ADDRESS}/192.168.123.$(( vpn_index * 64 + i + 2 ))/" \
-            -e "s/\${OPENVPN_NETWORK_NETMASK}/${openvpn_network_netmask}/" \
+            -e "s/\${OPENVPN_NETWORK_NETMASK}/${openvpn_network_netmask:-}/" \
             /client-config-dir/vpn-shoot-client-n.template > /client-config-dir/vpn-shoot-client-$i
     done
 fi
@@ -133,18 +153,24 @@ if [[ -n $is_ha ]]; then
     dev="tap0"
     echo "client-to-client" >> openvpn.config
     echo "duplicate-cn" >> openvpn.config
-else 
+else
     dev="tun0"
-    echo "route ${service_network_address} ${service_network_netmask}" >> openvpn.config
-    echo "route ${pod_network_address} ${pod_network_netmask}" >> openvpn.config
+    echo "route${directive_ip_suffix:-} ${service_network_address} ${service_network_netmask:-}" >> openvpn.config
+    echo "route${directive_ip_suffix:-} ${pod_network_address} ${pod_network_netmask:-}" >> openvpn.config
 
     if [[ ! -z "$node_network" ]]; then
         for n in $(echo $node_network |  sed 's/[][]//g' | sed 's/,/ /g')
         do
-            node_network_address=$(echo $n | cut -f1 -d/)
-            node_network_netmask=$(CIDR2Netmask $n)
-            echo "route ${node_network_address} ${node_network_netmask}" >> openvpn.config
-            echo "iroute ${node_network_address} ${node_network_netmask}" >> /client-config-dir/vpn-shoot-client
+            if [[ "${IP_FAMILIES:-}" = "IPv4" ]] ; then
+              node_network_address=$(echo $n | cut -f1 -d/)
+              node_network_netmask=$(CIDR2Netmask $n)
+              echo "route ${node_network_address} ${node_network_netmask}" >> openvpn.config
+              echo "iroute ${node_network_address} ${node_network_netmask}" >> /client-config-dir/vpn-shoot-client
+            else
+              node_network_address="$n"
+              echo "route-ipv6 ${node_network_address}" >> openvpn.config
+              echo "iroute-ipv6 ${node_network_address}" >> /client-config-dir/vpn-shoot-client
+            fi
         done
     fi
 fi
@@ -166,4 +192,4 @@ fi
 local_node_ip="${LOCAL_NODE_IP:-255.255.255.255}"
 
 # filter log output to remove readiness/liveness probes from local node
-openvpn --config openvpn.config | grep -v -E "TCP connection established with \[AF_INET\]${local_node_ip}|${local_node_ip}:[0-9]{1,5} Connection reset, restarting"
+openvpn --config openvpn.config | grep -v -E "(TCP connection established with \[AF_INET(6)?\]${local_node_ip}|)?${local_node_ip}(:[0-9]{1,5})? Connection reset, restarting"
