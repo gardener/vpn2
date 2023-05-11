@@ -25,7 +25,7 @@ RUN cd go; make build-openvpn-exporter GOARCH=$TARGETARCH
 ############# builder
 FROM alpine:3.18.4 as builder
 
-RUN apk add --update bash openvpn iptables ncurses-libs bc libcrypto1.1 && \
+RUN apk add --update bash openvpn iptables ncurses-libs bc libcrypto1.1 ip6tables && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /volume
@@ -97,7 +97,8 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /usr/lib/libip6* ./usr/lib                                     && echo "package iptables" \
     && cp -d /usr/lib/libipq* ./usr/lib                                     && echo "package iptables" \
     && cp -d /usr/lib/libxtables* ./usr/lib                                 && echo "package iptables" \
-    && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables"
+    && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables" \
+    && cp -d /sbin/ip6tables* ./sbin                                        && echo "package ip6tables"
 
 ############# vpn-seed-server
 FROM scratch
