@@ -22,11 +22,8 @@ trap 'exit' TERM SIGINT
 
 openvpn_port="${OPENVPN_PORT:-8132}"
 
-if [[ "${IP_FAMILIES:-}" = "IPv4" ]] ; then
-  tcp_proto=tcp4
-  iptables=iptables
-else
-  tcp_proto=tcp6
+iptables=iptables
+if [[ "${IP_FAMILIES:-}" = "IPv6" ]]; then
   iptables=ip6tables
 fi
 
@@ -43,9 +40,9 @@ tcp_retries2="${TCP_RETRIES2:-5}"
 ENDPOINT="${ENDPOINT}"
 
 function set_value() {
-  if [ -f $1 ] ; then
+  if [ -f $1 ]; then
     log "Setting $2 on $1"
-    echo "$2" > $1
+    echo "$2" >$1
   fi
 }
 
@@ -63,8 +60,8 @@ function configure_bonding() {
 
   if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
     # IP address is fixed on shoot side
-    addr="${bondPrefix}.$((bondStart+vpn_client_index+2))/$bondBits"
-    targets="${bondPrefix}.$((bondStart+1))" # using a dummy address as kube-apiserver IPs are unknown
+    addr="${bondPrefix}.$((bondStart + vpn_client_index + 2))/$bondBits"
+    targets="${bondPrefix}.$((bondStart + 1))" # using a dummy address as kube-apiserver IPs are unknown
   else
     # for each kube-apiserver pod acquire an IP via consensus
     # based on pod annotations (details see go part)
@@ -72,21 +69,19 @@ function configure_bonding() {
     OUTPUT=/tmp/acquired-ip ./acquire-ip
     addr="$(</tmp/acquired-ip)/$bondBits"
 
-    for ((i=0; i < $HA_VPN_CLIENTS; i++))
-    do
-      if (( i > 0 )); then
+    for ((i = 0; i < $HA_VPN_CLIENTS; i++)); do
+      if ((i > 0)); then
         targets+=','
       fi
-      targets+="${bondPrefix}.$((bondStart+i+2))"
+      targets+="${bondPrefix}.$((bondStart + i + 2))"
     done
   fi
   log "bonding address is $addr"
 
-  ip link del bond0 2> /dev/null || true
-  for ((i=0; i < $HA_VPN_SERVERS; i++))
-  do
+  ip link del bond0 2>/dev/null || true
+  for ((i = 0; i < $HA_VPN_SERVERS; i++)); do
     # create tunnel devices
-    ip link del tap$i 2> /dev/null || true
+    ip link del tap$i 2>/dev/null || true
     openvpn --mktun --dev tap$i
   done
   # use bonding
@@ -97,8 +92,7 @@ function configure_bonding() {
   local cmd=$(echo ip link add bond0 type bond mode active-backup fail_over_mac 1 arp_interval 1000 arp_ip_target \"$targets\" arp_all_targets 0 primary tap0 num_grat_arp 5)
   log $cmd
   $(eval echo $cmd)
-  for ((i=0; i < $HA_VPN_SERVERS; i++))
-  do
+  for ((i = 0; i < $HA_VPN_SERVERS; i++)); do
     # make tunnel devices slaves of bond0
     ip link set tap$i master bond0
   done
@@ -110,7 +104,7 @@ function add_iptables_rule() {
   rule=$1
 
   set +e
-  $iptables -C $rule > /dev/null
+  $iptables -C $rule >/dev/null
   rc=$?
   set -e
   if [[ "$rc" != "0" ]]; then
@@ -123,7 +117,7 @@ if [[ "$DO_NOT_CONFIGURE_KERNEL_SETTINGS" != "true" ]]; then
   configure_tcp
 
   # make sure forwarding is enabled
-  echo 1 > /proc/sys/net/ipv4/ip_forward
+  echo 1 >/proc/sys/net/ipv4/ip_forward
 fi
 
 # suffix for vpn client secret directory
@@ -157,21 +151,57 @@ if [[ -n "$VPN_SERVER_INDEX" ]]; then
 fi
 log "using $vpn_seed_server, dev $dev"
 
-sed -e "s/\${SUFFIX}/${suffix}/" \
-    -e "s/\${TCP_PROTO}/${tcp_proto}/" \
-    openvpn.config.template > openvpn.config
+# Write default config
+cat >openvpn.config <<EOF
+# use TCP instead of UDP (commonly not supported by load balancers)
 
-echo "pull-filter ignore redirect-gateway" >> openvpn.config
-echo "pull-filter ignore redirect-gateway-ipv6" >>openvpn.config
+# don't cache authorization information in memory
+auth-nocache
 
-echo "port ${openvpn_port}" >> openvpn.config
+# stop process if something goes wrong
+remap-usr1 SIGTERM
+
+# Additonal optimizations
+txqueuelen 1000
+
+# get all routing information from server
+pull
+
+cipher AES-256-CBC
+data-ciphers AES-256-CBC
+
+tls-client
+
+tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
+
+# https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
+remote-cert-tls server
+EOF
+
+# Write config that is dependent on the IP family
+if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
+  printf 'proto tcp4-client\n' >>openvpn.config
+else
+  printf 'proto tcp6-client\n' >>openvpn.config
+fi
+
+{
+  printf 'key /srv/secrets/vpn-client%s/tls.key\n' "$suffix"
+  printf 'cert /srv/secrets/vpn-client%s/tls.crt\n' "$suffix"
+  printf 'ca /srv/secrets/vpn-client%s/ca.crt\n' "$suffix"
+} >>openvpn.config
+
+echo "pull-filter ignore redirect-gateway" >>openvpn.config
+echo "pull-filter ignore  redirect-gateway-ipv6" >>openvpn.config
+
+echo "port ${openvpn_port}" >>openvpn.config
 if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
   # use http proxy only for vpn-shoot-client
-  echo "http-proxy ${ENDPOINT} ${openvpn_port}" >> openvpn.config
-  echo "http-proxy-option CUSTOM-HEADER Reversed-VPN ${reversed_vpn_header}" >> openvpn.config
+  echo "http-proxy ${ENDPOINT} ${openvpn_port}" >>openvpn.config
+  echo "http-proxy-option CUSTOM-HEADER Reversed-VPN ${reversed_vpn_header}" >>openvpn.config
 
   # enable forwarding and NAT
-  if [[ "${IP_FAMILIES:-}" = "IPv4" ]] ; then
+  if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
     $iptables --append FORWARD --in-interface $forward_device -j ACCEPT
   fi
   $iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
@@ -181,7 +211,7 @@ else
   add_iptables_rule "INPUT -i $forward_device -j DROP"
 fi
 
-while : ; do
+while :; do
   if [[ -n $ENDPOINT ]]; then
     log "openvpn --dev $dev --remote $ENDPOINT --config openvpn.config"
     openvpn --dev $dev --remote $ENDPOINT --config openvpn.config

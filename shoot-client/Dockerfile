@@ -33,7 +33,6 @@ WORKDIR /volume
 COPY --from=gobuilder /build/go/acquire-ip ./acquire-ip
 
 ADD shoot-client/network-connection.sh \
-    shoot-client/openvpn.config.template \
     shoot-client/path-controller.sh \
     ./
 
