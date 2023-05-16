@@ -118,6 +118,7 @@ if [[ "$DO_NOT_CONFIGURE_KERNEL_SETTINGS" != "true" ]]; then
 
   # make sure forwarding is enabled
   echo 1 >/proc/sys/net/ipv4/ip_forward
+  echo 1 >/proc/sys/net/ipv6/conf/all/forwarding
 fi
 
 # suffix for vpn client secret directory
