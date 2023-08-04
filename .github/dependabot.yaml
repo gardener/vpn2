@@ -1,0 +1,12 @@
+version: 2
+updates:
+# Create PRs for golang version updates in seed-server
+- package-ecosystem: docker
+  directory: /seed-server/
+  schedule:
+    interval: daily
+# Create PRs for golang version updates in shoot-client
+- package-ecosystem: docker
+  directory: /shoot-client/
+  schedule:
+    interval: daily
