@@ -25,7 +25,7 @@ RUN cd go; make build-acquire-ip GOARCH=$TARGETARCH
 ############# builder
 FROM alpine:3.18.2 as builder
 
-RUN apk add --update bash openvpn iptables bc && \
+RUN apk add --update bash openvpn iptables ncurses-libs bc libcrypto1.1 && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /volume
@@ -67,10 +67,13 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /bin/sed ./bin                                                 && echo "package sed" \
     && cp -d /usr/lib/libcap.* ./usr/lib                                    && echo "package libcap" \
     && cp -d /usr/lib/libpsx.* ./usr/lib                                    && echo "package libcap" \
+    && cp -d /usr/lib/libcap-ng.* ./usr/lib                                 && echo "package libcap-ng-dev" \
     && cp -d /usr/lib/libbz2* ./usr/lib                                     && echo "package libbz2" \
+    && cp -d /usr/lib/liblz4* ./usr/lib                                     && echo "package lz4-libs" \
     && cp -d /usr/lib/libfts* ./usr/lib                                     && echo "package fts" \
     && cp -d /usr/lib/liblzma* ./usr/lib                                    && echo "package xz-libs" \
     && cp -d /lib/libz.* ./lib                                              && echo "package zlib" \
+    && cp -d /usr/lib/libzstd.* ./usr/lib                                   && echo "package zstd-libs" \
     && cp -d /usr/lib/libasm* ./usr/lib                                     && echo "package libelf" \
     && cp -d /usr/lib/libdw* ./usr/lib                                      && echo "package libelf" \
     && cp -d /usr/lib/libelf* ./usr/lib                                     && echo "package libelf" \
