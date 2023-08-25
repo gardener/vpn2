@@ -1,6 +1,6 @@
 module github.com/gardener/vpn2
 
-go 1.20
+go 1.21
 
 require (
 	github.com/kumina/openvpn_exporter v0.3.0
