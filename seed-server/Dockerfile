@@ -23,7 +23,7 @@ ARG TARGETARCH
 RUN cd go; make build-openvpn-exporter GOARCH=$TARGETARCH
 
 ############# builder
-FROM alpine:3.18.3 as builder
+FROM alpine:3.18.4 as builder
 
 RUN apk add --update bash openvpn iptables ncurses-libs bc libcrypto1.1 && \
     rm -rf /var/cache/apk/*
