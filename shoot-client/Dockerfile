@@ -13,7 +13,7 @@
 # limitations under the License.
 
 ############# gobuilder
-FROM golang:1.21.1 AS gobuilder
+FROM golang:1.21.2 AS gobuilder
 
 WORKDIR /build
 COPY ./VERSION ./VERSION
