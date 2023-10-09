@@ -39,6 +39,11 @@ if [[ $POD_NAME =~ .*-([0-2])$ ]]; then
 fi
 
 if [[ -n $is_ha ]]; then
+  if [[ "$IP_FAMILIES" != "IPv4" ]]; then
+    log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
+    exit 1
+  fi
+
   # HA VPN tunnels split the 192.168.123.0/24 into four ranges:
   # vpn-server-0: 192.168.123.0/26
   # vpn-server-1: 192.168.123.64/26
@@ -53,12 +58,11 @@ else
     pool_start_ip="192.168.123.10"
     pool_end_ip="192.168.123.254"
   else
-    # HA VPN is currently not supported in combination with IPv6
     openvpn_network="fd8f:6d53:b97a:1::/120"
   fi
 fi
 
-echo "using openvpn_network=$openvpn_network"
+log "using openvpn_network=$openvpn_network"
 
 service_network="${SERVICE_NETWORK:-${fileServiceNetwork}}"
 service_network="${service_network:-100.64.0.0/13}"

@@ -133,7 +133,11 @@ if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
 fi
 
 if [[ "$CONFIGURE_BONDING" == "true" ]]; then
-  # HA VPN is currently not supported in combination with IPv6
+  if [[ "$IP_FAMILIES" != "IPv4" ]]; then
+    log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
+    exit 1
+  fi
+
   log "configure bonding"
   configure_bonding
 fi
