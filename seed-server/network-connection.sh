@@ -20,6 +20,9 @@ function log() {
 
 trap 'exit' TERM SIGINT
 
+# apply env var defaults
+IP_FAMILIES="${IP_FAMILIES:-IPv4}"
+
 # for each cidr config, it looks first at its env var, then a local file (which may be a volume mount), then the default
 baseConfigDir="/init-config"
 fileServiceNetwork=
@@ -45,7 +48,7 @@ if [[ -n $is_ha ]]; then
   pool_start_ip="192.168.123.$((vpn_index * 64 + 8))"
   pool_end_ip="192.168.123.$((vpn_index * 64 + 62))"
 else
-  if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
+  if [[ "$IP_FAMILIES" = "IPv4" ]]; then
     openvpn_network="192.168.123.0/24"
     pool_start_ip="192.168.123.10"
     pool_end_ip="192.168.123.254"
@@ -126,7 +129,7 @@ tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 EOF
 
 # Write config that is dependent on the IP family
-if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
+if [[ "$IP_FAMILIES" = "IPv4" ]]; then
   {
     printf 'proto tcp4-server\n'
     printf 'server %s %s nopool\n' "$(echo $openvpn_network | cut -f1 -d/)" "$(CIDR2Netmask $openvpn_network)"
@@ -160,7 +163,7 @@ if [[ -n $is_ha ]]; then
 else
   dev="tun0"
 
-  if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
+  if [[ "$IP_FAMILIES" = "IPv4" ]]; then
     {
       printf "route %s %s\n" "$(echo $service_network | cut -f1 -d/)" "$(CIDR2Netmask $service_network)"
       printf "route %s %s\n" "$(echo $pod_network | cut -f1 -d/)" "$(CIDR2Netmask $pod_network)"
@@ -174,7 +177,7 @@ else
 
   if [[ -n "$node_network" ]]; then
     for n in $(echo $node_network | sed 's/[][]//g' | sed 's/,/ /g'); do
-      if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
+      if [[ "$IP_FAMILIES" = "IPv4" ]]; then
         node_network_address=$(echo $n | cut -f1 -d/)
         node_network_netmask=$(CIDR2Netmask $n)
         printf 'route %s %s\n' "${node_network_address}" "${node_network_netmask}" >>openvpn.config

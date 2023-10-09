@@ -20,10 +20,12 @@ function log() {
 
 trap 'exit' TERM SIGINT
 
+# apply env var defaults
+IP_FAMILIES="${IP_FAMILIES:-IPv4}"
 openvpn_port="${OPENVPN_PORT:-8132}"
 
 iptables=iptables
-if [[ "${IP_FAMILIES:-}" = "IPv6" ]]; then
+if [[ "$IP_FAMILIES" = "IPv6" ]]; then
   iptables=ip6tables
 fi
 
@@ -180,7 +182,7 @@ remote-cert-tls server
 EOF
 
 # Write config that is dependent on the IP family
-if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
+if [[ "$IP_FAMILIES" = "IPv4" ]]; then
   printf 'proto tcp4-client\n' >>openvpn.config
 else
   printf 'proto tcp6-client\n' >>openvpn.config
@@ -202,7 +204,7 @@ if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
   echo "http-proxy-option CUSTOM-HEADER Reversed-VPN ${reversed_vpn_header}" >>openvpn.config
 
   # enable forwarding and NAT
-  if [[ "${IP_FAMILIES:-}" = "IPv4" ]]; then
+  if [[ "$IP_FAMILIES" = "IPv4" ]]; then
     $iptables --append FORWARD --in-interface $forward_device -j ACCEPT
   fi
   $iptables --append POSTROUTING --out-interface eth0 --table nat -j MASQUERADE
