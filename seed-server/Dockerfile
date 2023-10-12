@@ -25,17 +25,16 @@ RUN cd go; make build-openvpn-exporter GOARCH=$TARGETARCH
 ############# builder
 FROM alpine:3.18.4 as builder
 
-RUN apk add --update bash openvpn iptables ncurses-libs bc libcrypto1.1 && \
+RUN apk add --update bash openvpn iptables ncurses-libs bc libcrypto1.1 ip6tables && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /volume
 
 COPY --from=gobuilder /build/go/openvpn-exporter ./openvpn-exporter
 
-ADD seed-server/network-connection.sh seed-server/openvpn.config.template seed-server/firewall.sh ./
+ADD seed-server/network-connection.sh seed-server/firewall.sh ./
 
 RUN mkdir -p ./client-config-dir
-ADD seed-server/vpn-shoot-client.template seed-server/vpn-shoot-client-n.template ./client-config-dir/
 
 RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables ./usr/lib/bash ./tmp ./run ./etc/bash ./etc/openvpn ./usr/lib/openvpn/plugins ./etc/iproute2 ./etc/terminfo ./etc/logrotate.d ./etc/network/if-up.d ./usr/share/udhcpc ./etc/ssl/misc ./usr/lib/engines-1.1 \
     && cp -d /lib/ld-musl-* ./lib                                           && echo "package musl" \
@@ -97,7 +96,8 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /usr/lib/libip6* ./usr/lib                                     && echo "package iptables" \
     && cp -d /usr/lib/libipq* ./usr/lib                                     && echo "package iptables" \
     && cp -d /usr/lib/libxtables* ./usr/lib                                 && echo "package iptables" \
-    && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables"
+    && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables" \
+    && cp -d /sbin/ip6tables* ./sbin                                        && echo "package ip6tables"
 
 ############# vpn-seed-server
 FROM scratch
