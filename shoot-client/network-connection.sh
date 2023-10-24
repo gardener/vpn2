@@ -178,6 +178,7 @@ data-ciphers AES-256-GCM:AES-128-GCM
 
 tls-client
 
+auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
 
 # https://openvpn.net/index.php/open-source/documentation/howto.html#mitm

@@ -128,6 +128,7 @@ cert "/srv/secrets/vpn-server/tls.crt"
 ca "/srv/secrets/vpn-server/ca.crt"
 dh none
 
+auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 EOF
 
