@@ -126,7 +126,7 @@ client-config-dir /client-config-dir
 key "/srv/secrets/vpn-server/tls.key"
 cert "/srv/secrets/vpn-server/tls.crt"
 ca "/srv/secrets/vpn-server/ca.crt"
-dh "/srv/secrets/dh/dh2048.pem"
+dh none
 
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 EOF
