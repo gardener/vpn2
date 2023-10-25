@@ -174,7 +174,7 @@ txqueuelen 1000
 # get all routing information from server
 pull
 
-data-ciphers AES-256-GCM:AES-128-GCM
+data-ciphers AES-256-GCM
 
 tls-client
 
