@@ -111,7 +111,7 @@ topology subnet
 # Additonal optimizations
 txqueuelen 1000
 
-data-ciphers AES-256-GCM:AES-128-GCM
+data-ciphers AES-256-GCM:AES-128-GCM:AES-256-CBC
 
 # port can always be 1194 here as it is not visible externally. A different
 # port can be configured for the external load balancer in the service
