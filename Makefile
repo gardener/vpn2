@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 VERSION                       := $(shell cat VERSION)
-REGISTRY                      := eu.gcr.io/gardener-project/gardener
+REGISTRY                      := europe-docker.pkg.dev/gardener-project/public/gardener
 PREFIX                        := vpn
 SEED_SERVER_IMAGE_REPOSITORY  := $(REGISTRY)/$(PREFIX)-seed-server
 SEED_SERVER_IMAGE_TAG         := $(VERSION)
