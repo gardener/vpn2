@@ -34,7 +34,7 @@ spec:
         operator: Exists
       containers:
       - name: vpn-seed-server
-        image: eu.gcr.io/gardener-project/gardener/vpn-seed-server:0.9.0
+        image: europe-docker.pkg.dev/gardener-project/public/gardener/vpn-seed-server:0.9.0
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true

@@ -34,7 +34,7 @@ spec:
         operator: Exists
       containers:
       - name: vpn-shoot-client
-        image: eu.gcr.io/gardener-project/gardener/vpn-shoot-client:0.9.0
+        image: europe-docker.pkg.dev/gardener-project/public/gardener/vpn-shoot-client:0.9.0
         imagePullPolicy: IfNotPresent
         securityContext:
           privileged: true
