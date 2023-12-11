@@ -1,7 +1,5 @@
 vpn2:
-  template: 'default'
   base_definition:
-    repo: ~
     traits:
       component_descriptor:
         component_labels:
@@ -22,7 +20,6 @@ vpn2:
             inputs:
               repos:
                 source: ~ # default
-            registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/vpn-seed-server'
             dockerfile: 'seed-server/Dockerfile'
             resource_labels:
@@ -35,7 +32,6 @@ vpn2:
                 integrity_requirement: 'high'
                 availability_requirement: 'high'
           vpn-shoot-client:
-            registry: 'gcr-readwrite'
             image: 'eu.gcr.io/gardener-project/gardener/vpn-shoot-client'
             dockerfile: 'shoot-client/Dockerfile'
             resource_labels:
