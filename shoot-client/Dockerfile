@@ -23,9 +23,9 @@ ARG TARGETARCH
 RUN cd go; make build-acquire-ip GOARCH=$TARGETARCH
 
 ############# builder
-FROM alpine:3.18.5 as builder
+FROM alpine:3.19.0 as builder
 
-RUN apk add --update bash openvpn iptables ip6tables ncurses-libs bc libcrypto1.1 && \
+RUN apk add --update bash openvpn iptables ip6tables ncurses-libs bc && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /volume
@@ -67,25 +67,18 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /usr/lib/libcap.* ./usr/lib                                    && echo "package libcap" \
     && cp -d /usr/lib/libpsx.* ./usr/lib                                    && echo "package libcap" \
     && cp -d /usr/lib/libcap-ng.* ./usr/lib                                 && echo "package libcap-ng-dev" \
-    && cp -d /usr/lib/libbz2* ./usr/lib                                     && echo "package libbz2" \
-    && cp -d /usr/lib/liblz4* ./usr/lib                                     && echo "package lz4-libs" \
-    && cp -d /usr/lib/libfts* ./usr/lib                                     && echo "package fts" \
-    && cp -d /usr/lib/liblzma* ./usr/lib                                    && echo "package xz-libs" \
     && cp -d /lib/libz.* ./lib                                              && echo "package zlib" \
     && cp -d /usr/lib/libzstd.* ./usr/lib                                   && echo "package zstd-libs" \
-    && cp -d /usr/lib/libasm* ./usr/lib                                     && echo "package libelf" \
-    && cp -d /usr/lib/libdw* ./usr/lib                                      && echo "package libelf" \
     && cp -d /usr/lib/libelf* ./usr/lib                                     && echo "package libelf" \
     && cp -d /usr/lib/libmnl.* ./usr/lib                                    && echo "package libmnl" \
     && cp -d /sbin/ip ./sbin                                                && echo "package iproute2-minimal" \
-    && cp -d /etc/iproute2/* ./etc/iproute2                                 && echo "package iproute2-minimal" \
     && cp -d -r /etc/ssl/* ./etc/ssl                                        && echo "package libcrypto1.1" \
     && cp -d /lib/libcrypto.so.* ./lib                                      && echo "package libcrypto1.1" \
     && cp -d /usr/lib/libcrypto.so.* ./usr/lib                              && echo "package libcrypto1.1" \
-    && cp -d /usr/lib/engines-1.1/*.so ./usr/lib/engines-1.1                && echo "package libcrypto1.1" \
     && cp -d /lib/libssl.so.* ./lib                                         && echo "package libssl1.1" \
     && cp -d /usr/lib/libssl.so.* ./usr/lib                                 && echo "package libssl1.1" \
     && cp -d /usr/lib/liblzo2.so.* ./usr/lib                                && echo "package lzo" \
+    && cp -d /usr/lib/liblz4.so.* ./usr/lib                                 && echo "package openvpn" \
     && cp -d /usr/sbin/openvpn ./usr/sbin                                   && echo "package openvpn" \
     && cp -d /etc/openvpn/* ./etc/openvpn                                   && echo "package openvpn" \
     && cp -d /usr/lib/openvpn/plugins/openvpn* ./usr/lib/openvpn/plugins    && echo "package openvpn" \
@@ -93,9 +86,6 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /etc/ethertypes ./etc                                          && echo "package iptables" \
     && cp -d /sbin/iptables* ./sbin                                         && echo "package iptables" \
     && cp -d /sbin/xtables* ./sbin                                          && echo "package iptables" \
-    && cp -d /usr/lib/libip4* ./usr/lib                                     && echo "package iptables" \
-    && cp -d /usr/lib/libip6* ./usr/lib                                     && echo "package iptables" \
-    && cp -d /usr/lib/libipq* ./usr/lib                                     && echo "package iptables" \
     && cp -d /usr/lib/libxtables* ./usr/lib                                 && echo "package iptables" \
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables" \
     && cp -d /sbin/ip6tables* ./sbin                                        && echo "package ip6tables"
