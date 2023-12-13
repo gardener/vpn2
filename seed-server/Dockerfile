@@ -25,7 +25,7 @@ RUN cd go; make build-openvpn-exporter GOARCH=$TARGETARCH
 ############# builder
 FROM alpine:3.19.0 as builder
 
-RUN apk add --update bash openvpn iptables-legacy ncurses-libs bc ip6tables && \
+RUN apk add --update bash openvpn iptables iptables-legacy ncurses-libs bc && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /volume
