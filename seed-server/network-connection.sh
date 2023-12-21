@@ -25,44 +25,16 @@ IP_FAMILIES="${IP_FAMILIES:-IPv4}"
 
 # for each cidr config, it looks first at its env var, then a local file (which may be a volume mount), then the default
 baseConfigDir="/init-config"
+
 fileServiceNetwork=
 filePodNetwork=
 fileNodeNetwork=
+fileVPNNetwork=
+
 [ -e "${baseConfigDir}/serviceNetwork" ] && fileServiceNetwork=$(cat ${baseConfigDir}/serviceNetwork)
 [ -e "${baseConfigDir}/podNetwork" ] && filePodNetwork=$(cat ${baseConfigDir}/podNetwork)
 [ -e "${baseConfigDir}/nodeNetwork" ] && fileNodeNetwork=$(cat ${baseConfigDir}/nodeNetwork)
-
-is_ha=
-if [[ $POD_NAME =~ .*-([0-2])$ ]]; then
-  is_ha=true
-  vpn_index=${BASH_REMATCH[1]}
-fi
-
-if [[ -n $is_ha ]]; then
-  if [[ "$IP_FAMILIES" != "IPv4" ]]; then
-    log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
-    exit 1
-  fi
-
-  # HA VPN tunnels split the 192.168.123.0/24 into four ranges:
-  # vpn-server-0: 192.168.123.0/26
-  # vpn-server-1: 192.168.123.64/26
-  # vpn-server-2: 192.168.123.128/26 (optional)
-  # bonding:      192.168.123.192/26
-  openvpn_network="192.168.123.$((vpn_index * 64))/26"
-  pool_start_ip="192.168.123.$((vpn_index * 64 + 8))"
-  pool_end_ip="192.168.123.$((vpn_index * 64 + 62))"
-else
-  if [[ "$IP_FAMILIES" = "IPv4" ]]; then
-    openvpn_network="192.168.123.0/24"
-    pool_start_ip="192.168.123.10"
-    pool_end_ip="192.168.123.254"
-  else
-    openvpn_network="fd8f:6d53:b97a:1::/120"
-  fi
-fi
-
-log "using openvpn_network=$openvpn_network"
+[ -e "${baseConfigDir}/vpnNetwork" ] && fileVPNNetwork=$(cat ${baseConfigDir}/vpnNetwork)
 
 service_network="${SERVICE_NETWORK:-${fileServiceNetwork}}"
 service_network="${service_network:-100.64.0.0/13}"
@@ -70,6 +42,52 @@ pod_network="${POD_NETWORK:-${filePodNetwork}}"
 pod_network="${pod_network:-100.96.0.0/11}"
 node_network="${NODE_NETWORK:-${fileNodeNetwork}}"
 node_network="${node_network:-}"
+vpn_network="${VPN_NETWORK:-${fileVPNNetwork}}"
+vpn_network="${vpn_network:-192.168.123.0/24}"
+
+is_ha=
+if [[ $POD_NAME =~ .*-([0-2])$ ]]; then
+  is_ha=true
+  vpn_index=${BASH_REMATCH[1]}
+fi
+
+first_three_octets_of_ipv4_vpn=
+
+if [[ "$IP_FAMILIES" = "IPv6" ]]; then
+  if [[ -n $is_ha ]]; then
+    log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
+    exit 1
+  else
+    openvpn_network=${vpn_network}
+  fi
+else
+  if [[ $vpn_network != */24 ]]; then
+    log "error: the IPv4 VPN setup requires the VPN network range to have a /24 suffix"
+    exit 1
+  fi
+
+  # it's guaranteed that the VPN network range is a /24 net,
+  # so it's safe to just cut off after the first three octets
+  IFS=./ read -r octet1 octet2 octet3 octet4 suffix <<< "${vpn_network}"
+  first_three_octets_of_ipv4_vpn=$(printf '%s.%s.%s' "$octet1" "$octet2" "$octet3")
+
+  if [[ -n $is_ha ]]; then
+    # HA VPN tunnels split the /24 VPN network into four /26 ranges:
+    # vpn-server-0: first /26
+    # vpn-server-1: second /26
+    # vpn-server-2: third /26 (optional)
+    # bonding:      fourth /26
+    openvpn_network="${first_three_octets_of_ipv4_vpn}.$((vpn_index * 64))/26"
+    pool_start_ip="${first_three_octets_of_ipv4_vpn}.$((vpn_index * 64 + 8))"
+    pool_end_ip="${first_three_octets_of_ipv4_vpn}.$((vpn_index * 64 + 62))"
+  else
+    openvpn_network=${vpn_network}
+    pool_start_ip="${first_three_octets_of_ipv4_vpn}.10"
+    pool_end_ip="${first_three_octets_of_ipv4_vpn}.254"
+  fi
+fi
+
+log "using openvpn_network=$openvpn_network"
 
 # calculate netmask for given CIDR (required by openvpn)
 #
@@ -162,7 +180,7 @@ if [[ -n $is_ha ]]; then
   echo "duplicate-cn" >>openvpn.config
 
   for ((i = 0; i < $HA_VPN_CLIENTS; i++)); do
-    printf 'ifconfig-push %s %s\n' "192.168.123.$((vpn_index * 64 + i + 2))" "$(CIDR2Netmask $openvpn_network)" >/client-config-dir/vpn-shoot-client-$i
+    printf 'ifconfig-push %s %s\n' "${first_three_octets_of_ipv4_vpn}.$((vpn_index * 64 + i + 2))" "$(CIDR2Netmask $openvpn_network)" >/client-config-dir/vpn-shoot-client-$i
   done
 else
   dev="tun0"
