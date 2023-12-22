@@ -11,10 +11,25 @@ function log() {
     echo "[$(date -u)]: $*"
 }
 
-# cidr for bonding network: 192.168.123.192/26
-bondPrefix="192.168.123"
+vpn_network="${VPN_NETWORK:-192.168.123.0/24}"
+bondPrefix=
 bondBits="26"
 bondStart="192"
+
+if [[ $IP_FAMILIES == "IPv4" ]]; then
+  if [[ $vpn_network != */24 ]]; then
+    log "error: the IPv4 VPN setup requires the VPN network range to have a /24 suffix"
+    exit 1
+  fi
+
+  # it's guaranteed that the VPN network range is a /24 net,
+  # so it's safe to just cut off after the first three octets
+  IFS=./ read -r octet1 octet2 octet3 octet4 suffix <<< "${vpn_network}"
+  first_three_octets_of_ipv4_vpn=$(printf '%s.%s.%s' "$octet1" "$octet2" "$octet3")
+
+  # cidr for bonding network: last /26 subnet of the /24 VPN network range
+  bondPrefix=${first_three_octets_of_ipv4_vpn}
+fi
 
 for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
   ip="${bondPrefix}.$((bondStart+c+2))"

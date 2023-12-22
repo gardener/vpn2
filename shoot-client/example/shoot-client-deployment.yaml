@@ -38,12 +38,14 @@ spec:
         - name: vpn-secrets
           mountPath: /srv/secrets
         env:
-        - name:  SERVICE_NETWORK
+        - name: SERVICE_NETWORK
           value: # service network, e.g. 100.68.0.0/14
         - name: POD_NETWORK
           value: # pod network, e.g. 100.96.0.0/16
         - name: NODE_NETWORK
           value: # node network, e.g. 10.250.0.0/16
+        - name: VPN_NETWORK
+          value: # VPN network, e.g. 192.168.123.0/24
         - name: ENDPOINT
           value: # open vpn endpoint
         - name: OPENVPN_PORT
