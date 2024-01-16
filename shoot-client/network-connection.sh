@@ -35,9 +35,9 @@ else
   exit 1
 fi
 
-iptables=iptables-$backend
+iptables=iptables$backend
 if [[ "$IP_FAMILIES" = "IPv6" ]]; then
-  iptables=ip6tables-$backend
+  iptables=ip6tables$backend
 fi
 
 # cidr for bonding network: 192.168.123.192/26
