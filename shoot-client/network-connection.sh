@@ -24,9 +24,20 @@ trap 'exit' TERM SIGINT
 IP_FAMILIES="${IP_FAMILIES:-IPv4}"
 openvpn_port="${OPENVPN_PORT:-8132}"
 
-iptables=iptables
+if iptables-legacy -L >/dev/null && ip6tables-legacy -L >/dev/null ; then
+  echo "using iptables backend legacy" 
+  backend="-legacy"
+elif iptables-nft -L >/dev/null && ip6tables-nft -L >/dev/null ; then
+  echo "using iptables backend nft" 
+  backend="-nft"
+else
+  echo "iptables seems not to be supported."
+  exit 1
+fi
+
+iptables=iptables$backend
 if [[ "$IP_FAMILIES" = "IPv6" ]]; then
-  iptables=ip6tables
+  iptables=ip6tables$backend
 fi
 
 # cidr for bonding network: 192.168.123.192/26
