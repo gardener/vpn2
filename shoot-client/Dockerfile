@@ -25,7 +25,7 @@ RUN cd go; make build-acquire-ip GOARCH=$TARGETARCH
 ############# builder
 FROM alpine:3.19.0 as builder
 
-RUN apk add --update bash openvpn iptables ip6tables ncurses-libs bc && \
+RUN apk add --update bash openvpn iptables iptables-legacy ncurses-libs bc && \
     rm -rf /var/cache/apk/*
 
 WORKDIR /volume
@@ -87,6 +87,8 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /sbin/iptables* ./sbin                                         && echo "package iptables" \
     && cp -d /sbin/xtables* ./sbin                                          && echo "package iptables" \
     && cp -d /usr/lib/libxtables* ./usr/lib                                 && echo "package iptables" \
+    && cp -d /usr/lib/libip4* ./usr/lib                                     && echo "package iptables" \
+    && cp -d /usr/lib/libip6* ./usr/lib                                     && echo "package iptables" \
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo "package iptables" \
     && cp -d /sbin/ip6tables* ./sbin                                        && echo "package ip6tables"
 
