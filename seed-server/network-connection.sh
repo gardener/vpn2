@@ -32,8 +32,8 @@ pod_network="${POD_NETWORK:-${filePodNetwork}}"
 pod_network="${pod_network:-100.96.0.0/11}"
 node_network="${NODE_NETWORK:-${fileNodeNetwork}}"
 node_network="${node_network:-}"
+# defaults for vpn_network are set depending on IP_FAMILIES below
 vpn_network="${VPN_NETWORK:-${fileVPNNetwork}}"
-vpn_network="${vpn_network:-192.168.123.0/24}"
 
 is_ha=
 if [[ $POD_NAME =~ .*-([0-2])$ ]]; then
@@ -48,14 +48,19 @@ if [[ "$IP_FAMILIES" = "IPv6" ]]; then
     log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
     exit 1
   else
+    # set IPv6 default if no config has been provided
+    vpn_network="${vpn_network:-"fd8f:6d53:b97a:1::/120"}"
     openvpn_network=${vpn_network}
   fi
 else
+  # set IPv4 default if no config has been provided
+  vpn_network="${vpn_network:-"192.168.123.0/24"}"
+  
   if [[ $vpn_network != */24 ]]; then
     log "error: the IPv4 VPN setup requires the VPN network range to have a /24 suffix"
     exit 1
   fi
-
+  
   # it's guaranteed that the VPN network range is a /24 net,
   # so it's safe to just cut off after the first three octets
   IFS=./ read -r octet1 octet2 octet3 octet4 suffix <<< "${vpn_network}"
