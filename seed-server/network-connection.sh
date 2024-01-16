@@ -111,8 +111,7 @@ topology subnet
 # Additonal optimizations
 txqueuelen 1000
 
-cipher AES-256-CBC
-data-ciphers AES-256-CBC
+data-ciphers AES-256-GCM:AES-256-CBC
 
 # port can always be 1194 here as it is not visible externally. A different
 # port can be configured for the external load balancer in the service
@@ -127,8 +126,9 @@ client-config-dir /client-config-dir
 key "/srv/secrets/vpn-server/tls.key"
 cert "/srv/secrets/vpn-server/tls.crt"
 ca "/srv/secrets/vpn-server/ca.crt"
-dh "/srv/secrets/dh/dh2048.pem"
+dh none
 
+auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 EOF
 

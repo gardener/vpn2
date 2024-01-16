@@ -174,11 +174,11 @@ txqueuelen 1000
 # get all routing information from server
 pull
 
-cipher AES-256-CBC
-data-ciphers AES-256-CBC
+data-ciphers AES-256-GCM
 
 tls-client
 
+auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
 
 # https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
