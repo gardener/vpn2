@@ -43,28 +43,18 @@ fi
 
 first_three_octets_of_ipv4_vpn=
 
-if [[ "$IP_FAMILIES" = "IPv6" ]]; then
-  if [[ -n $is_ha ]]; then
-    log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
-    exit 1
-  else
-    # set IPv6 default if no config has been provided
-    vpn_network="${vpn_network:-"fd8f:6d53:b97a:1::/120"}"
-    openvpn_network=${vpn_network}
-  fi
-else
+if [[ "$IP_FAMILIES" = "IPv4" ]]; then
   # set IPv4 default if no config has been provided
   vpn_network="${vpn_network:-"192.168.123.0/24"}"
-  
+
   if [[ $vpn_network != */24 ]]; then
     log "error: the IPv4 VPN setup requires the VPN network range to have a /24 suffix"
     exit 1
   fi
-  
+
   # it's guaranteed that the VPN network range is a /24 net,
-  # so it's safe to just cut off after the first three octets
-  IFS=./ read -r octet1 octet2 octet3 octet4 suffix <<< "${vpn_network}"
-  first_three_octets_of_ipv4_vpn=$(printf '%s.%s.%s' "$octet1" "$octet2" "$octet3")
+  # so it's safe to just cut off the last octet and net size
+  first_three_octets_of_ipv4_vpn=${vpn_network%.*}
 
   if [[ -n $is_ha ]]; then
     # HA VPN tunnels split the /24 VPN network into four /26 ranges:
@@ -80,6 +70,15 @@ else
     pool_start_ip="${first_three_octets_of_ipv4_vpn}.10"
     pool_end_ip="${first_three_octets_of_ipv4_vpn}.254"
   fi
+else
+  if [[ -n $is_ha ]]; then
+    log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
+    exit 1
+  fi
+
+  # set IPv6 default if no config has been provided
+  vpn_network="${vpn_network:-"fd8f:6d53:b97a:1::/120"}"
+  openvpn_network=${vpn_network}
 fi
 
 log "using openvpn_network=$openvpn_network"
