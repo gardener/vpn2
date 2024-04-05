@@ -71,13 +71,19 @@ if [[ "$IP_FAMILIES" = "IPv4" ]]; then
     pool_end_ip="${first_three_octets_of_ipv4_vpn}.254"
   fi
 else
+  # set IPv6 default if no config has been provided
+  vpn_network="${vpn_network:-"fd8f:6d53:b97a:1::/120"}"
+
+  if [[ $vpn_network != */120 ]]; then
+    log "error: the IPv6 VPN setup requires the VPN network range to have a /120 suffix"
+    exit 1
+  fi
+
   if [[ -n $is_ha ]]; then
     log "error: the highly-available VPN setup is only supported for IPv4 single-stack shoots"
     exit 1
   fi
 
-  # set IPv6 default if no config has been provided
-  vpn_network="${vpn_network:-"fd8f:6d53:b97a:1::/120"}"
   openvpn_network=${vpn_network}
 fi
 
