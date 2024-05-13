@@ -14,3 +14,19 @@ This repository contains components to establish network connectivity for Shoot 
 ```bash
 $ make docker-images
 ```
+
+## Troubleshoot
+
+### HA Setup
+
+#### vpn-client-init container is crashing
+```
+failed to create bond0 link device: operation not supported
+``` 
+
+Check if you're kernel supports bond devices. You can check on nodes running docker with the following command: \
+`docker run -it --rm --privileged --pid=host ubuntu nsenter -t 1 -m -u -n -i sh -c 'cat /proc/config.gz | gunzip | grep CONFIG_BONDING'`
+
+`CONFIGURE_BONDING` must be set to either "m" or "y". 
+
+For more information, see https://www.kernelconfig.io/config_bonding?q=&kernelversion=6.1.90&arch=x86
