@@ -2,6 +2,8 @@
 
 cmd=$1
 dev=$2
+service_network=$3
+pod_network=$4
 
 if iptables-legacy -L >/dev/null && ip6tables-legacy -L >/dev/null ; then
   echo "using iptables backend legacy" 
@@ -23,6 +25,9 @@ iptables() {
 if [ "$cmd" = "on" ]; then
     iptables -A INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT
     iptables -A INPUT -i $dev -j DROP
+    ip route add ${service_network} dev $dev
+    ip route add ${pod_network} dev $dev
+    # FIXME add NODE_NETWORK
 elif [ "$cmd" = "off" ]; then
     iptables -D INPUT -m state --state RELATED,ESTABLISHED -i $dev -j ACCEPT
     iptables -D INPUT -i $dev -j DROP

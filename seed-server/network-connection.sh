@@ -87,6 +87,9 @@ else
   openvpn_network=${vpn_network}
 fi
 
+# Always use ipv6 ULA for the vpn transfer network
+openvpn_network="fd8f:6d53:b97a:1::/120"
+
 log "using openvpn_network=$openvpn_network"
 
 # calculate netmask for given CIDR (required by openvpn)
@@ -126,7 +129,7 @@ mode server
 tls-server
 topology subnet
 
-# Additonal optimizations
+# Additional optimizations
 txqueuelen 1000
 
 data-ciphers AES-256-GCM:AES-256-CBC
@@ -154,11 +157,13 @@ EOF
 if [[ "$IP_FAMILIES" = "IPv4" ]]; then
   {
     printf 'proto tcp4-server\n'
-    printf 'server %s %s nopool\n' "$(echo $openvpn_network | cut -f1 -d/)" "$(CIDR2Netmask $openvpn_network)"
-    printf 'ifconfig-pool %s %s\n' "$pool_start_ip" "$pool_end_ip"
+    # printf 'server %s %s nopool\n' "$(echo $openvpn_network | cut -f1 -d/)" "$(CIDR2Netmask $openvpn_network)"
+    printf 'server-ipv6 %s\n' "$openvpn_network"
+    # printf 'ifconfig-pool %s %s\n' "$pool_start_ip" "$pool_end_ip"
   } >>openvpn.config
 
   {
+    # TODO check if required and working in the ipv6 case
     printf 'iroute %s %s\n' "$(echo $service_network | cut -f1 -d/)" "$(CIDR2Netmask $service_network)"
     printf 'iroute %s %s\n' "$(echo $pod_network | cut -f1 -d/)" "$(CIDR2Netmask $pod_network)"
   } >/client-config-dir/vpn-shoot-client
@@ -185,17 +190,17 @@ if [[ -n $is_ha ]]; then
 else
   dev="tun0"
 
-  if [[ "$IP_FAMILIES" = "IPv4" ]]; then
-    {
-      printf "route %s %s\n" "$(echo $service_network | cut -f1 -d/)" "$(CIDR2Netmask $service_network)"
-      printf "route %s %s\n" "$(echo $pod_network | cut -f1 -d/)" "$(CIDR2Netmask $pod_network)"
-    } >>openvpn.config
-  else
-    {
-      printf "route-ipv6 %s\n" "$service_network"
-      printf "route-ipv6 %s\n" "$pod_network"
-    } >>openvpn.config
-  fi
+  # if [[ "$IP_FAMILIES" = "IPv4" ]]; then
+  #   {
+  #     printf "route %s %s\n" "$(echo $service_network | cut -f1 -d/)" "$(CIDR2Netmask $service_network)"
+  #     printf "route %s %s\n" "$(echo $pod_network | cut -f1 -d/)" "$(CIDR2Netmask $pod_network)"
+  #   } >>openvpn.config
+  # else
+  #   {
+  #     printf "route %s %s\n" "$(echo $service_network | cut -f1 -d/)" "$(CIDR2Netmask $service_network)"
+  #     printf "route %s %s\n" "$(echo $pod_network | cut -f1 -d/)" "$(CIDR2Netmask $pod_network)"
+  #   } >>openvpn.config
+  # fi
 
   if [[ -n "$node_network" ]]; then
     for n in $(echo $node_network | sed 's/[][]//g' | sed 's/,/ /g'); do
@@ -219,8 +224,8 @@ echo "dev $dev" >>openvpn.config
 # The scripts are run after the tun device has been created (up) or removed
 # (down).
 echo "script-security 2" >>openvpn.config
-echo "up \"/firewall.sh on $dev\"" >>openvpn.config
-echo "down \"/firewall.sh off $dev\"" >>openvpn.config
+echo "up \"/firewall.sh on $dev ${service_network} ${pod_network}\"" >>openvpn.config
+echo "down \"/firewall.sh off $dev ${service_network} ${pod_network}\"" >>openvpn.config
 
 if [[ -n "$OPENVPN_STATUS_PATH" ]]; then
   echo "status \"$OPENVPN_STATUS_PATH\" 15" >>openvpn.config
