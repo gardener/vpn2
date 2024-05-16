@@ -7,6 +7,8 @@ import (
 	"github.com/gardener/vpn2/pkg/network"
 )
 
+var ErrorInvalidIPFamily = errors.New("invalid IPFamily")
+
 func getVPNNetworkDefault(ipFamily string) (network.CIDR, error) {
 	switch ipFamily {
 	case IPv4Family:
@@ -22,6 +24,6 @@ func getVPNNetworkDefault(ipFamily string) (network.CIDR, error) {
 		}
 		return network.CIDR(*cidr), nil
 	default:
-		return network.CIDR{}, errors.New("unknown IPFamily")
+		return network.CIDR{}, ErrorInvalidIPFamily
 	}
 }
