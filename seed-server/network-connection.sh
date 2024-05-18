@@ -126,7 +126,7 @@ mode server
 tls-server
 topology subnet
 
-# Additonal optimizations
+# Additional optimizations
 txqueuelen 1000
 
 data-ciphers AES-256-GCM:AES-256-CBC

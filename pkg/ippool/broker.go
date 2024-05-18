@@ -9,16 +9,12 @@ package ippool
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"time"
 
 	"github.com/gardener/vpn2/pkg/config"
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
 
 type ipAddressBroker struct {
 	manager    IPPoolManager
@@ -86,7 +82,7 @@ func (b *ipAddressBroker) announceIPAddress(ctx context.Context, used bool, look
 
 func (b *ipAddressBroker) findFreeIPAddress(lookupResult *IPPoolUsageLookupResult) string {
 	for i := 0; i < 1000; i++ {
-		index := rand.Intn(b.endIndex-b.startIndex+1) + b.startIndex
+		index := rand.N(b.endIndex-b.startIndex+1) + b.startIndex
 		ip := make(net.IP, len(b.base))
 		copy(ip, b.base)
 		ip[len(ip)-1] = byte(index)
@@ -133,7 +129,7 @@ func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 			break
 		}
 		b.log("conflict, retrying...")
-		time.Sleep(b.waitTime * time.Duration(rand.Intn(10)/10))
+		time.Sleep(b.waitTime * time.Duration(rand.N(10)/10))
 	}
 
 	if b.hasConflict(result) {

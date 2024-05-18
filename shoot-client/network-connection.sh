@@ -196,7 +196,7 @@ auth-nocache
 # stop process if something goes wrong
 remap-usr1 SIGTERM
 
-# Additonal optimizations
+# Additional optimizations
 txqueuelen 1000
 
 # get all routing information from server

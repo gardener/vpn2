@@ -10,7 +10,7 @@ var clientTemplate = `
 # don't cache authorization information in memory
 auth-nocache
 
-# Additonal optimizations
+# Additional optimizations
 txqueuelen 1000
 # get all routing information from server
 pull

@@ -59,11 +59,11 @@ var _ IPPoolManager = &podIPPoolManager{}
 func NewPodIPPoolManager(namespace, labelSelector string) (IPPoolManager, error) {
 	config, err := rest.InClusterConfig()
 	if err != nil {
-		return nil, fmt.Errorf("error on InClusterConfig: %s", err)
+		return nil, fmt.Errorf("error on InClusterConfig: %w", err)
 	}
 	clientset, err := kubernetes.NewForConfig(config)
 	if err != nil {
-		return nil, fmt.Errorf("error creating clientset: %s", err)
+		return nil, fmt.Errorf("error creating clientset: %w", err)
 	}
 	return &podIPPoolManager{
 		pods:          clientset.CoreV1().Pods(namespace),
