@@ -26,7 +26,7 @@ These are a few sample commands for generating keys and certificates
 # generate the DH parameters file for the server
 openssl dhparam -out dh2048.pem 2048
 
-# geneate ca
+# generate ca
 openssl genrsa -out rootCA.key 4096
 openssl req -x509 -new -nodes -key rootCA.key -sha256 -days 1024 -out rootCA.crt -subj "/CN=mycat"
 
