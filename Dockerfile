@@ -32,6 +32,7 @@ RUN --mount=type=cache,target="/root/.cache/go-build" make build-shoot-client GO
 ## shoot-client
 FROM base AS shoot-client
 COPY --from=gobuilder-shoot-client /build/bin/shoot-client /bin/shoot-client
+ADD ./cmd/shoot_client/run-shoot-client.sh ./
 ENTRYPOINT [ "/bin/shoot-client" ]
 
 ## gobuilder-seed-server

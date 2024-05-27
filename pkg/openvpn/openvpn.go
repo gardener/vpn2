@@ -31,14 +31,13 @@ func NewServer(values SeedServerValues) (*OpenVPN, error) {
 }
 
 func NewClient(values ClientValues) (*OpenVPN, error) {
-	err := writeClientConfigFile(values)
+	err := WriteClientConfigFile(values)
 	if err != nil {
 		return nil, err
 	}
 	return &OpenVPN{
 		configFilePath: defaultOpenVPNConfigFile,
 	}, nil
-
 }
 
 func (o *OpenVPN) Run(ctx context.Context) error {
