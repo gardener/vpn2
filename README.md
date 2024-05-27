@@ -77,6 +77,19 @@ This repository contains components to establish network connectivity for Shoot 
     kubectl --kubeconfig admin-kubeconf.yaml -n kube-system patch deploy vpn-shoot --patch '{"spec":{"template":{"spec":{"initContainers":[{"name":"vpn-shoot-init","imagePullPolicy":"Always"}],"containers":[{"name":"vpn-shoot","imagePullPolicy":"Always"}]}}}}' 
     ```
 
+  - for the HA deployments run
+    ```bash
+    kubectl -n shoot--local--local patch deploy kube-apiserver --patch '{"spec":{"template":{"spec":{"initContainers":[{"name":"vpn-client-init","imagePullPolicy":"Always"}]}}}}' 
+    kubectl -n shoot--local--local patch sts vpn-seed-server --patch '{"spec":{"template":{"spec":{"containers":[{"name":"vpn-seed-server","imagePullPolicy":"Always"}]}}}}' 
+    ```
+    and
+    ```bash
+    # first disable managed resource updates in the control plane
+    kubectl -n shoot--local--local annotate managedresource shoot-core-vpn-shoot resources.gardener.cloud/ignore=true
+    # then target the shoot cluster
+    kubectl --kubeconfig admin-kubeconf.yaml -n kube-system patch sts vpn-shoot --patch '{"spec":{"template":{"spec":{"initContainers":[{"name":"vpn-shoot-init","imagePullPolicy":"Always"}]}}}}' 
+    ```
+
 ## Troubleshoot
 
 ### HA Setup
