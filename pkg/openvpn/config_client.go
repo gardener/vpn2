@@ -68,7 +68,7 @@ func generateClientConfig(cfg ClientValues) (string, error) {
 	return buf.String(), nil
 }
 
-func writeClientConfigFile(v ClientValues) error {
+func WriteClientConfigFile(v ClientValues) error {
 	openvpnConfig, err := generateClientConfig(v)
 	if err != nil {
 		return fmt.Errorf("error %w: Could not generate openvpn config from %v", err, v)

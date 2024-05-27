@@ -67,7 +67,7 @@ func vpnConfig(log logr.Logger, cfg config.ShootClient) openvpn.ClientValues {
 	return v
 }
 
-func run(ctx context.Context, cancel context.CancelFunc, log logr.Logger) error {
+func run(_ context.Context, _ context.CancelFunc, log logr.Logger) error {
 	cfg, err := config.GetShootClientConfig()
 	if err != nil {
 		return err
@@ -80,9 +80,5 @@ func run(ctx context.Context, cancel context.CancelFunc, log logr.Logger) error 
 	}
 
 	values := vpnConfig(log, cfg)
-	srv, err := openvpn.NewClient(values)
-	if err != nil {
-		return err
-	}
-	return srv.Run(ctx)
+	return openvpn.WriteClientConfigFile(values)
 }
