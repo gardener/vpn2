@@ -67,14 +67,7 @@ function pingAllShootClients() {
     set +e
     for (( c=0; c<$HA_VPN_CLIENTS; c++ )); do
         ip="${bondPrefix}.$((bondStart+c+2))"
-        # Only output the second line if the time is at least 100 ms instead of the following:
-        # PING 192.168.123.194 (192.168.123.194): 56 data bytes
-        # 64 bytes from 192.168.123.194: seq=0 ttl=64 time=13.658 ms
-        #
-        # --- 192.168.123.194 ping statistics ---
-        # 1 packets transmitted, 1 packets received, 0% packet loss
-        # round-trip min/avg/max = 13.658/13.658/13.658 ms
-        ping -W 2 -w 2 -c 1 $ip | sed '/\(^PING.*\|^---.*---$\|.*1 packets received.*\|^round-trip.*\|^$\|.*time=.\?..... ms$\)/d' &
+        ping -W 2 -w 2 -c 1 $ip > /tmp/ping-result-$c &
         ping_pid[$ip]=$!
     done
 
@@ -93,6 +86,14 @@ function pingAllShootClients() {
         else
           ping_return_msg[$ip]="err"
         fi
+        # Only output the second line if the time is at least 100 ms instead of the following:
+        # PING 192.168.123.194 (192.168.123.194): 56 data bytes
+        # 64 bytes from 192.168.123.194: seq=0 ttl=64 time=13.658 ms
+        #
+        # --- 192.168.123.194 ping statistics ---
+        # 1 packets transmitted, 1 packets received, 0% packet loss
+        # round-trip min/avg/max = 13.658/13.658/13.658 ms
+        sed '/\(^PING.*\|^---.*---$\|.*1 packets received.*\|^round-trip.*\|^$\|.*time=.\?..... ms$\)/d' /tmp/ping-result-$c
     done
     set -e
 }
