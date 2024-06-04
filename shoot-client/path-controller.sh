@@ -74,7 +74,7 @@ function pingAllShootClients() {
         # --- 192.168.123.194 ping statistics ---
         # 1 packets transmitted, 1 packets received, 0% packet loss
         # round-trip min/avg/max = 13.658/13.658/13.658 ms
-        ping -W 2 -w 2 -c 1 $ip | sed '/\(^PING.*\|^---.*---$\|.*1 packets received.*\|^round-trip.*\|^$\|.*time=...... ms$\)/d' &
+        ping -W 2 -w 2 -c 1 $ip | sed '/\(^PING.*\|^---.*---$\|.*1 packets received.*\|^round-trip.*\|^$\|.*time=.\?..... ms$\)/d' &
         ping_pid[$ip]=$!
     done
 
