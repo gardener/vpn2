@@ -9,14 +9,12 @@ package ippool
 import (
 	"context"
 	"fmt"
-	"math/rand"
+	"math/rand/v2"
 	"net"
 	"time"
-)
 
-func init() {
-	rand.Seed(time.Now().UnixNano())
-}
+	"github.com/gardener/vpn2/pkg/config"
+)
 
 type ipAddressBroker struct {
 	manager    IPPoolManager
@@ -35,14 +33,14 @@ type IPAddressBroker = *ipAddressBroker
 var logName bool
 
 // NewIPAddressBroker creates a new instance
-func NewIPAddressBroker(manager IPPoolManager, base net.IP, startIndex, endIndex int, ownName string, waitTime time.Duration) (IPAddressBroker, error) {
+func NewIPAddressBroker(manager IPPoolManager, cfg *config.ShootClient) (IPAddressBroker, error) {
 	return &ipAddressBroker{
 		manager:    manager,
-		base:       base,
-		startIndex: startIndex,
-		endIndex:   endIndex,
-		ownName:    ownName,
-		waitTime:   waitTime,
+		base:       cfg.VPNNetwork.IP,
+		startIndex: cfg.StartIndex,
+		endIndex:   cfg.EndIndex,
+		ownName:    cfg.PodName,
+		waitTime:   cfg.WaitTime,
 	}, nil
 }
 
@@ -84,16 +82,18 @@ func (b *ipAddressBroker) announceIPAddress(ctx context.Context, used bool, look
 
 func (b *ipAddressBroker) findFreeIPAddress(lookupResult *IPPoolUsageLookupResult) string {
 	for i := 0; i < 1000; i++ {
-		index := rand.Intn(b.endIndex-b.startIndex+1) + b.startIndex
-		base4 := b.base.To4()
-		ip := net.IPv4(base4[0], base4[1], base4[2], byte(index)).String()
-		if _, ok := lookupResult.ForeignUsed[ip]; ok {
+		index := rand.N(b.endIndex-b.startIndex+1) + b.startIndex
+		ip := make(net.IP, len(b.base))
+		copy(ip, b.base)
+		ip[len(ip)-1] = byte(index)
+		s := ip.String()
+		if _, ok := lookupResult.ForeignUsed[s]; ok {
 			continue
 		}
-		if _, ok := lookupResult.ForeignReserved[ip]; ok {
+		if _, ok := lookupResult.ForeignReserved[s]; ok {
 			continue
 		}
-		return ip
+		return s
 	}
 	return ""
 }
@@ -129,7 +129,7 @@ func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 			break
 		}
 		b.log("conflict, retrying...")
-		time.Sleep(b.waitTime * time.Duration(rand.Intn(10)/10))
+		time.Sleep(b.waitTime * time.Duration(rand.N(10)/10))
 	}
 
 	if b.hasConflict(result) {

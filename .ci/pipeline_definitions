@@ -23,7 +23,8 @@ vpn2:
               repos:
                 source: ~ # default
             image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-seed-server
-            dockerfile: 'seed-server/Dockerfile'
+            dockerfile: Dockerfile
+            target: seed-server
             resource_labels:
             - name: 'gardener.cloud/cve-categorisation'
               value:
@@ -35,7 +36,8 @@ vpn2:
                 availability_requirement: 'high'
           vpn-shoot-client:
             image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-shoot-client
-            dockerfile: 'shoot-client/Dockerfile'
+            dockerfile: Dockerfile
+            target: shoot-client
             resource_labels:
             - name: 'gardener.cloud/cve-categorisation'
               value:

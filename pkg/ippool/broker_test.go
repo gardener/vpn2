@@ -14,6 +14,9 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/network"
 )
 
 const baseWait = 5 * time.Millisecond
@@ -84,21 +87,42 @@ func podName(i int) string {
 }
 
 func TestBrokerFullPoolUsage(t *testing.T) {
-	testBroker(t, 10, 10)
+	testBroker(t, 10, 10, false)
 }
 
 func TestBrokerOverbookedPool(t *testing.T) {
-	testBroker(t, 11, 10)
+	testBroker(t, 11, 10, false)
 }
 
-func testBroker(t *testing.T, count, space int) {
+func TestBrokerFullPoolUsageIPv6(t *testing.T) {
+	testBroker(t, 10, 10, true)
+}
+
+func testBroker(t *testing.T, count, space int, ipv6 bool) {
 	logName = true
 	manager := newMockIPPoolManager()
-	base := net.IPv4(192, 168, 120, 0)
 	brokers := make([]IPAddressBroker, count)
 	var err error
+
+	vpnNetwork := network.CIDR(net.IPNet{
+		IP:   net.IPv4(192, 168, 120, 0),
+		Mask: net.CIDRMask(24, 32),
+	})
+	if ipv6 {
+		vpnNetwork = network.CIDR(net.IPNet{
+			IP:   net.ParseIP("fd8f:6d53:b97a:1::"),
+			Mask: net.CIDRMask(120, 128),
+		})
+	}
 	for i := 0; i < count; i++ {
-		brokers[i], err = NewIPAddressBroker(manager, base, 10, 10+space, podName(i), baseWait)
+		cfg := config.ShootClient{
+			VPNNetwork: vpnNetwork,
+			StartIndex: 10,
+			EndIndex:   10 + space,
+			PodName:    podName(i),
+			WaitTime:   baseWait,
+		}
+		brokers[i], err = NewIPAddressBroker(manager, &cfg)
 		if err != nil {
 			t.Errorf("new failed: %s", err)
 		}
