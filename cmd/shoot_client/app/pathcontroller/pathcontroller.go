@@ -153,7 +153,6 @@ func (p *ClientRouter) updateRouting(newIP net.IP) error {
 func (p *ClientRouter) pingAllShootClients(clients []net.IP) {
 	var wg sync.WaitGroup
 	for _, client := range clients {
-		p.log.Info("pinging", "client ip", client)
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -161,11 +160,9 @@ func (p *ClientRouter) pingAllShootClients(clients []net.IP) {
 			p.mu.Lock()
 			defer p.mu.Unlock()
 			if err != nil {
-				p.log.Error(err, "error pinging")
 				p.log.Info("client not healthy, removing from pool", "ip", client)
 				delete(p.goodIPs, client.String())
 			} else {
-				p.log.Info("client healthy", "ip", client)
 				p.goodIPs[client.String()] = struct{}{}
 			}
 		}()
