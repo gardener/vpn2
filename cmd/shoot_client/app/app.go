@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"github.com/gardener/vpn2/pkg/openvpn"
+	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/shoot_client"
 
 	"github.com/gardener/vpn2/cmd/shoot_client/app/pathcontroller"
@@ -23,6 +24,8 @@ import (
 // Name is a const for the name of this component.
 const Name = "shoot-client"
 
+var pprofEnabled bool
+
 // NewCommand creates a new cobra.Command for running gardener-node-agent.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -34,13 +37,17 @@ func NewCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			ctx, cancel := context.WithCancel(cmd.Context())
-			return run(ctx, cancel, log)
+			ctx := cmd.Context()
+			if pprofEnabled {
+				go pprof.Serve(ctx, log.WithName("pprof"))
+			}
+			return run(ctx, log)
 		},
 	}
 
 	flags := cmd.Flags()
 	verflag.AddFlags(flags)
+	cmd.PersistentFlags().BoolVar(&pprofEnabled, "enable-pprof", false, "enable pprof for profiling")
 	cmd.AddCommand(pathcontroller.NewCommand())
 	cmd.AddCommand(setup.NewCommand())
 	return cmd
@@ -67,7 +74,7 @@ func vpnConfig(log logr.Logger, cfg config.ShootClient) openvpn.ClientValues {
 	return v
 }
 
-func run(_ context.Context, _ context.CancelFunc, log logr.Logger) error {
+func run(ctx context.Context, log logr.Logger) error {
 	cfg, err := config.GetShootClientConfig()
 	if err != nil {
 		return err
