@@ -17,7 +17,7 @@ LD_FLAGS                      := "-w $(shell bash $(GARDENER_HACK_DIR)/get-build
 
 IMAGE_TAG             := $(VERSION)
 EFFECTIVE_VERSION     := $(VERSION)-$(shell git rev-parse HEAD)
-ARCH                := amd64
+ARCH                ?= amd64
 
 PATH                          := $(GOBIN):$(PATH)
 
@@ -29,11 +29,11 @@ tidy:
 
 .PHONY: seed-server-docker-image
 seed-server-docker-image:
-	@docker build --platform=linux/$(ARCH) -t $(SEED_SERVER_IMAGE_REPOSITORY):$(SEED_SERVER_IMAGE_TAG) -f Dockerfile --target seed-server --rm .
+	@docker buildx build --platform=linux/$(ARCH) -t $(SEED_SERVER_IMAGE_REPOSITORY):$(SEED_SERVER_IMAGE_TAG) -f Dockerfile --target seed-server --rm .
 
 .PHONY: shoot-client-docker-image
 shoot-client-docker-image:
-	@docker build --platform=linux/$(ARCH) -t $(SHOOT_CLIENT_IMAGE_REPOSITORY):$(SHOOT_CLIENT_IMAGE_TAG) -f Dockerfile --target shoot-client --rm .
+	@docker buildx build --platform=linux/$(ARCH) -t $(SHOOT_CLIENT_IMAGE_REPOSITORY):$(SHOOT_CLIENT_IMAGE_TAG) -f Dockerfile --target shoot-client --rm .
 
 .PHONY: seed-server-to-gardener-local
 seed-server-to-gardener-local: seed-server-docker-image
