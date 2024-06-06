@@ -11,7 +11,6 @@ RUN apk update && \
 
 ## gobuilder
 FROM --platform=$BUILDPLATFORM golang:1.22.3 AS gobuilder
-
 WORKDIR /build
 COPY ./VERSION ./VERSION
 COPY ./go.mod /go.sum ./
@@ -26,7 +25,7 @@ FROM gobuilder AS gobuilder-shoot-client
 
 ARG TARGETARCH
 ENV GOCACHE=/root/.cache/go-build
-RUN --mount=type=cache,target="/root/.cache/go-build" make build-shoot-client GOARCH=$TARGETARCH
+RUN --mount=type=cache,target="/root/.cache/go-build" make build-shoot-client ARCH=${TARGETARCH} 
 
 
 ## shoot-client
@@ -40,7 +39,7 @@ FROM gobuilder AS gobuilder-seed-server
 
 ARG TARGETARCH
 ENV GOCACHE=/root/.cache/go-build
-RUN --mount=type=cache,target="/root/.cache/go-build" make build-seed-server GOARCH=$TARGETARCH
+RUN --mount=type=cache,target="/root/.cache/go-build" make build-seed-server ARCH=${TARGETARCH} 
 
 
 ## shoot-client
