@@ -10,6 +10,7 @@ import (
 
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/openvpn"
+	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/seed_server"
 	"github.com/gardener/vpn2/pkg/seed_server/openvpn_exporter"
 	"github.com/gardener/vpn2/pkg/utils"
@@ -25,6 +26,8 @@ const (
 	metricsPort = 15000
 )
 
+var pprofEnabled bool
+
 // NewCommand creates a new cobra.Command for running gardener-node-agent.
 func NewCommand() *cobra.Command {
 	cmd := &cobra.Command{
@@ -36,14 +39,18 @@ func NewCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(cmd.Context(), log)
+			ctx := cmd.Context()
+			if pprofEnabled {
+				go pprof.Serve(ctx, log.WithName("pprof"))
+			}
+			return run(ctx, log)
 		},
 	}
 
 	flags := cmd.Flags()
 	verflag.AddFlags(flags)
 	cmd.AddCommand(firewallCommand())
-
+	cmd.PersistentFlags().BoolVar(&pprofEnabled, "enable-pprof", false, "enable pprof for profiling")
 	return cmd
 }
 
