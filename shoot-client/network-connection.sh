@@ -62,6 +62,9 @@ else
   # hence, the bonding-related calculations are not performed here
 fi
 
+# Always use ipv6 ULA for the vpn transfer network
+vpn_network="fd8f:6d53:b97a:1::/120"
+
 tcp_keepalive_time="${TCP_KEEPALIVE_TIME:-7200}"
 tcp_keepalive_intvl="${TCP_KEEPALIVE_INTVL:-75}"
 tcp_keepalive_probes="${TCP_KEEPALIVE_PROBES:-9}"
@@ -196,7 +199,7 @@ auth-nocache
 # stop process if something goes wrong
 remap-usr1 SIGTERM
 
-# Additonal optimizations
+# Additional optimizations
 txqueuelen 1000
 
 # get all routing information from server
@@ -227,7 +230,7 @@ fi
 } >>openvpn.config
 
 echo "pull-filter ignore redirect-gateway" >>openvpn.config
-echo "pull-filter ignore  redirect-gateway-ipv6" >>openvpn.config
+echo "pull-filter ignore redirect-gateway-ipv6" >>openvpn.config
 
 echo "port ${openvpn_port}" >>openvpn.config
 if [[ "$IS_SHOOT_CLIENT" == "true" ]]; then
@@ -248,6 +251,11 @@ fi
 
 while :; do
   if [[ -n $ENDPOINT ]]; then
+    log "ensure route back to the seed exists"
+    # FIXME handle ha, do not create tun device then
+    openvpn --mktun --dev "$dev"
+    ( sleep 10; ip route add 10.1.0.0/16 dev "$dev") &
+
     log "openvpn --dev $dev --remote $ENDPOINT --config openvpn.config"
     openvpn --dev $dev --remote $ENDPOINT --config openvpn.config
   else
