@@ -19,30 +19,26 @@ COPY ./.git ./.git
 COPY ./cmd ./cmd
 COPY ./pkg ./pkg
 COPY ./Makefile ./Makefile
+ENV GOCACHE=/root/.cache/go-build
 
 ## gobuilder-shoot-client
 FROM gobuilder AS gobuilder-shoot-client
-
 ARG TARGETARCH
-ENV GOCACHE=/root/.cache/go-build
 RUN --mount=type=cache,target="/root/.cache/go-build" make build-shoot-client ARCH=${TARGETARCH} 
 
 
 ## shoot-client
 FROM base AS shoot-client
 COPY --from=gobuilder-shoot-client /build/bin/shoot-client /bin/shoot-client
-ADD ./cmd/shoot_client/run-shoot-client.sh ./
-ENTRYPOINT [ "/bin/shoot-client" ]
+ENTRYPOINT /bin/shoot-client && openvpn --config /openvpn.config
 
 ## gobuilder-seed-server
 FROM gobuilder AS gobuilder-seed-server
-
 ARG TARGETARCH
-ENV GOCACHE=/root/.cache/go-build
 RUN --mount=type=cache,target="/root/.cache/go-build" make build-seed-server ARCH=${TARGETARCH} 
 
 
 ## shoot-client
 FROM base AS seed-server
 COPY --from=gobuilder-seed-server /build/bin/seed-server /bin/seed-server
-ENTRYPOINT [ "/bin/seed-server" ]
+ENTRYPOINT /bin/seed-server && openvpn --config /openvpn.config

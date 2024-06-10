@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-package openvpn_exporter
+package exporter
 
 import (
 	"fmt"
@@ -39,7 +39,7 @@ func NewDefaultConfig() Config {
 	}
 }
 
-// Start listens and serves the metrics service. Starts listener in separate Go routine and returns nil.
+// Start listens and serves the metrics service.
 func Start(log logr.Logger, cfg Config) error {
 	log.Info("Starting OpenVPN Exporter")
 	log.Info(fmt.Sprintf("OpenVPN Exporter Configuration: %+v", cfg))
@@ -64,10 +64,5 @@ func Start(log logr.Logger, cfg Config) error {
 			</html>`))
 	})
 
-	go func() {
-		if err := http.ListenAndServe(cfg.ListenAddress, nil); err != nil {
-			panic(err)
-		}
-	}()
-	return nil
+	return http.ListenAndServe(cfg.ListenAddress, nil); err != nil {
 }

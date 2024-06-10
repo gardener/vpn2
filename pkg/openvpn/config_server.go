@@ -143,7 +143,7 @@ const (
 	openvpnClientConfigPrefix = "vpn-shoot-client"
 )
 
-func writeServerConfigFiles(v SeedServerValues) error {
+func WriteServerConfigFiles(v SeedServerValues) error {
 	openvpnConfig, err := generateSeedServerConfig(v)
 	if err != nil {
 		return fmt.Errorf("error %w: Could not generate openvpn config from %v", err, v)
