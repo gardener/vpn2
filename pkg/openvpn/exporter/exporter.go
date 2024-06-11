@@ -64,5 +64,5 @@ func Start(log logr.Logger, cfg Config) error {
 			</html>`))
 	})
 
-	return http.ListenAndServe(cfg.ListenAddress, nil); err != nil {
+	return http.ListenAndServe(cfg.ListenAddress, nil)
 }
