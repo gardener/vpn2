@@ -17,6 +17,9 @@ pull
 data-ciphers AES-256-GCM
 tls-client
 
+# retry every second, increase retry timeout to max 5
+connect-retry 1 5
+
 auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
 
