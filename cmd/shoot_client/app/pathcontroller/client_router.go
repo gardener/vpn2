@@ -18,7 +18,7 @@ type clientRouter struct {
 
 	log        logr.Logger
 	checkedNet *net.IPNet
-	current    net.IP
+	primary    net.IP
 	mu         sync.Mutex
 	goodIPs    map[string]struct{}
 	ticker     *time.Ticker
@@ -39,7 +39,7 @@ func (r *clientRouter) Run(ctx context.Context, clientIPs []net.IP) error {
 			return ctx.Err()
 		case <-r.ticker.C:
 			r.pingAllShootClients(clientIPs)
-			err := r.setCurrentShootClient()
+			err := r.determinePrimaryShootClient()
 			if err != nil {
 				// dont return error here because in creation there will be some time when nothing is
 				// available. If we returned the error we would exit the path-controller
@@ -49,7 +49,7 @@ func (r *clientRouter) Run(ctx context.Context, clientIPs []net.IP) error {
 	}
 }
 
-func (r *clientRouter) selectNewShootClient() (net.IP, error) {
+func (r *clientRouter) selectNewPrimaryShootClient() (net.IP, error) {
 	// just use a random ip that is in goodIps map
 	for ip := range r.goodIPs {
 		return net.ParseIP(ip), nil
@@ -57,10 +57,10 @@ func (r *clientRouter) selectNewShootClient() (net.IP, error) {
 	return nil, errors.New("no more good ips in pool")
 }
 
-func (r *clientRouter) setCurrentShootClient() error {
-	_, ok := r.goodIPs[r.current.String()]
+func (r *clientRouter) determinePrimaryShootClient() error {
+	_, ok := r.goodIPs[r.primary.String()]
 	if !ok {
-		newIP, err := r.selectNewShootClient()
+		newIP, err := r.selectNewPrimaryShootClient()
 		if err != nil {
 			return fmt.Errorf("error selecting a new shoot client: %w", err)
 		}
@@ -68,7 +68,8 @@ func (r *clientRouter) setCurrentShootClient() error {
 		if err != nil {
 			return err
 		}
-		r.current = newIP
+		r.log.Info("switching primary shoot client", "old", r.primary, "new", newIP)
+		r.primary = newIP
 	}
 	return nil
 }
