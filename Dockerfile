@@ -10,7 +10,7 @@ RUN apk update && \
     rm -r /var/cache/apk
 
 ## gobuilder
-FROM --platform=$BUILDPLATFORM golang:1.22.4 AS gobuilder
+FROM --platform=$BUILDPLATFORM golang:1.22.5 AS gobuilder
 WORKDIR /build
 COPY ./VERSION ./VERSION
 COPY ./go.mod /go.sum ./
