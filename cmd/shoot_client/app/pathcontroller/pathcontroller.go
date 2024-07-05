@@ -65,7 +65,9 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 
 	router := &clientRouter{
 		pinger: icmpPinger{
-			log: log.WithName("ping"),
+			log:     log.WithName("ping"),
+			timeout: 2 * time.Second,
+			retries: 1,
 		},
 		ticker:     time.NewTicker(2 * time.Second),
 		netRouter:  netlinkRouter,
