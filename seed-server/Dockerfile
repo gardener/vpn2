@@ -13,7 +13,7 @@ ARG TARGETARCH
 RUN cd go; make build-openvpn-exporter GOARCH=$TARGETARCH
 
 ############# builder
-FROM alpine:3.19.1 as builder
+FROM alpine:3.20.1 as builder
 
 RUN apk add --update bash openvpn iptables iptables-legacy ncurses-libs bc && \
     rm -rf /var/cache/apk/*
@@ -33,7 +33,7 @@ RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables
     && cp -d /etc/logrotate.d/acpid ./etc/logrotate.d                       && echo "package busybox" \
     && cp -d /etc/network/if-up.d/dad ./etc/network/if-up.d                 && echo "package busybox" \
     && cp -d /etc/securetty ./etc                                           && echo "package busybox" \
-    && cp -d /etc/udhcpd.conf ./etc                                         && echo "package busybox" \
+    && cp -d /etc/udhcpc/udhcpc.conf ./etc                                  && echo "package busybox" \
     && cp -d /usr/share/udhcpc/default.script ./usr/share/udhcpc            && echo "package busybox" \
     && cp -d /bin/grep ./bin                                                && echo "package <not-clear>" \
     && cp -d /bin/sh ./bin                                                  && echo "package busybox-binsh" \
