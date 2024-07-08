@@ -22,7 +22,7 @@ vpn2:
             inputs:
               repos:
                 source: ~ # default
-            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-seed-server
+            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-seed-server-go
             dockerfile: Dockerfile
             target: seed-server
             resource_labels:
@@ -35,7 +35,7 @@ vpn2:
                 integrity_requirement: 'high'
                 availability_requirement: 'high'
           vpn-shoot-client:
-            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-shoot-client
+            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-shoot-client-go
             dockerfile: Dockerfile
             target: shoot-client
             resource_labels:
@@ -70,9 +70,9 @@ vpn2:
         publish:
           dockerimages:
             vpn-seed-server:
-              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-seed-server
+              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-seed-server-go
             vpn-shoot-client:
-              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-shoot-client
+              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-shoot-client-go
         release:
           nextversion: 'bump_minor'
         slack:
