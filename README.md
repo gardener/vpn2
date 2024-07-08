@@ -45,7 +45,7 @@ This repository contains components to establish network connectivity for Shoot 
   *Note: Remember the image name reported at the end similar to*  
 
   ```txt
-  shoot client image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-shoot-client:0.25.0-dev
+  shoot client image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-shoot-client-go:0.26.0-dev
   ```
 
   Seed server image
@@ -57,7 +57,7 @@ This repository contains components to establish network connectivity for Shoot 
   *Note: Remember the image name reported at the end similar to*
 
   ```txt
-  seed server image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-seed-server:0.25.0-dev
+  seed server image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-seed-server-go:0.26.0-dev
   ```
 
 - adjust the image vector file `imagevector/images.yaml` in Gardener to image repositories and tags provided by the last step
@@ -66,13 +66,13 @@ This repository contains components to establish network connectivity for Shoot 
   ...
   - name: vpn-seed-server
   sourceRepository: github.com/gardener/vpn2
-  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-seed-server
-  tag: 0.25.0-dev
+  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-seed-server-go
+  tag: 0.26.0-dev
   ...
   - name: vpn-shoot-client
   sourceRepository: github.com/gardener/vpn2
-  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-shoot-client
-  tag: 0.25.0-dev
+  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-shoot-client-go
+  tag: 0.26.0-dev
   ...
   ```
 
