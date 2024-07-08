@@ -8,6 +8,8 @@ FROM alpine:3.20.1 as base
 RUN apk add --update openvpn iptables iptables-legacy && \
     rm -rf /var/cache/apk/*
 
+ARG DEBUG
+
 WORKDIR /volume
 
 RUN mkdir -p ./bin ./sbin ./lib ./usr/bin ./usr/sbin ./usr/lib ./usr/lib/xtables ./tmp ./run ./etc/openvpn \
@@ -55,6 +57,14 @@ RUN    cp -d /lib/ld-musl-* ./lib                                           && e
     && cp -d /usr/lib/libip4* ./usr/lib                                     && echo package iptables \
     && cp -d /usr/lib/libip6* ./usr/lib                                     && echo package iptables \
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo package iptables
+
+RUN if [ "$DEBUG" = "true" ]; then \
+       apk add --update net-tools tcpdump && \
+       cp -d /bin/* ./bin && \
+       cp -d /usr/bin/* ./usr/bin && \
+       cp -d /usr/lib/libpcap* ./usr/lib && \
+       cp -d /sbin/* ./sbin; \
+    fi
 
 ## gobuilder
 FROM --platform=$BUILDPLATFORM golang:1.22.5 AS gobuilder

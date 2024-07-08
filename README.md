@@ -36,11 +36,13 @@ This repository contains components to establish network connectivity for Shoot 
 
 - build the docker images and push them to the local Gardener registry with
 
-  Shoot client image
+  **Shoot client image**
 
   ```bash
   make shoot-client-to-gardener-local
   ```
+
+  or to build a debug image containing command line tools like ls, tcpdump and other net-tools use `make shoot-client-to-gardener-local DEBUG=true`
 
   *Note: Remember the image name reported at the end similar to*  
 
@@ -48,11 +50,13 @@ This repository contains components to establish network connectivity for Shoot 
   shoot client image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-shoot-client-go:0.26.0-dev
   ```
 
-  Seed server image
+  **Seed server image**
 
   ```bash
   make seed-server-to-gardener-local
   ```
+
+  or to build a debug image containing command line tools like ls, tcpdump and other net-tools use `make seed-server-to-gardener-local DEBUG=true`
 
   *Note: Remember the image name reported at the end similar to*
 
