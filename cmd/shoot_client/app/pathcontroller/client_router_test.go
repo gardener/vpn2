@@ -69,20 +69,20 @@ var _ = Describe("#ClientRouter", func() {
 			})
 			Context("and current not in goodIPs", func() {
 				It("should have one of the healthy client ips as current", func() {
-					err := router.setCurrentShootClient()
+					err := router.determinePrimaryShootClient()
 					Expect(err).To(BeNil())
 					// current is selected by random
-					Expect(router.current).To(BeElementOf([]net.IP{healthyIP1, healthyIP2}))
+					Expect(router.primary).To(BeElementOf([]net.IP{healthyIP1, healthyIP2}))
 				})
 			})
 			Context("and current in goodIPs", func() {
 				BeforeEach(func() {
-					router.current = healthyIP1
+					router.primary = healthyIP1
 				})
 				It("should not change the current ip", func() {
-					err := router.setCurrentShootClient()
+					err := router.determinePrimaryShootClient()
 					Expect(err).To(BeNil())
-					Expect(router.current).To(Equal(healthyIP1))
+					Expect(router.primary).To(Equal(healthyIP1))
 				})
 			})
 		})
