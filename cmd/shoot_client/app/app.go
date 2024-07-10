@@ -81,7 +81,7 @@ func run(ctx context.Context, log logr.Logger) error {
 	}
 	log.Info("config parsed", "config", cfg)
 
-	err = shoot_client.SetIPTableRules(cfg)
+	err = shoot_client.SetIPTableRules(log, cfg)
 	if err != nil {
 		return err
 	}

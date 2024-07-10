@@ -3,9 +3,11 @@ package shoot_client
 import (
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/utils"
+	"github.com/go-logr/logr"
 )
 
-func SetIPTableRules(cfg config.ShootClient) error {
+func SetIPTableRules(log logr.Logger, cfg config.ShootClient) error {
 	forwardDevice := "tun0"
 	if cfg.VPNServerIndex != "" {
 		forwardDevice = "bond0"
@@ -15,7 +17,7 @@ func SetIPTableRules(cfg config.ShootClient) error {
 	if cfg.IPFamilies == "IPv6" {
 		protocol = iptables.ProtocolIPv6
 	}
-	iptable, err := iptables.New(iptables.IPFamily(protocol))
+	iptable, err := utils.NewIPTables(log, protocol)
 	if err != nil {
 		return err
 	}

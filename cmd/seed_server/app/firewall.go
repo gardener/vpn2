@@ -46,11 +46,11 @@ func runFirewallCommand(log logr.Logger, device, mode string) error {
 	// Firewall subcommand is called indirectly from openvpn. As PATH env variables seems not to be set,
 	// it is injected here.
 	os.Setenv("PATH", "/sbin")
-	iptable4, err := iptables.New(iptables.IPFamily(iptables.ProtocolIPv4))
+	iptable4, err := utils.NewIPTables(log, iptables.ProtocolIPv4)
 	if err != nil {
 		return err
 	}
-	iptable6, err := iptables.New(iptables.IPFamily(iptables.ProtocolIPv6))
+	iptable6, err := utils.NewIPTables(log, iptables.ProtocolIPv6)
 	if err != nil {
 		return err
 	}
