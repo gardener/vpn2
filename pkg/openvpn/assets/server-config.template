@@ -1,0 +1,63 @@
+mode server
+tls-server
+topology subnet
+
+# Additional optimizations
+txqueuelen 1000
+
+data-ciphers AES-256-GCM:AES-256-CBC
+
+# port can always be 1194 here as it is not visible externally. A different
+# port can be configured for the external load balancer in the service
+# manifest
+port 1194
+
+keepalive 10 60
+
+# client-config-dir to push client specific configuration
+client-config-dir /client-config-dir
+
+key "/srv/secrets/vpn-server/tls.key"
+cert "/srv/secrets/vpn-server/tls.crt"
+ca "/srv/secrets/vpn-server/ca.crt"
+dh none
+
+auth SHA256
+tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
+
+{{ if (eq .IPFamilies "IPv4") }}
+proto tcp4-server
+server {{ printf "%s" .OpenVPNNetwork.IP }} {{ cidrMask .OpenVPNNetwork }} nopool
+ifconfig-pool {{ .IPv4PoolStartIP }} {{ .IPv4PoolEndIP }}
+
+{{- range .ShootNetworks }}
+route {{ printf "%s" .IP }} {{ cidrMask . }}
+{{- end }}
+{{- end }}
+
+{{- if (eq .IPFamilies "IPv6") }} proto tcp6-server
+server-ipv6 {{ printf "%s" .OpenVPNNetwork }}
+
+{{- range .ShootNetworks }}
+route-ipv6 {{ printf "%s" . }}
+{{- end }}
+{{- end }}
+
+{{- if .IsHA }}
+
+client-to-client
+duplicate-cn
+{{- end }}
+
+dev {{ .Device }}
+
+{{/* Add firewall rules to block all traffic originating from the shoot cluster.
+     The scripts are run after the tun device has been created (up) or removed (down). */ -}}
+script-security 2
+up "/bin/seed-server firewall --mode up --device {{ .Device }}"
+down "/bin/seed-server firewall --mode down --device {{ .Device }}"
+
+{{ if not (eq .StatusPath "") -}}
+status {{ .StatusPath }} 15
+status-version 2
+{{- end -}}

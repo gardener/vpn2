@@ -178,8 +178,7 @@ iroute-ipv6 2001:db8:3::/48
 			content, err := generateConfigForClientHAFromServer(cfgIPv4, "192.168.123.2")
 			Expect(err).NotTo(HaveOccurred())
 
-			Expect(content).To(Equal(`
-ifconfig-push 192.168.123.2 255.255.255.192
+			Expect(content).To(Equal(`ifconfig-push 192.168.123.2 255.255.255.192
 `))
 		})
 	})

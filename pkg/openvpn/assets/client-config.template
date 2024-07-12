@@ -1,0 +1,44 @@
+# don't cache authorization information in memory
+auth-nocache
+
+# Additional optimizations
+txqueuelen 1000
+# get all routing information from server
+pull
+data-ciphers AES-256-GCM
+tls-client
+
+# retry every second, increase retry timeout to max 5
+connect-retry 1 5
+
+auth SHA256
+tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
+
+# https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
+remote-cert-tls server
+
+{{ if (eq .IPFamilies "IPv6") }}
+proto tcp6-client
+{{- end }}
+
+{{ if (eq .IPFamilies "IPv4") }}
+proto tcp4-client
+{{- end }}
+
+{{ if (eq .VPNClientIndex -1) }}
+key /srv/secrets/vpn-client/tls.key
+cert /srv/secrets/vpn-client/tls.crt
+ca /srv/secrets/vpn-client/ca.crt
+{{ else }}
+key /srv/secrets/vpn-client-{{.VPNClientIndex}}/tls.key
+cert /srv/secrets/vpn-client-{{.VPNClientIndex}}/tls.crt
+ca /srv/secrets/vpn-client-{{.VPNClientIndex}}/ca.crt
+{{- end }}
+
+{{ if .IsShootClient }}
+http-proxy {{ .Endpoint }} {{.OpenVPNPort}}
+http-proxy-option CUSTOM-HEADER Reversed-VPN {{ .ReversedVPNHeader }}
+{{- end }}
+
+dev {{ .Device }}
+remote {{ .Endpoint }}
