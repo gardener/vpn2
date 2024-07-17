@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -46,11 +47,11 @@ func runFirewallCommand(log logr.Logger, device, mode string) error {
 	// Firewall subcommand is called indirectly from openvpn. As PATH env variables seems not to be set,
 	// it is injected here.
 	os.Setenv("PATH", "/sbin")
-	iptable4, err := utils.NewIPTables(log, iptables.ProtocolIPv4)
+	iptable4, err := network.NewIPTables(log, iptables.ProtocolIPv4)
 	if err != nil {
 		return err
 	}
-	iptable6, err := utils.NewIPTables(log, iptables.ProtocolIPv6)
+	iptable6, err := network.NewIPTables(log, iptables.ProtocolIPv6)
 	if err != nil {
 		return err
 	}

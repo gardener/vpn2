@@ -1,15 +1,20 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package shoot_client
 
 import (
 	"context"
 	"fmt"
+	"net"
+	"os/exec"
+
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/ippool"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
-	"net"
-	"os/exec"
 )
 
 func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.ShootClient) error {

@@ -1,9 +1,13 @@
+// SPDX-FileCopyrightText: 2024 SAP SE or an SAP affiliate company and Gardener contributors
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package shoot_client
 
 import (
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/gardener/vpn2/pkg/config"
-	"github.com/gardener/vpn2/pkg/utils"
+	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
 )
 
@@ -17,7 +21,7 @@ func SetIPTableRules(log logr.Logger, cfg config.ShootClient) error {
 	if cfg.IPFamilies == "IPv6" {
 		protocol = iptables.ProtocolIPv6
 	}
-	iptable, err := utils.NewIPTables(log, protocol)
+	iptable, err := network.NewIPTables(log, protocol)
 	if err != nil {
 		return err
 	}
