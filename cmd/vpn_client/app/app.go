@@ -8,14 +8,13 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gardener/vpn2/pkg/openvpn"
-	"github.com/gardener/vpn2/pkg/pprof"
-	"github.com/gardener/vpn2/pkg/vpn_client"
-
 	"github.com/gardener/vpn2/cmd/vpn_client/app/pathcontroller"
 	"github.com/gardener/vpn2/cmd/vpn_client/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/openvpn"
+	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
+	"github.com/gardener/vpn2/pkg/vpn_client"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/version/verflag"
@@ -62,6 +61,8 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 		OpenVPNPort:       cfg.OpenVPNPort,
 		VPNClientIndex:    cfg.VPNClientIndex,
 		IsShootClient:     cfg.IsShootClient,
+		IsHA:              cfg.IsHA,
+		SeedPodNetwork:    cfg.SeedPodNetwork.String(),
 	}
 	vpnSeedServer := "vpn-seed-server"
 
@@ -87,5 +88,6 @@ func run(_ context.Context, log logr.Logger) error {
 	}
 
 	values := vpnConfig(log, cfg)
+
 	return openvpn.WriteClientConfigFile(values)
 }

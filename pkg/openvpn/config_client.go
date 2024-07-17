@@ -22,7 +22,9 @@ type ClientValues struct {
 	OpenVPNPort       int
 	VPNClientIndex    int
 	IsShootClient     bool
+	IsHA              bool
 	Device            string
+	SeedPodNetwork    string
 }
 
 func generateClientConfig(cfg ClientValues) (string, error) {

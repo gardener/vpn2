@@ -47,7 +47,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 
 	for i := range cfg.HAVPNServers {
 		linkName := fmt.Sprintf("tap%d", i)
-		err := deleteLinkByName(linkName)
+		err := network.DeleteLinkByName(linkName)
 		if err != nil {
 			return err
 		}
@@ -60,7 +60,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	}
 
 	// check if bond0 already exists and delete it if exists
-	err := deleteLinkByName("bond0")
+	err := network.DeleteLinkByName("bond0")
 	if err != nil {
 		return err
 	}
@@ -70,20 +70,22 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		return fmt.Errorf("failed to get link tap0: %w", err)
 	}
 
+	for _, t := range targets {
+		println(fmt.Sprintf("%d %s", len(t), t.String()))
+	}
 	// create bond0
 	linkAttrs := netlink.NewLinkAttrs()
 	bond := netlink.NewLinkBond(linkAttrs)
 	// use bonding
 	// - with active-backup mode
-	// - activate ARP requests (but not used for monitoring as use_carrier=1 and arp_validate=none by default)
+	// - monitoring with use_carrier=1
 	// - using `primary tap0` to avoid ambiguity of selection if multiple devices are up (primary_reselect=always by default)
 	// - using `num_grat_arp 5` as safeguard on switching device
 	bond.Name = "bond0"
 	bond.Mode = netlink.BOND_MODE_ACTIVE_BACKUP
 	bond.FailOverMac = netlink.BOND_FAIL_OVER_MAC_ACTIVE
-	bond.ArpInterval = 1000
-	bond.ArpIpTargets = targets
-	bond.ArpAllTargets = netlink.BOND_ARP_ALL_TARGETS_ANY
+	bond.Miimon = 100
+	bond.UseCarrier = 1
 	bond.Primary = tab0Link.Attrs().Index
 	bond.NumPeerNotif = 5
 
@@ -114,20 +116,13 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		return fmt.Errorf("failed to add address %s to bond0 link: %w", addr, err)
 	}
 
-	return nil
-}
-
-func deleteLinkByName(name string) error {
-	link, err := netlink.LinkByName(name)
-	if err != nil {
-		if _, ok := err.(netlink.LinkNotFoundError); ok {
-			return nil
+	if !cfg.IsShootClient {
+		for i := range cfg.HAVPNClients {
+			if err := network.CreateTunnelIP6Tnl(network.BondIP6TunnelLinkName(i), addr.IP, network.ClientIP(cfg.VPNNetwork.ToIPNet(), i)); err != nil {
+				return fmt.Errorf("failed to create tunnel ip6-net link: %w", err)
+			}
 		}
-		return fmt.Errorf("failed to get link %s: %w", name, err)
 	}
 
-	if err = netlink.LinkDel(link); err != nil {
-		return fmt.Errorf("failed to delete link %s: %w", name, err)
-	}
 	return nil
 }

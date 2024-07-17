@@ -1,1 +1,1 @@
-ifconfig-push {{ .StartIP }} {{ cidrMask .OpenVPNNetwork }}
+# empty

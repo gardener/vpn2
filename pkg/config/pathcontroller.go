@@ -26,7 +26,7 @@ func GetPathControllerConfig(log logr.Logger) (PathController, error) {
 	}
 	if cfg.VPNNetwork.String() == "" {
 		var err error
-		cfg.VPNNetwork, err = getVPNNetworkDefault(cfg.IPFamilies)
+		cfg.VPNNetwork, err = getVPNNetworkDefault()
 		if err != nil {
 			return PathController{}, err
 		}

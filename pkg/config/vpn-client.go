@@ -23,6 +23,7 @@ type VPNClient struct {
 	Endpoint          string       `env:"ENDPOINT"`
 	OpenVPNPort       int          `env:"OPENVPN_PORT" envDefault:"8132"`
 	VPNNetwork        network.CIDR `env:"VPN_NETWORK"`
+	SeedPodNetwork    network.CIDR `env:"SEED_POD_NETWORK"`
 	IsShootClient     bool         `env:"IS_SHOOT_CLIENT"`
 	PodName           string       `env:"POD_NAME"`
 	Namespace         string       `env:"NAMESPACE"`
@@ -45,7 +46,7 @@ func GetVPNClientConfig() (VPNClient, error) {
 	}
 	if cfg.VPNNetwork.String() == "" {
 		var err error
-		cfg.VPNNetwork, err = getVPNNetworkDefault(cfg.IPFamilies)
+		cfg.VPNNetwork, err = getVPNNetworkDefault()
 		if err != nil {
 			return VPNClient{}, err
 		}

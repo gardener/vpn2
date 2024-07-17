@@ -5,18 +5,18 @@
 package network
 
 import (
+	"fmt"
 	"net"
 	"slices"
 )
 
 const (
-	bondBits  = 26
+	addrLen   = 128
+	bondBits  = 122
 	bondStart = 192
 )
 
 func GetBondAddressAndTargetsShootClient(vpnNetwork *net.IPNet, vpnClientIndex int) (*net.IPNet, []net.IP) {
-	_, addrLen := vpnNetwork.Mask.Size()
-
 	clientIP := ClientIP(vpnNetwork, vpnClientIndex)
 
 	shootSubnet := &net.IPNet{
@@ -25,7 +25,7 @@ func GetBondAddressAndTargetsShootClient(vpnNetwork *net.IPNet, vpnClientIndex i
 	}
 
 	target := slices.Clone(clientIP)
-	target[3] = byte(bondStart + 1)
+	target[len(target)-1] = byte(bondStart + 1)
 
 	return shootSubnet, append([]net.IP{}, target)
 }
@@ -33,7 +33,7 @@ func GetBondAddressAndTargetsShootClient(vpnNetwork *net.IPNet, vpnClientIndex i
 func GetBondAddressAndTargetsSeedClient(acquiredIP net.IP, vpnNetwork *net.IPNet, haVPNClients int) (*net.IPNet, []net.IP) {
 	subnet := &net.IPNet{
 		IP:   acquiredIP,
-		Mask: net.CIDRMask(bondBits, 32),
+		Mask: net.CIDRMask(bondBits, addrLen),
 	}
 
 	targets := make([]net.IP, 0, haVPNClients)
@@ -44,7 +44,15 @@ func GetBondAddressAndTargetsSeedClient(acquiredIP net.IP, vpnNetwork *net.IPNet
 }
 
 func ClientIP(vpnNetwork *net.IPNet, index int) net.IP {
-	newIP := slices.Clone(vpnNetwork.IP.To4())
-	newIP[3] = byte(bondStart + 2 + index)
+	newIP := slices.Clone(vpnNetwork.IP.To16())
+	newIP[len(newIP)-1] = byte(bondStart + 2 + index)
 	return newIP
+}
+
+func ClientIndexFromClientIP(clientIP net.IP) int {
+	return int(clientIP[len(clientIP)-1]) - bondStart - 2
+}
+
+func BondIP6TunnelLinkName(index int) string {
+	return fmt.Sprintf("bond0-ip6tnl%d", index)
 }

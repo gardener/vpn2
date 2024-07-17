@@ -30,7 +30,7 @@ func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 	}
 	if cfg.VPNNetwork.String() == "" {
 		var err error
-		cfg.VPNNetwork, err = getVPNNetworkDefault(cfg.IPFamilies)
+		cfg.VPNNetwork, err = getVPNNetworkDefault()
 		if err != nil {
 			return VPNServer{}, err
 		}

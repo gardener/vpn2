@@ -12,13 +12,16 @@ import (
 	"sync"
 	"time"
 
+	"github.com/gardener/vpn2/pkg/network"
+	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
 )
 
 type clientRouter struct {
-	pinger    pinger
-	netRouter netRouter
+	pinger       pinger
+	netRouter    netRouter
+	tunnelConfig tunnel.IP6Tunnel
 
 	log        logr.Logger
 	checkedNet *net.IPNet
@@ -94,6 +97,14 @@ func (r *clientRouter) pingAllShootClients(clients []net.IP) {
 				r.goodIPs[client.String()] = struct{}{}
 			}
 		}()
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			err := tunnel.Send(client, r.tunnelConfig)
+			if err != nil {
+				r.log.Info("error sending packet", "ip", client, "error", err)
+			}
+		}()
 	}
 	wg.Wait()
 }
@@ -107,7 +118,8 @@ type netlinkRouter struct {
 }
 
 func (r *netlinkRouter) updateRouting(newIP net.IP) error {
-	bondDev, err := netlink.LinkByName("bond0")
+	clientIndex := network.ClientIndexFromClientIP(newIP)
+	tunnelLink, err := netlink.LinkByName(network.BondIP6TunnelLinkName(clientIndex))
 	if err != nil {
 		return err
 	}
@@ -121,7 +133,7 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 	}
 
 	for _, n := range nets {
-		route := routeForNetwork(n, newIP, bondDev)
+		route := routeForNetwork(n, tunnelLink)
 		r.log.Info("replacing route", "route", route, "net", n)
 		err = netlink.RouteReplace(&route)
 		if err != nil {
@@ -131,13 +143,9 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 	return nil
 }
 
-func routeForNetwork(net *net.IPNet, newIP net.IP, bondLink netlink.Link) netlink.Route {
-	// ip route replace $net via $newIp dev bond0
+func routeForNetwork(net *net.IPNet, tunnelLink netlink.Link) netlink.Route {
 	return netlink.Route{
-		// Gw is the equivalent to via in ip route replace command
-		Gw:  newIP,
-		Dst: net,
-		//Table:     unix.RT_TABLE_MAIN,
-		LinkIndex: bondLink.Attrs().Index,
+		Dst:       net,
+		LinkIndex: tunnelLink.Attrs().Index,
 	}
 }

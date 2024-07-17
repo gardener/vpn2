@@ -24,17 +24,16 @@ var (
 )
 
 type SeedServerValues struct {
-	Device          string
-	IPv4PoolStartIP string
-	IPv4PoolEndIP   string
-	IPFamilies      string
-	StatusPath      string
-	OpenVPNNetwork  network.CIDR
-	ShootNetworks   []network.CIDR
-	HAVPNClients    int
-	IsHA            bool
-	VPNIndex        int
-	LocalNodeIP     string
+	Device             string
+	IPFamilies         string
+	StatusPath         string
+	OpenVPNNetwork     network.CIDR
+	OpenVPNNetworkPool network.CIDR
+	ShootNetworks      []network.CIDR
+	HAVPNClients       int
+	IsHA               bool
+	VPNIndex           int
+	LocalNodeIP        string
 }
 
 func generateSeedServerConfig(cfg SeedServerValues) (string, error) {
@@ -93,7 +92,7 @@ func WriteServerConfigFiles(v SeedServerValues) error {
 	if v.IsHA {
 		for i := 0; i < v.HAVPNClients; i++ {
 			startIP := v.OpenVPNNetwork.IP
-			startIP[3] = byte(v.VPNIndex*64 + i + 2)
+			startIP[len(startIP)-1] = byte(v.VPNIndex*64 + i + 2)
 			vpnShootClientConfigHA, err := generateConfigForClientHAFromServer(v, startIP.String())
 			if err != nil {
 				return fmt.Errorf("error %w: Could not generate ha shoot client config %d from %v", err, i, v)

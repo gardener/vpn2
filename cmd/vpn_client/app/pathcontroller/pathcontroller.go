@@ -8,9 +8,11 @@ import (
 	"context"
 	"errors"
 	"net"
+	"os"
 	"time"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
 
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/utils"
@@ -69,11 +71,12 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 			timeout: 2 * time.Second,
 			retries: 1,
 		},
-		ticker:     time.NewTicker(2 * time.Second),
-		netRouter:  netlinkRouter,
-		checkedNet: checkNetwork.ToIPNet(),
-		goodIPs:    make(map[string]struct{}),
-		log:        log.WithName("pingRouter"),
+		ticker:       time.NewTicker(2 * time.Second),
+		tunnelConfig: tunnel.IP6Tunnel{KubeAPIServerPodIP: os.Getenv("POD_IP")},
+		netRouter:    netlinkRouter,
+		checkedNet:   checkNetwork.ToIPNet(),
+		goodIPs:      make(map[string]struct{}),
+		log:          log.WithName("pingRouter"),
 	}
 
 	// acquired ip is not necessary here, because we don't care about the subnet

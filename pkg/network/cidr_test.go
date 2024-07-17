@@ -18,13 +18,13 @@ func Test_ValidateCIDR(t *testing.T) {
 	}{
 		{
 			name:        "ipv4 valid cidr",
-			networkCIDR: "192.168.0.0/24",
+			networkCIDR: "fd8f:6d53:b97a:1::/120",
 			ipFamily:    "IPv4",
 		},
 
 		{
 			name:        "ipv4 invalid cidr",
-			networkCIDR: "192.168.0.0/26",
+			networkCIDR: "192.168.0.0/24",
 			ipFamily:    "IPv4",
 			wantError:   true,
 		},

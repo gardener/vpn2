@@ -12,8 +12,8 @@ func ValidateCIDR(cidr CIDR, ipFamily string) error {
 	length, _ := cidr.Mask.Size()
 	switch ipFamily {
 	case "IPv4":
-		if length != 24 {
-			return fmt.Errorf("ipv4 setup needs vpn network to have /24 subnet mask, got %d", length)
+		if length != 120 {
+			return fmt.Errorf("ipv4 setup needs ipv6 vpn network with /120 subnet mask, got %d", length)
 		}
 	case "IPv6":
 		if length != 120 {

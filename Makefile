@@ -89,3 +89,9 @@ build-vpn-client:
 	@CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o bin/vpn-client  \
 	    -ldflags $(LD_FLAGS)\
 	    ./cmd/vpn_client/main.go
+
+.PHONY: build-tunnelcontroller
+build-tunnelcontroller:
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o bin/tunnelcontroller  \
+	    -ldflags $(LD_FLAGS)\
+	    ./cmd/tunnelcontroller/main.go

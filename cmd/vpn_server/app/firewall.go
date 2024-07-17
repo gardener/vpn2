@@ -7,6 +7,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 
@@ -15,12 +16,14 @@ import (
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
+	"github.com/vishvananda/netlink"
 )
 
 func firewallCommand() *cobra.Command {
 	var (
-		device string
-		mode   string
+		device        string
+		mode          string
+		shootNetworks []string
 	)
 
 	cmd := &cobra.Command{
@@ -32,18 +35,19 @@ func firewallCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFirewallCommand(log, device, mode)
+			return runFirewallCommand(log, device, mode, shootNetworks)
 		},
 	}
 
 	cmd.Flags().StringVar(&device, "device", "", "device to configure")
 	cmd.Flags().StringVar(&mode, "mode", "", "mode of firewall (up or down)")
+	cmd.Flags().StringSliceVar(&shootNetworks, "shoot-network", nil, "shoot networks to add routes for")
 	cmd.MarkFlagsRequiredTogether("device", "mode")
 
 	return cmd
 }
 
-func runFirewallCommand(log logr.Logger, device, mode string) error {
+func runFirewallCommand(log logr.Logger, device, mode string, networks []string) error {
 	// Firewall subcommand is called indirectly from openvpn. As PATH env variables seems not to be set,
 	// it is injected here.
 	os.Setenv("PATH", "/sbin")
@@ -82,6 +86,22 @@ func runFirewallCommand(log logr.Logger, device, mode string) error {
 			return err
 		}
 		log.Info(fmt.Sprintf("iptables %s INPUT %s", opName, strings.Join(spec, " ")))
+	}
+
+	if mode == "up" {
+		dev, err := netlink.LinkByName(device)
+		if err != nil {
+			return err
+		}
+		for _, nw := range networks {
+			_, ipnet, err := net.ParseCIDR(nw)
+			if err != nil {
+				return fmt.Errorf("parsing network %s failed: %s", networks, err)
+			}
+			if err := network.RouteReplace(log, ipnet, dev); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }

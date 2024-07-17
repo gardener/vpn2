@@ -22,18 +22,17 @@ func Test_ComputeShootTargetAndAddr(t *testing.T) {
 		want       want
 	}{
 		{
-			name: "ipv4 with /24",
+			name: "ipv6 with /120",
 			vpnNetwork: net.IPNet{
-				IP:   net.IPv4(192, 168, 123, 0),
-				Mask: net.IPv4Mask(255, 255, 255, 0),
+				IP:   net.ParseIP("fd8f:6d53:b97a:7777::"),
+				Mask: net.CIDRMask(120, 128),
 			},
 			want: want{
 				subnet: net.IPNet{
-					IP: net.IPv4(192, 168, 123, 194),
-					// /26
-					Mask: net.IPv4Mask(255, 255, 255, 192),
+					IP:   net.ParseIP("fd8f:6d53:b97a:7777::c2"),
+					Mask: net.CIDRMask(122, 128),
 				},
-				target: net.IPv4(192, 168, 123, 193),
+				target: net.ParseIP("fd8f:6d53:b97a:7777::c1"),
 			},
 		},
 	}
@@ -71,23 +70,22 @@ func Test_ComputeSeedTargetAndAddr(t *testing.T) {
 		want         want
 	}{
 		{
-			name:       "ipv4 with /24",
-			acquiredIP: net.ParseIP("192.1.0.1"),
+			name:       "ipv6 with /120",
+			acquiredIP: net.ParseIP("fd8f:6d53:b97a:7777::b"),
 			vpnNetwork: net.IPNet{
-				IP:   net.IPv4(192, 168, 123, 0),
-				Mask: net.IPv4Mask(255, 255, 255, 0),
+				IP:   net.ParseIP("fd8f:6d53:b97a:7777::"),
+				Mask: net.CIDRMask(120, 128),
 			},
 			haVPNClients: 2,
 			want: want{
 				subnet: net.IPNet{
 					// acquiredIP
-					IP: net.ParseIP("192.1.0.1"),
-					// /26
-					Mask: net.IPv4Mask(255, 255, 255, 192),
+					IP:   net.ParseIP("fd8f:6d53:b97a:7777::b"),
+					Mask: net.CIDRMask(122, 128),
 				},
 				targets: []net.IP{
-					net.IPv4(192, 168, 123, 194),
-					net.IPv4(192, 168, 123, 195),
+					net.ParseIP("fd8f:6d53:b97a:7777::c2"),
+					net.ParseIP("fd8f:6d53:b97a:7777::c3"),
 				},
 			},
 		},
