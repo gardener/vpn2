@@ -113,7 +113,7 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 		})
 	}
 	for i := 0; i < count; i++ {
-		cfg := config.ShootClient{
+		cfg := config.VPNClient{
 			VPNNetwork: vpnNetwork,
 			StartIndex: 10,
 			EndIndex:   10 + space,

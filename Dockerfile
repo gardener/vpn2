@@ -78,24 +78,24 @@ COPY ./pkg ./pkg
 COPY ./Makefile ./Makefile
 ENV GOCACHE=/root/.cache/go-build
 
-## gobuilder-shoot-client
-FROM gobuilder AS gobuilder-shoot-client
+## gobuilder-vpn-client
+FROM gobuilder AS gobuilder-vpn-client
 ARG TARGETARCH
-RUN --mount=type=cache,target="/root/.cache/go-build" make build-shoot-client ARCH=${TARGETARCH}
+RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-client ARCH=${TARGETARCH}
 
-## shoot-client
-FROM scratch AS shoot-client
+## vpn-client
+FROM scratch AS vpn-client
 COPY --from=base /volume /
-COPY --from=gobuilder-shoot-client /build/bin/shoot-client /bin/shoot-client
-ENTRYPOINT /bin/shoot-client && openvpn --config /openvpn.config
+COPY --from=gobuilder-vpn-client /build/bin/vpn-client /bin/vpn-client
+ENTRYPOINT /bin/vpn-client && openvpn --config /openvpn.config
 
-## gobuilder-seed-server
-FROM gobuilder AS gobuilder-seed-server
+## gobuilder-vpn-server
+FROM gobuilder AS gobuilder-vpn-server
 ARG TARGETARCH
-RUN --mount=type=cache,target="/root/.cache/go-build" make build-seed-server ARCH=${TARGETARCH}
+RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-server ARCH=${TARGETARCH}
 
-## seed-server
-FROM scratch AS seed-server
+## vpn-server
+FROM scratch AS vpn-server
 COPY --from=base /volume /
-COPY --from=gobuilder-seed-server /build/bin/seed-server /bin/seed-server
-ENTRYPOINT /bin/seed-server && openvpn --config /openvpn.config
+COPY --from=gobuilder-vpn-server /build/bin/vpn-server /bin/vpn-server
+ENTRYPOINT /bin/vpn-server && openvpn --config /openvpn.config

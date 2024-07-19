@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-type SeedServer struct {
+type VPNServer struct {
 	IPFamilies     string       `env:"IP_FAMILIES" envDefault:"IPv4"`
 	ServiceNetwork network.CIDR `env:"SERVICE_NETWORK" envDefault:"100.64.0.0/13"`
 	PodNetwork     network.CIDR `env:"POD_NETWORK" envDefault:"100.96.0.0/11"`
@@ -23,8 +23,8 @@ type SeedServer struct {
 	LocalNodeIP    string       `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
 }
 
-func GetSeedServerConfig(log logr.Logger) (SeedServer, error) {
-	cfg := SeedServer{}
+func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
+	cfg := VPNServer{}
 	if err := env.Parse(&cfg); err != nil {
 		return cfg, err
 	}
@@ -32,7 +32,7 @@ func GetSeedServerConfig(log logr.Logger) (SeedServer, error) {
 		var err error
 		cfg.VPNNetwork, err = getVPNNetworkDefault(cfg.IPFamilies)
 		if err != nil {
-			return SeedServer{}, err
+			return VPNServer{}, err
 		}
 	}
 	log.Info("config parsed", "config", cfg)

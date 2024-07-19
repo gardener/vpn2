@@ -18,13 +18,13 @@ vpn2:
         - linux/amd64
         - linux/arm64
         dockerimages:
-          vpn-seed-server:
+          vpn-server:
             inputs:
               repos:
                 source: ~ # default
-            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-seed-server-go
+            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-server
             dockerfile: Dockerfile
-            target: seed-server
+            target: vpn-server
             resource_labels:
             - name: 'gardener.cloud/cve-categorisation'
               value:
@@ -34,10 +34,10 @@ vpn2:
                 confidentiality_requirement: 'low'
                 integrity_requirement: 'high'
                 availability_requirement: 'high'
-          vpn-shoot-client:
-            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-shoot-client-go
+          vpn-client:
+            image: europe-docker.pkg.dev/gardener-project/snapshots/gardener/vpn-client
             dockerfile: Dockerfile
-            target: shoot-client
+            target: vpn-client
             resource_labels:
             - name: 'gardener.cloud/cve-categorisation'
               value:
@@ -69,10 +69,10 @@ vpn2:
               policy: 'skip'
         publish:
           dockerimages:
-            vpn-seed-server:
-              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-seed-server-go
-            vpn-shoot-client:
-              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-shoot-client-go
+            vpn-server:
+              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-server
+            vpn-client:
+              image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-client
         release:
           nextversion: 'bump_minor'
         slack:

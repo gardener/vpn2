@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package seed_server
+package vpn_server
 
 import (
 	"fmt"
@@ -16,7 +16,7 @@ import (
 	"github.com/gardener/vpn2/pkg/openvpn"
 )
 
-func BuildValues(cfg config.SeedServer) (openvpn.SeedServerValues, error) {
+func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	v := openvpn.SeedServerValues{
 		IPFamilies: cfg.IPFamilies,
 		StatusPath: cfg.StatusPath,

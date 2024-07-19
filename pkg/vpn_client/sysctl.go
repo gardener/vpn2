@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package shoot_client
+package vpn_client
 
 import (
 	"github.com/cilium/cilium/pkg/sysctl"
@@ -10,7 +10,7 @@ import (
 )
 
 // KernelSettings sets the kernel parameters required for the VPN tunnel to function properly.
-func KernelSettings(cfg config.ShootClient) error {
+func KernelSettings(cfg config.VPNClient) error {
 	if !cfg.IsShootClient {
 		return nil
 	}

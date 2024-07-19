@@ -31,7 +31,7 @@ type IPAddressBroker = *ipAddressBroker
 var logName bool
 
 // NewIPAddressBroker creates a new instance
-func NewIPAddressBroker(manager IPPoolManager, cfg *config.ShootClient) (IPAddressBroker, error) {
+func NewIPAddressBroker(manager IPPoolManager, cfg *config.VPNClient) (IPAddressBroker, error) {
 	return &ipAddressBroker{
 		manager:    manager,
 		base:       cfg.VPNNetwork.IP,

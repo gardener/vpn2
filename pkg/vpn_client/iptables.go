@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package shoot_client
+package vpn_client
 
 import (
 	"github.com/coreos/go-iptables/iptables"
@@ -11,7 +11,7 @@ import (
 	"github.com/go-logr/logr"
 )
 
-func SetIPTableRules(log logr.Logger, cfg config.ShootClient) error {
+func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 	forwardDevice := "tun0"
 	if cfg.VPNServerIndex != "" {
 		forwardDevice = "bond0"

@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package shoot_client
+package vpn_client
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
-func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.ShootClient) error {
+func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClient) error {
 	var addr *net.IPNet
 	var targets []net.IP
 

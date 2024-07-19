@@ -6,9 +6,9 @@ This repository contains components to establish network connectivity for Shoot 
 
 ## What's inside
 
-[VPN Seed Server](seed-server) - a component that serves an endpoint for incoming connections and allows contacting any IP address within the networks of a Shoot cluster (which are usually private).
+[VPN Server](vpn-server) - a component that serves an endpoint for incoming connections and allows contacting any IP address within the networks of a Shoot cluster (which are usually private).
 
-[VPN Shoot Client](shoot-client) - a component that establishes connectivity from a Shoot cluster to the endpoint in the Seed cluster allowing contacting any IP address within its network and routes the packets back to the caller.
+[VPN Client](vpn-client) - a component that establishes connectivity from a Shoot cluster to the endpoint in the Seed cluster allowing contacting any IP address within its network and routes the packets back to the caller.
 
 ## Local test environment
 
@@ -36,46 +36,46 @@ This repository contains components to establish network connectivity for Shoot 
 
 - build the docker images and push them to the local Gardener registry with
 
-  **Shoot client image**
+  **VPN client image**
 
   ```bash
-  make shoot-client-to-gardener-local
+  make vpn-client-to-gardener-local
   ```
 
-  or to build a debug image containing command line tools like ls, tcpdump and other net-tools use `make shoot-client-to-gardener-local DEBUG=true`
+  or to build a debug image containing command line tools like ls, tcpdump and other net-tools use `make vpn-client-to-gardener-local DEBUG=true`
 
   *Note: Remember the image name reported at the end similar to*  
 
   ```txt
-  shoot client image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-shoot-client-go:0.26.0-dev
+  VPN client image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-client:0.26.0-dev
   ```
 
-  **Seed server image**
+  **VPN server image**
 
   ```bash
-  make seed-server-to-gardener-local
+  make vpn-server-to-gardener-local
   ```
 
-  or to build a debug image containing command line tools like ls, tcpdump and other net-tools use `make seed-server-to-gardener-local DEBUG=true`
+  or to build a debug image containing command line tools like ls, tcpdump and other net-tools use `make vpn-server-to-gardener-local DEBUG=true`
 
   *Note: Remember the image name reported at the end similar to*
 
   ```txt
-  seed server image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-seed-server-go:0.26.0-dev
+  VPN server image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-server:0.26.0-dev
   ```
 
 - adjust the image vector file `imagevector/images.yaml` in Gardener to image repositories and tags provided by the last step
 
   ```
   ...
-  - name: vpn-seed-server
+  - name: vpn-server
   sourceRepository: github.com/gardener/vpn2
-  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-seed-server-go
+  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-server
   tag: 0.26.0-dev
   ...
-  - name: vpn-shoot-client
+  - name: vpn-client
   sourceRepository: github.com/gardener/vpn2
-  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-shoot-client-go
+  repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-client
   tag: 0.26.0-dev
   ...
   ```

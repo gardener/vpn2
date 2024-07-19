@@ -13,7 +13,7 @@ import (
 	"github.com/gardener/vpn2/pkg/network"
 )
 
-type ShootClient struct {
+type VPNClient struct {
 	TCP struct {
 		KeepAliveTime     int64 `env:"KEEPALIVE_TIME" envDefault:"7200"`
 		KeepAliveInterval int64 `env:"KEEPALIVE_INTVL" envDefault:"75"`
@@ -38,8 +38,8 @@ type ShootClient struct {
 	WaitTime          time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 }
 
-func GetShootClientConfig() (ShootClient, error) {
-	cfg := ShootClient{}
+func GetVPNClientConfig() (VPNClient, error) {
+	cfg := VPNClient{}
 	if err := env.Parse(&cfg); err != nil {
 		return cfg, err
 	}
@@ -47,11 +47,11 @@ func GetShootClientConfig() (ShootClient, error) {
 		var err error
 		cfg.VPNNetwork, err = getVPNNetworkDefault(cfg.IPFamilies)
 		if err != nil {
-			return ShootClient{}, err
+			return VPNClient{}, err
 		}
 	}
 	if err := network.ValidateCIDR(cfg.VPNNetwork, cfg.IPFamilies); err != nil {
-		return ShootClient{}, err
+		return VPNClient{}, err
 	}
 	cfg.VPNClientIndex = -1
 	if cfg.PodName != "" {

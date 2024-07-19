@@ -9,8 +9,8 @@ import (
 	"fmt"
 
 	"github.com/gardener/vpn2/pkg/config"
-	"github.com/gardener/vpn2/pkg/shoot_client"
 	"github.com/gardener/vpn2/pkg/utils"
+	"github.com/gardener/vpn2/pkg/vpn_client"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 )
@@ -36,13 +36,13 @@ func NewCommand() *cobra.Command {
 }
 
 func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
-	cfg, err := config.GetShootClientConfig()
+	cfg, err := config.GetVPNClientConfig()
 	if err != nil {
 		return err
 	}
 	log.Info("config parsed", "config", cfg)
 
-	err = shoot_client.KernelSettings(cfg)
+	err = vpn_client.KernelSettings(cfg)
 	if err != nil {
 		return err
 	}
@@ -51,7 +51,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		if cfg.IPFamilies != "IPv4" {
 			return fmt.Errorf("the highly-available VPN setup is only supported for IPv4 single-stack shoots")
 		}
-		err = shoot_client.ConfigureBonding(ctx, log, &cfg)
+		err = vpn_client.ConfigureBonding(ctx, log, &cfg)
 		if err != nil {
 			return err
 		}

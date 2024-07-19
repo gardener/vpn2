@@ -32,7 +32,7 @@ func exporterCommand() *cobra.Command {
 }
 
 func runExporter(log logr.Logger) error {
-	cfg, err := config.GetSeedServerConfig(log)
+	cfg, err := config.GetVPNServerConfig(log)
 	if err != nil {
 		return fmt.Errorf("could not parse environment")
 	}

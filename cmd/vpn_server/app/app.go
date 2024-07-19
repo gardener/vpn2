@@ -8,21 +8,22 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
-	"github.com/gardener/vpn2/pkg/shoot_client"
-
-	"github.com/gardener/vpn2/cmd/shoot_client/app/pathcontroller"
-	"github.com/gardener/vpn2/cmd/shoot_client/app/setup"
-	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/utils"
+	"github.com/gardener/vpn2/pkg/vpn_server"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/version/verflag"
 )
 
 // Name is a const for the name of this component.
-const Name = "shoot-client"
+const Name = "vpn-server"
+
+const (
+	metricsPort = 15000
+)
 
 var pprofEnabled bool
 
@@ -47,45 +48,23 @@ func NewCommand() *cobra.Command {
 
 	flags := cmd.Flags()
 	verflag.AddFlags(flags)
+	cmd.AddCommand(firewallCommand())
+	cmd.AddCommand(exporterCommand())
 	cmd.PersistentFlags().BoolVar(&pprofEnabled, "enable-pprof", false, "enable pprof for profiling")
-	cmd.AddCommand(pathcontroller.NewCommand())
-	cmd.AddCommand(setup.NewCommand())
 	return cmd
 }
 
-func vpnConfig(log logr.Logger, cfg config.ShootClient) openvpn.ClientValues {
-	v := openvpn.ClientValues{
-		Device:            "tun0",
-		IPFamilies:        cfg.IPFamilies,
-		ReversedVPNHeader: cfg.ReversedVPNHeader,
-		Endpoint:          cfg.Endpoint,
-		OpenVPNPort:       cfg.OpenVPNPort,
-		VPNClientIndex:    cfg.VPNClientIndex,
-		IsShootClient:     cfg.IsShootClient,
-	}
-	vpnSeedServer := "vpn-seed-server"
-
-	if cfg.VPNServerIndex != "" {
-		vpnSeedServer = fmt.Sprintf("vpn-seed-server-%s", cfg.VPNServerIndex)
-		v.Device = fmt.Sprintf("tap%s", cfg.VPNServerIndex)
-	}
-
-	log.Info("Built config values", "vpn-seed-sever", vpnSeedServer, "values", v)
-	return v
-}
-
 func run(ctx context.Context, log logr.Logger) error {
-	cfg, err := config.GetShootClientConfig()
+	cfg, err := config.GetVPNServerConfig(log)
+	if err != nil {
+		return fmt.Errorf("could not parse environment")
+	}
+
+	v, err := vpn_server.BuildValues(cfg)
 	if err != nil {
 		return err
 	}
-	log.Info("config parsed", "config", cfg)
 
-	err = shoot_client.SetIPTableRules(log, cfg)
-	if err != nil {
-		return err
-	}
-
-	values := vpnConfig(log, cfg)
-	return openvpn.WriteClientConfigFile(values)
+	log.Info("writing openvpn config file", "values", v)
+	return openvpn.WriteServerConfigFiles(v)
 }

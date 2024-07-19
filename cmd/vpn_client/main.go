@@ -10,7 +10,7 @@ import (
 
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
 
-	"github.com/gardener/vpn2/cmd/seed_server/app"
+	"github.com/gardener/vpn2/cmd/vpn_client/app"
 )
 
 func main() {
