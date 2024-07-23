@@ -1,0 +1,13 @@
+# Ignore everything
+**
+
+# Exclude folders relevant for build
+!.git
+!.dockerignore
+!cmd/
+!hack/
+!pkg/
+!go.mod
+!go.sum
+!Makefile
+!VERSION

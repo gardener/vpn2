@@ -1,0 +1,1 @@
+ifconfig-push {{ .StartIP }} {{ cidrMask .OpenVPNNetwork }}
