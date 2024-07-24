@@ -39,6 +39,13 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 			return err
 		}
 	} else {
+		if cfg.IPFamilies == "IPv6" {
+			// allow icmp6 for Neighbor Discovery Protocol
+			err = iptable.AppendUnique("filter", "INPUT", "-i", forwardDevice, "-p", "icmpv6", "-j", "ACCEPT")
+			if err != nil {
+				return err
+			}
+		}
 		err = iptable.AppendUnique("filter", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-i", forwardDevice, "-j", "ACCEPT")
 		if err != nil {
 			return err

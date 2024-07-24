@@ -6,7 +6,6 @@ package setup
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/utils"
@@ -48,10 +47,6 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	}
 
 	if cfg.IsHA {
-		if cfg.IPFamilies != "IPv4" {
-			// TODO (martinweindel) HA VPN for IPv6 has issued with pings and neighbor solicitiation on the gardener local setup needs further investigations
-			return fmt.Errorf("the highly-available VPN setup is only supported for IPv4 single-stack shoots")
-		}
 		err = vpn_client.ConfigureBonding(ctx, log, &cfg)
 		if err != nil {
 			return err
