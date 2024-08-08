@@ -20,7 +20,7 @@ func routeForNetwork(net *net.IPNet, device netlink.Link) netlink.Route {
 	return route
 }
 
-func RouteReplace(log logr.Logger, ipnet *net.IPNet, dev netlink.Link) error {
+func ReplaceRoute(log logr.Logger, ipnet *net.IPNet, dev netlink.Link) error {
 	route := routeForNetwork(ipnet, dev)
 	log.Info("replacing route", "route", route, "ipnet", ipnet)
 	if err := netlink.RouteReplace(&route); err != nil {

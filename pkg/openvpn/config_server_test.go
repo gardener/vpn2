@@ -35,7 +35,7 @@ var _ = Describe("#SeedServerConfig", func() {
 				parseIPNet("100.96.0.0/11"),
 				parseIPNet("10.0.1.0/24"),
 			},
-			IPFamilies: "IPv4",
+			IPFamily: "IPv4",
 		}
 		cfgIPv6 = SeedServerValues{
 			Device:         "tun0",
@@ -46,7 +46,7 @@ var _ = Describe("#SeedServerConfig", func() {
 				parseIPNet("2001:db8:2::/48"),
 				parseIPNet("2001:db8:3::/48"),
 			},
-			IPFamilies: "IPv6",
+			IPFamily: "IPv6",
 		}
 	})
 
@@ -154,18 +154,6 @@ iroute 10.0.1.0 255.255.255.0
 iroute-ipv6 2001:db8:1::/48
 iroute-ipv6 2001:db8:2::/48
 iroute-ipv6 2001:db8:3::/48
-`))
-		})
-	})
-
-	Describe("#GenerateVPNShootClientHA", func() {
-		It("should generate correct vpn-shoot-client for IPv4 HA", func() {
-			Skip("TODO")
-			prepareIPv4HA()
-			content, err := generateConfigForClientHAFromServer(cfgIPv4, "192.168.123.2")
-			Expect(err).NotTo(HaveOccurred())
-
-			Expect(content).To(Equal(`ifconfig-push 192.168.123.2 255.255.255.192
 `))
 		})
 	})

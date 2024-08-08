@@ -55,7 +55,7 @@ func NewCommand() *cobra.Command {
 func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 	v := openvpn.ClientValues{
 		Device:            "tun0",
-		IPFamilies:        cfg.IPFamilies,
+		IPFamily:          cfg.PrimaryIPFamily(),
 		ReversedVPNHeader: cfg.ReversedVPNHeader,
 		Endpoint:          cfg.Endpoint,
 		OpenVPNPort:       cfg.OpenVPNPort,

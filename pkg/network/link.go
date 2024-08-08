@@ -26,7 +26,7 @@ func DeleteLinkByName(name string) error {
 		if errors.As(err, &linkNotFoundError) {
 			return nil
 		}
-		return fmt.Errorf("failed to get link %s: %w", name, err)
+		return fmt.Errorf("failed to get link %s for deletion: %w", name, err)
 	}
 
 	if err = netlink.LinkDel(link); err != nil {
@@ -35,8 +35,8 @@ func DeleteLinkByName(name string) error {
 	return nil
 }
 
-// CreateTunnelIP6Tnl creates an ip6tnl tunnel to allow IPv4 and IPv6 packages over IPv6 and sets it up.
-func CreateTunnelIP6Tnl(linkName string, local, remote net.IP) error {
+// CreateTunnel creates an ip6tnl tunnel to allow IPv4 and IPv6 packages over IPv6 and sets it up.
+func CreateTunnel(linkName string, local, remote net.IP) error {
 	tunnel := &netlink.Ip6tnl{
 		LinkAttrs: netlink.LinkAttrs{
 			Name: linkName,
@@ -45,10 +45,10 @@ func CreateTunnelIP6Tnl(linkName string, local, remote net.IP) error {
 		Remote: remote,
 	}
 	if err := netlink.LinkAdd(tunnel); err != nil {
-		return fmt.Errorf("failed to add %s link: %w", linkName, err)
+		return fmt.Errorf("failed to add link %s: %w", linkName, err)
 	}
 	if err := netlink.LinkSetUp(tunnel); err != nil {
-		return fmt.Errorf("failed to up %s link: %w", linkName, err)
+		return fmt.Errorf("failed to set up link %s: %w", linkName, err)
 	}
 	return nil
 }
@@ -59,11 +59,11 @@ func GetLinkIPAddressesByName(name string, scope int) ([]net.IP, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get link %s: %w", name, err)
 	}
-	return GetLinkIPAddresses(link, scope)
+	return getLinkIPAddresses(link, scope)
 }
 
-// GetLinkIPAddresses gets the IP addresses for the given link and scope (`ScopeLink` or `ScopeUniversal`).
-func GetLinkIPAddresses(link netlink.Link, scope int) ([]net.IP, error) {
+// getLinkIPAddresses gets the IP addresses for the given link and scope (`ScopeLink` or `ScopeUniversal`).
+func getLinkIPAddresses(link netlink.Link, scope int) ([]net.IP, error) {
 	addrs, err := netlink.AddrList(link, familyAll)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list addresses of link %s: %w", link.Attrs().Name, err)

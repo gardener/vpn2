@@ -17,25 +17,25 @@ tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
 # https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
 remote-cert-tls server
 
-{{ if (eq .IPFamilies "IPv6") }}
+{{- if (eq .IPFamily "IPv6") }}
 proto tcp6-client
 {{- end }}
 
-{{ if (eq .IPFamilies "IPv4") }}
+{{- if (eq .IPFamily "IPv4") }}
 proto tcp4-client
 {{- end }}
 
-{{ if (eq .VPNClientIndex -1) }}
+{{- if (eq .VPNClientIndex -1) }}
 key /srv/secrets/vpn-client/tls.key
 cert /srv/secrets/vpn-client/tls.crt
 ca /srv/secrets/vpn-client/ca.crt
-{{ else }}
+{{- else }}
 key /srv/secrets/vpn-client-{{.VPNClientIndex}}/tls.key
 cert /srv/secrets/vpn-client-{{.VPNClientIndex}}/tls.crt
 ca /srv/secrets/vpn-client-{{.VPNClientIndex}}/ca.crt
 {{- end }}
 
-{{ if .IsShootClient }}
+{{- if .IsShootClient }}
 http-proxy {{ .Endpoint }} {{.OpenVPNPort}}
 http-proxy-option CUSTOM-HEADER Reversed-VPN {{ .ReversedVPNHeader }}
 {{- end }}
@@ -43,7 +43,7 @@ http-proxy-option CUSTOM-HEADER Reversed-VPN {{ .ReversedVPNHeader }}
 dev {{ .Device }}
 remote {{ .Endpoint }}
 
-{{ if and .IsShootClient (not .IsHA) }}
+{{- if and .IsShootClient (not .IsHA) }}
 script-security 2
 up "/bin/sh -c '/sbin/ip route replace {{ .SeedPodNetwork }} dev $1' -- "
 {{- end }}

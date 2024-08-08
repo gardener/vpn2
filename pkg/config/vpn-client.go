@@ -39,6 +39,10 @@ type VPNClient struct {
 	WaitTime          time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 }
 
+func (v VPNClient) PrimaryIPFamily() string {
+	return strings.Split(v.IPFamilies, ",")[0]
+}
+
 func GetVPNClientConfig() (VPNClient, error) {
 	cfg := VPNClient{}
 	if err := env.Parse(&cfg); err != nil {
@@ -51,7 +55,7 @@ func GetVPNClientConfig() (VPNClient, error) {
 			return VPNClient{}, err
 		}
 	}
-	if err := network.ValidateCIDR(cfg.VPNNetwork, cfg.IPFamilies); err != nil {
+	if err := validateVPNNetworkCIDR(cfg.VPNNetwork, cfg.PrimaryIPFamily()); err != nil {
 		return VPNClient{}, err
 	}
 	cfg.VPNClientIndex = -1

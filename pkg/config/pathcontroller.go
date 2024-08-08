@@ -5,6 +5,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/caarlos0/env/v10"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
@@ -19,6 +21,10 @@ type PathController struct {
 	ServiceNetwork network.CIDR `env:"SERVICE_NETWORK"`
 }
 
+func (v PathController) PrimaryIPFamily() string {
+	return strings.Split(v.IPFamilies, ",")[0]
+}
+
 func GetPathControllerConfig(log logr.Logger) (PathController, error) {
 	cfg := PathController{}
 	if err := env.Parse(&cfg); err != nil {
@@ -31,7 +37,7 @@ func GetPathControllerConfig(log logr.Logger) (PathController, error) {
 			return PathController{}, err
 		}
 	}
-	if err := network.ValidateCIDR(cfg.VPNNetwork, cfg.IPFamilies); err != nil {
+	if err := validateVPNNetworkCIDR(cfg.VPNNetwork, cfg.IPFamilies); err != nil {
 		return PathController{}, err
 	}
 

@@ -5,12 +5,12 @@
 package tunnel
 
 import (
-	"encoding/json"
 	"fmt"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
@@ -18,15 +18,13 @@ import (
 )
 
 const (
-	UDPPort       = 5400
-	cleanUpPeriod = 15 * time.Minute
+	tunnelControllerPort   = 5400
+	cleanUpPeriod          = 15 * time.Minute
+	creationFailureBackoff = 30 * time.Second
+	expirationDuration     = 10 * time.Minute
+	retriesToListen        = 30
+	retryListenWait        = 500 * time.Millisecond
 )
-
-// IP6Tunnel contains addresses of kube-apiserver to build tunnel and route.
-type IP6Tunnel struct {
-	// KubeAPIServerPodIP is the IP address of the kube-apiserver pod.
-	KubeAPIServerPodIP string `json:"kubeAPIServerPodIP"`
-}
 
 // NewController creates a new tunnel controller server.
 func NewController() *Controller {
@@ -40,8 +38,8 @@ type kubeApiserverData struct {
 	lock                sync.Mutex
 	log                 logr.Logger
 	podIP               string
-	localBond           net.IP
-	remoteBond          net.IP
+	localAddr           net.IP
+	remoteAddr          net.IP
 	lastSeen            time.Time
 	creationComplete    bool
 	lastCreationFailed  *time.Time
@@ -55,17 +53,18 @@ func (d *kubeApiserverData) setLastSeen() {
 	d.lastSeen = time.Now()
 }
 
-func (d *kubeApiserverData) needsUpdate(tunnelConfig IP6Tunnel) bool {
+func (d *kubeApiserverData) needsUpdate(podIP string) bool {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	if d.podIP != tunnelConfig.KubeAPIServerPodIP {
+	if d.podIP != podIP {
 		return true
 	}
 	if d.creationComplete {
 		return false
 	} else if d.lastCreationFailed != nil {
-		return time.Since(*d.lastCreationFailed) > 30*time.Second
+		// if creation of tunnel device or update of route failed, retry again only after a backoff
+		return time.Since(*d.lastCreationFailed) > creationFailureBackoff
 	}
 	return true
 }
@@ -74,18 +73,18 @@ func (d *kubeApiserverData) update() {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	name := fmt.Sprintf("bond0-ip6tnl-%02x", d.remoteBond[len(d.remoteBond)-1])
+	name := fmt.Sprintf("%s-ip6tnl-%02x", constants.BondDevice, d.remoteAddr[len(d.remoteAddr)-1])
 
 	if err := network.DeleteLinkByName(name); err != nil {
 		d._setFailed(fmt.Errorf("failed to delete link %s: %w", name, err))
 		return
 	}
 
-	if err := network.CreateTunnelIP6Tnl(name, d.localBond, d.remoteBond); err != nil {
-		d._setFailed(fmt.Errorf("failed to create tunnel %s: %w", name, err))
+	if err := network.CreateTunnel(name, d.localAddr, d.remoteAddr); err != nil {
+		d._setFailed(fmt.Errorf("failed to create tunnel device %s: %w", name, err))
 		return
 	}
-	d.log.Info("tunnel created", "name", name)
+	d.log.Info("tunnel device created", "name", name)
 
 	link, err := netlink.LinkByName(name)
 	if err != nil {
@@ -102,7 +101,7 @@ func (d *kubeApiserverData) update() {
 		return
 	}
 
-	if err := network.RouteReplace(d.log, &net.IPNet{IP: ip, Mask: net.CIDRMask(len(ip)*8, len(ip)*8)}, link); err != nil {
+	if err := network.ReplaceRoute(d.log, &net.IPNet{IP: ip, Mask: net.CIDRMask(len(ip)*8, len(ip)*8)}, link); err != nil {
 		d._setFailed(fmt.Errorf("failed to replace route %s: %w", name, err))
 		return
 	}
@@ -113,12 +112,16 @@ func (d *kubeApiserverData) update() {
 	d.creationFailedCount = 0
 }
 
-func (d *kubeApiserverData) delete() error {
+func (d *kubeApiserverData) delete() {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	name := fmt.Sprintf("bond0-ip6tnl-%02x", d.remoteBond[len(d.remoteBond)-1])
-	return network.DeleteLinkByName(name)
+	name := fmt.Sprintf("%s-ip6tnl-%02x", constants.BondDevice, d.remoteAddr[len(d.remoteAddr)-1])
+	if err := network.DeleteLinkByName(name); err != nil {
+		d.log.Error(err, "failed to delete old tunnel device", "name", name)
+	} else {
+		d.log.Info("tunnel device deleted", "name", name)
+	}
 }
 
 func (d *kubeApiserverData) _setFailed(err error) {
@@ -131,49 +134,48 @@ func (d *kubeApiserverData) _setFailed(err error) {
 func (d *kubeApiserverData) isOutdated() bool {
 	d.lock.Lock()
 	defer d.lock.Unlock()
-	return time.Since(d.lastSeen) > 10*time.Minute
+	return time.Since(d.lastSeen) > expirationDuration
 }
 
 // Controller is a server receiving UDP requests to create ipv6tnl devices.
 type Controller struct {
+	lock           sync.Mutex
 	kubeApiservers map[string]*kubeApiserverData
 	nextClean      time.Time
 }
 
 // Run runs the tunnel controller
 func (c *Controller) Run(log logr.Logger) error {
-	ips, err := network.GetLinkIPAddressesByName("bond0", network.ScopeUniverse)
+	ips, err := network.GetLinkIPAddressesByName(constants.BondDevice, network.ScopeUniverse)
 	if err != nil {
 		return err
 	}
 	if len(ips) == 0 {
-		return fmt.Errorf("no IP addresses found for bond0")
+		return fmt.Errorf("no IP addresses found for %s", constants.BondDevice)
 	}
 	if len(ips[0]) != 16 {
-		return fmt.Errorf("expected ipv6 address for bond0, got %s", ips[0])
+		return fmt.Errorf("expected ipv6 address for %s, got %s", constants.BondDevice, ips[0])
 	}
 
 	localBond := ips[0]
-	localAddress := fmt.Sprintf("[%s]:%d", localBond.String(), UDPPort)
-	addr, err := net.ResolveUDPAddr("udp6", localAddress)
-	if err != nil {
-		return fmt.Errorf("error resolving UDP address: %w", err)
+	localAddress := net.UDPAddr{
+		IP:   localBond,
+		Port: tunnelControllerPort,
 	}
-
 	var conn *net.UDPConn
-	for i := 0; i < 30; i++ {
-		conn, err = net.ListenUDP("udp6", addr)
+	for i := 0; i < retriesToListen; i++ {
+		conn, err = net.ListenUDP("udp6", &localAddress)
 		if err == nil {
 			break
 		}
-		time.Sleep(500 * time.Millisecond)
+		time.Sleep(retryListenWait)
 	}
 	if err != nil {
 		return fmt.Errorf("error listening on UDP: %w", err)
 	}
 	defer conn.Close()
 
-	log.Info("server listening for UDP6 packages on bond0 IP", "address", localAddress)
+	log.Info("server listening for UDP6 packages on IP of bond device", "address", localAddress.String())
 
 	buffer := make([]byte, 1024)
 	for {
@@ -182,24 +184,25 @@ func (c *Controller) Run(log logr.Logger) error {
 			log.Error(err, "reading from UDP failed")
 			continue
 		}
-		tunnelConfig := IP6Tunnel{}
-		if err := json.Unmarshal(buffer[:n], &tunnelConfig); err != nil {
-			log.Error(err, "parsing tunnel configuration failed")
-		}
+		podIP := string(buffer[:n])
 
 		key := clientAddr.IP.String()
+
+		c.lock.Lock()
 		data := c.kubeApiservers[key]
 		if data == nil {
 			data = &kubeApiserverData{
 				log:        log,
-				localBond:  localBond,
-				remoteBond: clientAddr.IP,
-				podIP:      tunnelConfig.KubeAPIServerPodIP,
+				localAddr:  localBond,
+				remoteAddr: clientAddr.IP,
+				podIP:      podIP,
 			}
 			c.kubeApiservers[key] = data
 		}
+		c.lock.Unlock()
+
 		data.setLastSeen()
-		if data.needsUpdate(tunnelConfig) {
+		if data.needsUpdate(podIP) {
 			go data.update()
 		}
 		if c.nextClean.After(time.Now()) {
@@ -210,12 +213,12 @@ func (c *Controller) Run(log logr.Logger) error {
 }
 
 func (c *Controller) clean() {
+	c.lock.Lock()
+	defer c.lock.Unlock()
 	for key, data := range c.kubeApiservers {
 		if data.isOutdated() {
 			delete(c.kubeApiservers, key)
-			if err := data.delete(); err != nil {
-				data.log.Error(err, "failed to delete old tunnel configuration")
-			}
+			data.delete()
 		}
 	}
 }

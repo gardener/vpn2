@@ -59,11 +59,10 @@ RUN    cp -d /lib/ld-musl-* ./lib                                           && e
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo package iptables
 
 RUN if [ "$DEBUG" = "true" ]; then \
-       apk add --update net-tools tcpdump arping ndisc6 && \
+       apk add --update net-tools tcpdump ndisc6 && \
        cp -d /bin/* ./bin && \
        cp -d /usr/bin/* ./usr/bin && \
        cp -d /usr/lib/libpcap* ./usr/lib && \
-       cp -d /usr/lib/libnet* ./usr/lib && \
        cp -d /usr/sbin/* ./usr/sbin && \
        cp -d /sbin/* ./sbin; \
     fi
@@ -83,13 +82,13 @@ ENV GOCACHE=/root/.cache/go-build
 ## gobuilder-vpn-client
 FROM gobuilder AS gobuilder-vpn-client
 ARG TARGETARCH
-RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-client build-tunnelcontroller ARCH=${TARGETARCH}
+RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-client build-tunnel-controller ARCH=${TARGETARCH}
 
 ## vpn-client
 FROM scratch AS vpn-client
 COPY --from=base /volume /
 COPY --from=gobuilder-vpn-client /build/bin/vpn-client /bin/vpn-client
-COPY --from=gobuilder-vpn-client /build/bin/tunnelcontroller /bin/tunnelcontroller
+COPY --from=gobuilder-vpn-client /build/bin/tunnel-controller /bin/tunnel-controller
 ENTRYPOINT /bin/vpn-client && openvpn --config /openvpn.config
 
 ## gobuilder-vpn-server

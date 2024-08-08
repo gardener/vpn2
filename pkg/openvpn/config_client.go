@@ -16,7 +16,7 @@ import (
 var clientTemplate string
 
 type ClientValues struct {
-	IPFamilies        string
+	IPFamily          string
 	ReversedVPNHeader string
 	Endpoint          string
 	OpenVPNPort       int

@@ -18,7 +18,7 @@ import (
 
 func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	v := openvpn.SeedServerValues{
-		IPFamilies: cfg.IPFamilies,
+		IPFamily:   cfg.PrimaryIPFamily(),
 		StatusPath: cfg.StatusPath,
 	}
 
@@ -42,31 +42,20 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	}
 
 	if len(cfg.VPNNetwork.IP) != 16 {
-		return v, fmt.Errorf("vpn network prefix must be v6")
+		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
 	}
 	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != 120 {
-		return v, fmt.Errorf("invalid prefixlength of vpn network prefix, must be /120, vpn network: %s", cfg.VPNNetwork)
+		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /120, vpn network: %s", cfg.VPNNetwork)
 	}
 
-	switch v.IsHA {
-	case false:
+	if !v.IsHA {
 		v.OpenVPNNetwork = cfg.VPNNetwork
-		v.OpenVPNNetworkPool = network.CIDR{
-			IP:   copyIP(cfg.VPNNetwork.IP),
-			Mask: net.CIDRMask(121, 128),
-		}
-		v.OpenVPNNetworkPool.IP[15] += 128
-	case true:
+	} else {
 		v.OpenVPNNetwork = network.CIDR{
 			IP:   copyIP(cfg.VPNNetwork.IP),
 			Mask: net.CIDRMask(122, 128),
 		}
 		v.OpenVPNNetwork.IP[15] += byte(64 * v.VPNIndex)
-		v.OpenVPNNetworkPool = network.CIDR{
-			IP:   copyIP(v.OpenVPNNetwork.IP),
-			Mask: net.CIDRMask(123, 128),
-		}
-		v.OpenVPNNetworkPool.IP[15] += 32
 	}
 
 	return v, nil

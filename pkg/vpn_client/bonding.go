@@ -11,6 +11,7 @@ import (
 	"os/exec"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/ippool"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
@@ -19,10 +20,9 @@ import (
 
 func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClient) error {
 	var addr *net.IPNet
-	var targets []net.IP
 
 	if cfg.IsShootClient {
-		addr, targets = network.GetBondAddressAndTargetsShootClient(cfg.VPNNetwork.ToIPNet(), cfg.VPNClientIndex)
+		addr, _ = network.GetBondAddressAndTargetsShootClient(cfg.VPNNetwork.ToIPNet(), cfg.VPNClientIndex)
 	} else {
 		manager, err := ippool.NewPodIPPoolManager(cfg.Namespace, cfg.PodLabelSelector)
 		if err != nil {
@@ -42,7 +42,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		if ip == nil {
 			return fmt.Errorf("acquired ip %s is not a valid ipv6 nor ipv4", ip)
 		}
-		addr, targets = network.GetBondAddressAndTargetsSeedClient(ip, cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
+		addr, _ = network.GetBondAddressAndTargetsSeedClient(ip, cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
 	}
 
 	for i := range cfg.HAVPNServers {
@@ -59,8 +59,8 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		}
 	}
 
-	// check if bond0 already exists and delete it if exists
-	err := network.DeleteLinkByName("bond0")
+	// check if bond device already exists and delete it if exists
+	err := network.DeleteLinkByName(constants.BondDevice)
 	if err != nil {
 		return err
 	}
@@ -70,10 +70,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		return fmt.Errorf("failed to get link tap0: %w", err)
 	}
 
-	for _, t := range targets {
-		println(fmt.Sprintf("%d %s", len(t), t.String()))
-	}
-	// create bond0
+	// create bond device
 	linkAttrs := netlink.NewLinkAttrs()
 	bond := netlink.NewLinkBond(linkAttrs)
 	// use bonding
@@ -81,7 +78,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	// - monitoring with use_carrier=1
 	// - using `primary tap0` to avoid ambiguity of selection if multiple devices are up (primary_reselect=always by default)
 	// - using `num_grat_arp 5` as safeguard on switching device
-	bond.Name = "bond0"
+	bond.Name = constants.BondDevice
 	bond.Mode = netlink.BOND_MODE_ACTIVE_BACKUP
 	bond.FailOverMac = netlink.BOND_FAIL_OVER_MAC_ACTIVE
 	bond.Miimon = 100
@@ -90,7 +87,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	bond.NumPeerNotif = 5
 
 	if err = netlink.LinkAdd(bond); err != nil {
-		return fmt.Errorf("failed to create bond0 link device: %w", err)
+		return fmt.Errorf("failed to create %s link device: %w", constants.BondDevice, err)
 	}
 
 	for i := range cfg.HAVPNServers {
@@ -103,22 +100,22 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 
 		err = netlink.LinkSetMaster(link, bond)
 		if err != nil {
-			return fmt.Errorf("failed to set bond0 as master for link %s: %w", linkName, err)
+			return fmt.Errorf("failed to set %s as master for link %s: %w", constants.BondDevice, linkName, err)
 		}
 	}
 
 	err = netlink.LinkSetUp(bond)
 	if err != nil {
-		return fmt.Errorf("failed to up bond0 link: %w", err)
+		return fmt.Errorf("failed to up %s link: %w", constants.BondDevice, err)
 	}
 	err = netlink.AddrAdd(bond, &netlink.Addr{IPNet: addr})
 	if err != nil {
-		return fmt.Errorf("failed to add address %s to bond0 link: %w", addr, err)
+		return fmt.Errorf("failed to add address %s to %s link: %w", addr, constants.BondDevice, err)
 	}
 
 	if !cfg.IsShootClient {
 		for i := range cfg.HAVPNClients {
-			if err := network.CreateTunnelIP6Tnl(network.BondIP6TunnelLinkName(i), addr.IP, network.ClientIP(cfg.VPNNetwork.ToIPNet(), i)); err != nil {
+			if err := network.CreateTunnel(network.BondIP6TunnelLinkName(i), addr.IP, network.ClientIP(cfg.VPNNetwork.ToIPNet(), i)); err != nil {
 				return fmt.Errorf("failed to create tunnel ip6-net link: %w", err)
 			}
 		}

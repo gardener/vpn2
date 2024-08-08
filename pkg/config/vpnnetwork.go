@@ -2,20 +2,23 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package network
+package config
 
 import (
 	"fmt"
+
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
 )
 
-func ValidateCIDR(cidr CIDR, ipFamily string) error {
+func validateVPNNetworkCIDR(cidr network.CIDR, ipFamily string) error {
 	length, _ := cidr.Mask.Size()
 	switch ipFamily {
-	case "IPv4":
+	case constants.IPv4Family:
 		if length != 120 {
 			return fmt.Errorf("ipv4 setup needs ipv6 vpn network with /120 subnet mask, got %d", length)
 		}
-	case "IPv6":
+	case constants.IPv6Family:
 		if length != 120 {
 			return fmt.Errorf("ipv6 setup needs vpn network to have /120 subnet mask, got %d", length)
 		}

@@ -90,8 +90,8 @@ build-vpn-client:
 	    -ldflags $(LD_FLAGS)\
 	    ./cmd/vpn_client/main.go
 
-.PHONY: build-tunnelcontroller
-build-tunnelcontroller:
-	@CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o bin/tunnelcontroller  \
+.PHONY: build-tunnel-controller
+build-tunnel-controller:
+	@CGO_ENABLED=0 GOOS=linux GOARCH=$(ARCH) go build -o bin/tunnel-controller  \
 	    -ldflags $(LD_FLAGS)\
-	    ./cmd/tunnelcontroller/main.go
+	    ./cmd/tunnel_controller/main.go

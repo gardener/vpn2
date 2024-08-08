@@ -5,6 +5,8 @@
 package config
 
 import (
+	"strings"
+
 	"github.com/caarlos0/env/v10"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
@@ -23,6 +25,10 @@ type VPNServer struct {
 	LocalNodeIP    string       `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
 }
 
+func (v VPNServer) PrimaryIPFamily() string {
+	return strings.Split(v.IPFamilies, ",")[0]
+}
+
 func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 	cfg := VPNServer{}
 	if err := env.Parse(&cfg); err != nil {
@@ -34,6 +40,9 @@ func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 		if err != nil {
 			return VPNServer{}, err
 		}
+	}
+	if err := validateVPNNetworkCIDR(cfg.VPNNetwork, cfg.PrimaryIPFamily()); err != nil {
+		return VPNServer{}, err
 	}
 	log.Info("config parsed", "config", cfg)
 	return cfg, nil

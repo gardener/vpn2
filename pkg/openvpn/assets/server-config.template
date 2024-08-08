@@ -25,11 +25,11 @@ dh none
 auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 
-{{ if (eq .IPFamilies "IPv4") }}
+{{- if (eq .IPFamily "IPv4") }}
 proto tcp4-server
 {{- end }}
 
-{{- if (eq .IPFamilies "IPv6") }}
+{{- if (eq .IPFamily "IPv6") }}
 proto tcp6-server
 {{- end }}
 

@@ -19,21 +19,18 @@ var (
 	seedServerConfigTemplate string
 	//go:embed assets/server-for-client-config.template
 	configFromServerForClientTemplate string
-	//go:embed assets/server-for-client-ha-config.template
-	configFromServerForClientHATemplate string
 )
 
 type SeedServerValues struct {
-	Device             string
-	IPFamilies         string
-	StatusPath         string
-	OpenVPNNetwork     network.CIDR
-	OpenVPNNetworkPool network.CIDR
-	ShootNetworks      []network.CIDR
-	HAVPNClients       int
-	IsHA               bool
-	VPNIndex           int
-	LocalNodeIP        string
+	Device         string
+	IPFamily       string
+	StatusPath     string
+	OpenVPNNetwork network.CIDR
+	ShootNetworks  []network.CIDR
+	HAVPNClients   int
+	IsHA           bool
+	VPNIndex       int
+	LocalNodeIP    string
 }
 
 func generateSeedServerConfig(cfg SeedServerValues) (string, error) {
@@ -48,16 +45,6 @@ func generateSeedServerConfig(cfg SeedServerValues) (string, error) {
 func generateConfigForClientFromServer(cfg SeedServerValues) (string, error) {
 	buf := &bytes.Buffer{}
 	if err := executeTemplate("vpn-shoot-client", buf, configFromServerForClientTemplate, &cfg); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
-}
-
-// generateConfigForClientHAFromServer generates the config that the server sends to HA shoot vpn clients
-func generateConfigForClientHAFromServer(cfg SeedServerValues, startIP string) (string, error) {
-	buf := &bytes.Buffer{}
-	data := map[string]any{"OpenVPNNetwork": cfg.OpenVPNNetwork, "StartIP": startIP}
-	if err := executeTemplate("vpn-shoot-client-ha", buf, configFromServerForClientHATemplate, data); err != nil {
 		return "", err
 	}
 	return buf.String(), nil
@@ -91,13 +78,7 @@ func WriteServerConfigFiles(v SeedServerValues) error {
 
 	if v.IsHA {
 		for i := 0; i < v.HAVPNClients; i++ {
-			startIP := v.OpenVPNNetwork.IP
-			startIP[len(startIP)-1] = byte(v.VPNIndex*64 + i + 2)
-			vpnShootClientConfigHA, err := generateConfigForClientHAFromServer(v, startIP.String())
-			if err != nil {
-				return fmt.Errorf("error %w: Could not generate ha shoot client config %d from %v", err, i, v)
-			}
-			if err := os.WriteFile(fmt.Sprintf("%s-%d", path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), i), []byte(vpnShootClientConfigHA), 0o644); err != nil {
+			if err := os.WriteFile(fmt.Sprintf("%s-%d", path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), i), []byte(""), 0o644); err != nil {
 				return err
 			}
 		}

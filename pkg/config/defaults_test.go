@@ -6,6 +6,8 @@ package config
 
 import (
 	"testing"
+
+	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 )
 
 func TestGetVPNNetworkDefault(t *testing.T) {
@@ -14,7 +16,7 @@ func TestGetVPNNetworkDefault(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	if actualCid.String() != defaultIPV6VpnNetwork {
-		t.Errorf("Expected CIDR: %v, Actual CIDR: %v", defaultIPV6VpnNetwork, actualCid)
+	if actualCid.String() != constants.DefaultVPNRangeV6 {
+		t.Errorf("Expected CIDR: %v, Actual CIDR: %v", constants.DefaultVPNRangeV6, actualCid)
 	}
 }

@@ -7,13 +7,12 @@ package pathcontroller
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"time"
 
 	"github.com/gardener/vpn2/pkg/config"
-	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
-
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/go-logr/logr"
@@ -46,9 +45,6 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		return err
 	}
 
-	if err = network.ValidateCIDR(cfg.VPNNetwork, cfg.IPFamilies); err != nil {
-		return err
-	}
 	checkNetwork := cfg.NodeNetwork
 	if checkNetwork.String() == "" {
 		checkNetwork = cfg.ServiceNetwork
@@ -65,18 +61,22 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		netlinkRouter.nodeNetwork = (*net.IPNet)(&cfg.NodeNetwork)
 	}
 
+	podIP := os.Getenv("POD_IP")
+	if podIP == "" {
+		return fmt.Errorf("POD_IP environment variable not set")
+	}
 	router := &clientRouter{
-		pinger: icmpPinger{
+		pinger: &icmpPinger{
 			log:     log.WithName("ping"),
 			timeout: 2 * time.Second,
 			retries: 1,
 		},
-		ticker:       time.NewTicker(2 * time.Second),
-		tunnelConfig: tunnel.IP6Tunnel{KubeAPIServerPodIP: os.Getenv("POD_IP")},
-		netRouter:    netlinkRouter,
-		checkedNet:   checkNetwork.ToIPNet(),
-		goodIPs:      make(map[string]struct{}),
-		log:          log.WithName("pingRouter"),
+		ticker:             time.NewTicker(2 * time.Second),
+		kubeAPIServerPodIP: podIP,
+		netRouter:          netlinkRouter,
+		checkedNet:         checkNetwork.ToIPNet(),
+		goodIPs:            make(map[string]struct{}),
+		log:                log.WithName("pingRouter"),
 	}
 
 	// acquired ip is not necessary here, because we don't care about the subnet

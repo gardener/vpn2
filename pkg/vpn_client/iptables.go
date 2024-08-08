@@ -7,6 +7,7 @@ package vpn_client
 import (
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
 )
@@ -14,43 +15,43 @@ import (
 func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 	forwardDevice := "tun0"
 	if cfg.VPNServerIndex != "" {
-		forwardDevice = "bond0"
+		forwardDevice = constants.BondDevice
 	}
 
 	protocol := iptables.ProtocolIPv4
-	if cfg.IPFamilies == "IPv6" {
+	if cfg.PrimaryIPFamily() == constants.IPv6Family {
 		protocol = iptables.ProtocolIPv6
 	}
-	iptable, err := network.NewIPTables(log, protocol)
+	ipTable, err := network.NewIPTables(log, protocol)
 	if err != nil {
 		return err
 	}
 
 	if cfg.IsShootClient {
-		if cfg.IPFamilies == "IPv4" {
-			err = iptable.Append("filter", "FORWARD", "--in-interface", forwardDevice, "-j", "ACCEPT")
+		if protocol == iptables.ProtocolIPv4 {
+			err = ipTable.Append("filter", "FORWARD", "--in-interface", forwardDevice, "-j", "ACCEPT")
 			if err != nil {
 				return err
 			}
 		}
 
-		err = iptable.Append("nat", "POSTROUTING", "--out-interface", "eth0", "-j", "MASQUERADE")
+		err = ipTable.Append("nat", "POSTROUTING", "--out-interface", "eth0", "-j", "MASQUERADE")
 		if err != nil {
 			return err
 		}
 	} else {
-		if cfg.IPFamilies == "IPv6" {
+		if protocol == iptables.ProtocolIPv6 {
 			// allow icmp6 for Neighbor Discovery Protocol
-			err = iptable.AppendUnique("filter", "INPUT", "-i", forwardDevice, "-p", "icmpv6", "-j", "ACCEPT")
+			err = ipTable.AppendUnique("filter", "INPUT", "-i", forwardDevice, "-p", "icmpv6", "-j", "ACCEPT")
 			if err != nil {
 				return err
 			}
 		}
-		err = iptable.AppendUnique("filter", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-i", forwardDevice, "-j", "ACCEPT")
+		err = ipTable.AppendUnique("filter", "INPUT", "-m", "state", "--state", "RELATED,ESTABLISHED", "-i", forwardDevice, "-j", "ACCEPT")
 		if err != nil {
 			return err
 		}
-		err = iptable.AppendUnique("filter", "INPUT", "-i", forwardDevice, "-j", "DROP")
+		err = ipTable.AppendUnique("filter", "INPUT", "-i", forwardDevice, "-j", "DROP")
 		if err != nil {
 			return err
 		}

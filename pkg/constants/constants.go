@@ -2,11 +2,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package config
+package constants
 
 const (
 	IPv4Family = "IPv4"
 	IPv6Family = "IPv6"
 
-	defaultIPV6VpnNetwork = "fd8f:6d53:b97a:1::/120"
+	// BondDevice is the name of the bond device used for the HA deployment.
+	BondDevice = "bond0"
 )

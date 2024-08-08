@@ -19,9 +19,9 @@ import (
 )
 
 type clientRouter struct {
-	pinger       pinger
-	netRouter    netRouter
-	tunnelConfig tunnel.IP6Tunnel
+	pinger             pinger
+	netRouter          netRouter
+	kubeAPIServerPodIP string
 
 	log        logr.Logger
 	checkedNet *net.IPNet
@@ -100,9 +100,10 @@ func (r *clientRouter) pingAllShootClients(clients []net.IP) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := tunnel.Send(client, r.tunnelConfig)
+			// sending own IP to other side of tunnel so that the back route can be setup correctly
+			err := tunnel.Send(client, r.kubeAPIServerPodIP)
 			if err != nil {
-				r.log.Info("error sending packet", "ip", client, "error", err)
+				r.log.Info("error sending UDP packet with own IP to vpn-shoot", "ip", client, "error", err)
 			}
 		}()
 	}

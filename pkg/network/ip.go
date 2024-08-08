@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"net"
 	"slices"
+
+	"github.com/gardener/vpn2/pkg/constants"
 )
 
 const (
@@ -54,5 +56,5 @@ func ClientIndexFromClientIP(clientIP net.IP) int {
 }
 
 func BondIP6TunnelLinkName(index int) string {
-	return fmt.Sprintf("bond0-ip6tnl%d", index)
+	return fmt.Sprintf("%s-ip6tnl%d", constants.BondDevice, index)
 }

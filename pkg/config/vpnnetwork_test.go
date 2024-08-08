@@ -2,14 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package network
+package config
 
 import (
 	"net"
 	"testing"
+
+	"github.com/gardener/vpn2/pkg/network"
 )
 
-func Test_ValidateCIDR(t *testing.T) {
+func Test_ValidateVPNNetworkCIDR(t *testing.T) {
 	tt := []struct {
 		name        string
 		networkCIDR string
@@ -50,7 +52,7 @@ func Test_ValidateCIDR(t *testing.T) {
 				t.Fatal("could not parse CIDR from testcase")
 			}
 
-			err = ValidateCIDR(CIDR(*n), testcase.ipFamily)
+			err = validateVPNNetworkCIDR(network.CIDR(*n), testcase.ipFamily)
 			if testcase.wantError && err == nil {
 				t.Fatal("want error, got nil")
 			}
