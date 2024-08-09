@@ -23,6 +23,7 @@ type VPNClient struct {
 	Endpoint          string       `env:"ENDPOINT"`
 	OpenVPNPort       int          `env:"OPENVPN_PORT" envDefault:"8132"`
 	VPNNetwork        network.CIDR `env:"VPN_NETWORK"`
+	SeedPodNetwork    network.CIDR `env:"SEED_POD_NETWORK"`
 	IsShootClient     bool         `env:"IS_SHOOT_CLIENT"`
 	PodName           string       `env:"POD_NAME"`
 	Namespace         string       `env:"NAMESPACE"`
@@ -38,6 +39,10 @@ type VPNClient struct {
 	WaitTime          time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 }
 
+func (v VPNClient) PrimaryIPFamily() string {
+	return strings.Split(v.IPFamilies, ",")[0]
+}
+
 func GetVPNClientConfig() (VPNClient, error) {
 	cfg := VPNClient{}
 	if err := env.Parse(&cfg); err != nil {
@@ -45,12 +50,12 @@ func GetVPNClientConfig() (VPNClient, error) {
 	}
 	if cfg.VPNNetwork.String() == "" {
 		var err error
-		cfg.VPNNetwork, err = getVPNNetworkDefault(cfg.IPFamilies)
+		cfg.VPNNetwork, err = getVPNNetworkDefault()
 		if err != nil {
 			return VPNClient{}, err
 		}
 	}
-	if err := network.ValidateCIDR(cfg.VPNNetwork, cfg.IPFamilies); err != nil {
+	if err := validateVPNNetworkCIDR(cfg.VPNNetwork, cfg.PrimaryIPFamily()); err != nil {
 		return VPNClient{}, err
 	}
 	cfg.VPNClientIndex = -1

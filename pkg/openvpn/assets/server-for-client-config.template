@@ -1,10 +1,10 @@
-{{- if (eq .IPFamilies  "IPv4") }}
+{{- if (eq .IPFamily  "IPv4") }}
 {{- range .ShootNetworks }}
 iroute {{ printf "%s" .IP }} {{ cidrMask . }}
 {{- end }}
 {{- end }}
 
-{{- if (eq .IPFamilies "IPv6") }}
+{{- if (eq .IPFamily "IPv6") }}
 {{- range .ShootNetworks }}
 iroute-ipv6 {{ printf "%s" . }}
 {{- end }}

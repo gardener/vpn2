@@ -123,6 +123,7 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 		brokers[i], err = NewIPAddressBroker(manager, &cfg)
 		if err != nil {
 			t.Errorf("new failed: %s", err)
+			return
 		}
 	}
 

@@ -6,9 +6,24 @@ This repository contains components to establish network connectivity for Shoot 
 
 ## What's inside
 
-[VPN Server](vpn-server) - a component that serves an endpoint for incoming connections and allows contacting any IP address within the networks of a Shoot cluster (which are usually private).
+**VPN Server** - a component that configures and runs OpenVPN in server mode. It serves an endpoint for incoming connections and allows contacting any IP address within the networks of a Shoot cluster (which are usually private).
 
-[VPN Client](vpn-client) - a component that establishes connectivity from a Shoot cluster to the endpoint in the Seed cluster allowing contacting any IP address within its network and routes the packets back to the caller.
+**VPN Client**- a component that configures and runs OpenVPN in client mode. It establishes connectivity from a Shoot cluster to the endpoint in the Seed cluster allowing contacting any IP address within its network and routes the packets back to the caller.
+
+Main features:
+- The VPN supports all combinations of IP families:
+  - `IPv4` on both sides, i.e. control plane (seed) and shoot
+  - `IPv4/IPv6` dual stack on control plane (seed) and any IP families on shoot
+  - `IPv6` on both control plane (seed) and shoot
+- It always uses an `IPv6` transfer network for the VPN tunnel.
+- It supports two modes
+  - the default mode is one VPN server on the seed side and one VPN client on the shoot side
+  - in *HA* mode, the VPN connectivity is realized using two separate VPN servers on the control plane side and
+    multiple VPN clients both on control plane and shoot sides combining the two VPN tunnels into a single connection
+    using a bonding device.
+- It is written in Go
+
+Please see [Reversed VPN Tunnel Setup and Configuration](https://github.com/gardener/gardener/blob/master/docs/usage/reversed-vpn-tunnel.md) for a detailed discussion of the architecture.
 
 ## Local test environment
 
