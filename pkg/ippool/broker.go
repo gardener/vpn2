@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/network"
 )
 
 type ipAddressBroker struct {
@@ -30,16 +31,23 @@ type IPAddressBroker = *ipAddressBroker
 
 var logName bool
 
-// NewIPAddressBroker creates a new instance
+// NewIPAddressBroker creates a new instance.
 func NewIPAddressBroker(manager IPPoolManager, cfg *config.VPNClient) (IPAddressBroker, error) {
+	base, startIndex, endIndex := network.BondingSeedClientRange(cfg.VPNNetwork.IP)
 	return &ipAddressBroker{
 		manager:    manager,
-		base:       cfg.VPNNetwork.IP,
-		startIndex: cfg.StartIndex,
-		endIndex:   cfg.EndIndex,
+		base:       base,
+		startIndex: startIndex,
+		endIndex:   endIndex,
 		ownName:    cfg.PodName,
 		waitTime:   cfg.WaitTime,
 	}, nil
+}
+
+// SetStartAndEndIndex overwrites default start and end index.
+func (b *ipAddressBroker) SetStartAndEndIndex(startIndex int, endIndex int) {
+	b.startIndex = startIndex
+	b.endIndex = endIndex
 }
 
 func (b *ipAddressBroker) getExistingIPAddresses(ctx context.Context) (*IPPoolUsageLookupResult, error) {

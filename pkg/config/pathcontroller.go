@@ -37,7 +37,7 @@ func GetPathControllerConfig(log logr.Logger) (PathController, error) {
 			return PathController{}, err
 		}
 	}
-	if err := validateVPNNetworkCIDR(cfg.VPNNetwork, cfg.IPFamilies); err != nil {
+	if err := validateVPNNetworkCIDR(cfg.VPNNetwork); err != nil {
 		return PathController{}, err
 	}
 

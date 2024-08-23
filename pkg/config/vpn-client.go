@@ -33,8 +33,6 @@ type VPNClient struct {
 	ReversedVPNHeader string        `env:"REVERSED_VPN_HEADER" envDefault:"invalid-host"`
 	HAVPNClients      int           `env:"HA_VPN_CLIENTS"`
 	HAVPNServers      int           `env:"HA_VPN_SERVERS"`
-	StartIndex        int           `env:"START_INDEX" envDefault:"200"`
-	EndIndex          int           `env:"END_INDEX" envDefault:"254"`
 	PodLabelSelector  string        `env:"POD_LABEL_SELECTOR" envDefault:"app=kubernetes,role=apiserver"`
 	WaitTime          time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 }
@@ -55,7 +53,7 @@ func GetVPNClientConfig() (VPNClient, error) {
 			return VPNClient{}, err
 		}
 	}
-	if err := validateVPNNetworkCIDR(cfg.VPNNetwork, cfg.PrimaryIPFamily()); err != nil {
+	if err := validateVPNNetworkCIDR(cfg.VPNNetwork); err != nil {
 		return VPNClient{}, err
 	}
 	cfg.VPNClientIndex = -1

@@ -115,8 +115,6 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 	for i := 0; i < count; i++ {
 		cfg := config.VPNClient{
 			VPNNetwork: vpnNetwork,
-			StartIndex: 10,
-			EndIndex:   10 + space,
 			PodName:    podName(i),
 			WaitTime:   baseWait,
 		}
@@ -125,6 +123,7 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 			t.Errorf("new failed: %s", err)
 			return
 		}
+		brokers[i].SetStartAndEndIndex(10, 10+space)
 	}
 
 	var waitGroup sync.WaitGroup

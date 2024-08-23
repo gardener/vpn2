@@ -119,7 +119,7 @@ type netlinkRouter struct {
 }
 
 func (r *netlinkRouter) updateRouting(newIP net.IP) error {
-	clientIndex := network.ClientIndexFromClientIP(newIP)
+	clientIndex := network.ClientIndexFromBondingShootClientIP(newIP)
 	tunnelLink, err := netlink.LinkByName(network.BondIP6TunnelLinkName(clientIndex))
 	if err != nil {
 		return err

@@ -22,7 +22,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	var addr *net.IPNet
 
 	if cfg.IsShootClient {
-		addr, _ = network.GetBondAddressAndTargetsShootClient(cfg.VPNNetwork.ToIPNet(), cfg.VPNClientIndex)
+		addr = network.BondingShootClientAddress(cfg.VPNNetwork.ToIPNet(), cfg.VPNClientIndex)
 	} else {
 		manager, err := ippool.NewPodIPPoolManager(cfg.Namespace, cfg.PodLabelSelector)
 		if err != nil {
@@ -42,7 +42,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		if ip == nil {
 			return fmt.Errorf("acquired ip %s is not a valid ipv6 nor ipv4", ip)
 		}
-		addr, _ = network.GetBondAddressAndTargetsSeedClient(ip, cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
+		addr = network.BondingAddressForClient(ip)
 	}
 
 	for i := range cfg.HAVPNServers {
@@ -115,7 +115,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 
 	if !cfg.IsShootClient {
 		for i := range cfg.HAVPNClients {
-			if err := network.CreateTunnel(network.BondIP6TunnelLinkName(i), addr.IP, network.ClientIP(cfg.VPNNetwork.ToIPNet(), i)); err != nil {
+			if err := network.CreateTunnel(network.BondIP6TunnelLinkName(i), addr.IP, network.BondingShootClientIP(cfg.VPNNetwork.ToIPNet(), i)); err != nil {
 				return fmt.Errorf("failed to create tunnel ip6-net link: %w", err)
 			}
 		}

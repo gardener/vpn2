@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -145,7 +146,7 @@ func (p *icmpPinger) neighborSolicitation(client net.IP) error {
 	if len(ips) == 0 {
 		return fmt.Errorf("no link IP address for device %s", constants.BondDevice)
 	} else if len(ips) > 1 {
-		return fmt.Errorf("link IP address not unique for device %s: [%s]", constants.BondDevice)
+		return fmt.Errorf("link IP address not unique for device %s: [%s]", constants.BondDevice, strings.Join(toStringArray(ips), ","))
 	}
 
 	ns := icmp.Message{

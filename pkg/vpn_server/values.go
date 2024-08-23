@@ -6,12 +6,12 @@ package vpn_server
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"regexp"
 	"strconv"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/openvpn"
 )
@@ -44,27 +44,17 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	if len(cfg.VPNNetwork.IP) != 16 {
 		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
 	}
-	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != 120 {
-		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /120, vpn network: %s", cfg.VPNNetwork)
+	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
+		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
 	}
 
 	if !v.IsHA {
 		v.OpenVPNNetwork = cfg.VPNNetwork
 	} else {
-		v.OpenVPNNetwork = network.CIDR{
-			IP:   copyIP(cfg.VPNNetwork.IP),
-			Mask: net.CIDRMask(122, 128),
-		}
-		v.OpenVPNNetwork.IP[15] += byte(64 * v.VPNIndex)
+		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
 	}
 
 	return v, nil
-}
-
-func copyIP(ip net.IP) net.IP {
-	new := make(net.IP, len(ip))
-	copy(new, ip)
-	return new
 }
 
 func getHAInfo() (bool, int) {

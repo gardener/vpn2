@@ -80,6 +80,6 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	}
 
 	// acquired ip is not necessary here, because we don't care about the subnet
-	_, clientIPs := network.GetBondAddressAndTargetsSeedClient(nil, cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
+	clientIPs := network.AllBondingShootClientIPs(cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
 	return router.Run(ctx, clientIPs)
 }

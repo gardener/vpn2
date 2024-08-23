@@ -41,7 +41,7 @@ func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 			return VPNServer{}, err
 		}
 	}
-	if err := validateVPNNetworkCIDR(cfg.VPNNetwork, cfg.PrimaryIPFamily()); err != nil {
+	if err := validateVPNNetworkCIDR(cfg.VPNNetwork); err != nil {
 		return VPNServer{}, err
 	}
 	log.Info("config parsed", "config", cfg)

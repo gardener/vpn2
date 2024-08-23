@@ -5,17 +5,10 @@
 package config
 
 import (
-	"net"
-
-	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 )
 
 func getVPNNetworkDefault() (network.CIDR, error) {
-	// Always use IPv6 ULA for the VPN transfer network
-	_, cidr, err := net.ParseCIDR(constants.DefaultVPNRangeV6)
-	if err != nil {
-		return network.CIDR{}, err
-	}
-	return network.CIDR(*cidr), nil
+	return network.CIDR(constants.DefaultVPNNetwork), nil
 }
