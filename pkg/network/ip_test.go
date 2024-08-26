@@ -26,13 +26,13 @@ func Test_BondingShootClientIP(t *testing.T) {
 			name:       "vpn-shoot-0",
 			vpnNetwork: vpnNetwork,
 			index:      0,
-			want:       net.ParseIP("fd8f:6d53:b97a:1::b00"),
+			want:       net.ParseIP("fd8f:6d53:b97a:1::b:0"),
 		},
 		{
 			name:       "vpn-shoot-1",
 			vpnNetwork: vpnNetwork,
 			index:      1,
-			want:       net.ParseIP("fd8f:6d53:b97a:1::b01"),
+			want:       net.ParseIP("fd8f:6d53:b97a:1::b:1"),
 		},
 	}
 	for _, testcase := range tt {
@@ -57,8 +57,8 @@ func Test_BondingShootClientAddress(t *testing.T) {
 			vpnNetwork: vpnNetwork,
 			index:      0,
 			want: net.IPNet{
-				IP:   net.ParseIP("fd8f:6d53:b97a:1::b00"),
-				Mask: net.CIDRMask(119, 128),
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::b:0"),
+				Mask: net.CIDRMask(104, 128),
 			},
 		},
 		{
@@ -66,8 +66,8 @@ func Test_BondingShootClientAddress(t *testing.T) {
 			vpnNetwork: vpnNetwork,
 			index:      1,
 			want: net.IPNet{
-				IP:   net.ParseIP("fd8f:6d53:b97a:1::b01"),
-				Mask: net.CIDRMask(119, 128),
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::b:1"),
+				Mask: net.CIDRMask(104, 128),
 			},
 		},
 	}
@@ -89,8 +89,8 @@ func Test_BondingShootClientAddress(t *testing.T) {
 func Test_AllBondingShootClientIPs(t *testing.T) {
 	ips := AllBondingShootClientIPs(vpnNetwork, 2)
 	want := []net.IP{
-		net.ParseIP("fd8f:6d53:b97a:1::b00"),
-		net.ParseIP("fd8f:6d53:b97a:1::b01"),
+		net.ParseIP("fd8f:6d53:b97a:1::b:0"),
+		net.ParseIP("fd8f:6d53:b97a:1::b:1"),
 	}
 	if len(ips) != len(want) {
 		t.Errorf("unequal number of ips: want: %d, got: %d", len(want), len(ips))
@@ -110,18 +110,18 @@ func Test_BondingAddressForSeedClient(t *testing.T) {
 	}{
 		{
 			name:       "kube-apiserver-1",
-			acquiredIP: net.ParseIP("fd8f:6d53:b97a:1::a47"),
+			acquiredIP: net.ParseIP("fd8f:6d53:b97a:1::a:47"),
 			want: net.IPNet{
-				IP:   net.ParseIP("fd8f:6d53:b97a:1::a47"),
-				Mask: net.CIDRMask(119, 128),
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::a:47"),
+				Mask: net.CIDRMask(104, 128),
 			},
 		},
 		{
 			name:       "kube-apiserver-2",
-			acquiredIP: net.ParseIP("fd8f:6d53:b97a:1::aef"),
+			acquiredIP: net.ParseIP("fd8f:6d53:b97a:1::a:ef"),
 			want: net.IPNet{
-				IP:   net.ParseIP("fd8f:6d53:b97a:1::aef"),
-				Mask: net.CIDRMask(119, 128),
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::a:ef"),
+				Mask: net.CIDRMask(104, 128),
 			},
 		},
 	}
@@ -141,15 +141,15 @@ func Test_BondingAddressForSeedClient(t *testing.T) {
 
 func Test_BondingSeedClientRange(t *testing.T) {
 	base, startIndex, endIndex := BondingSeedClientRange(vpnNetwork.IP)
-	wantBase := net.ParseIP("fd8f:6d53:b97a:1::a00")
+	wantBase := net.ParseIP("fd8f:6d53:b97a:1::a:0")
 	if !base.Equal(wantBase) {
 		t.Errorf("unequal base client ip: want: %+v, got: %+v", wantBase, base)
 	}
 	if startIndex != 1 {
 		t.Errorf("unequal startIndex: want: %d, got: %d", 1, startIndex)
 	}
-	if endIndex != 0xff {
-		t.Errorf("unequal endIndex: want: %d, got: %d", 0xff, endIndex)
+	if endIndex != 0xffff {
+		t.Errorf("unequal endIndex: want: %d, got: %d", 0xffff, endIndex)
 	}
 }
 
@@ -165,8 +165,8 @@ func Test_HAVPNTunnelNetwork(t *testing.T) {
 			vpnNetwork: vpnNetwork,
 			vpnIndex:   0,
 			want: CIDR{
-				IP:   net.ParseIP("fd8f:6d53:b97a:1::0"),
-				Mask: net.CIDRMask(120, 128),
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::100:0"),
+				Mask: net.CIDRMask(112, 128),
 			},
 		},
 		{
@@ -174,8 +174,8 @@ func Test_HAVPNTunnelNetwork(t *testing.T) {
 			vpnNetwork: vpnNetwork,
 			vpnIndex:   1,
 			want: CIDR{
-				IP:   net.ParseIP("fd8f:6d53:b97a:1::100"),
-				Mask: net.CIDRMask(120, 128),
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::101:0"),
+				Mask: net.CIDRMask(112, 128),
 			},
 		},
 	}

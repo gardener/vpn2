@@ -96,6 +96,10 @@ func TestBrokerFullPoolUsageIPv6(t *testing.T) {
 	testBroker(t, 10, 10, true)
 }
 
+func TestBrokerFullPoolUsageIPv6Large(t *testing.T) {
+	testBroker(t, 100, 0xff00, true)
+}
+
 func testBroker(t *testing.T, count, space int, ipv6 bool) {
 	logName = true
 	manager := newMockIPPoolManager()
@@ -108,8 +112,8 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 	})
 	if ipv6 {
 		vpnNetwork = network.CIDR(net.IPNet{
-			IP:   net.ParseIP("fd8f:6d53:b97a:1::"),
-			Mask: net.CIDRMask(120, 128),
+			IP:   net.ParseIP("fd8f:6d53:b97a:1::a:0"),
+			Mask: net.CIDRMask(104, 128),
 		})
 	}
 	for i := 0; i < count; i++ {
@@ -123,7 +127,10 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 			t.Errorf("new failed: %s", err)
 			return
 		}
-		brokers[i].SetStartAndEndIndex(10, 10+space)
+		if err = brokers[i].SetStartAndEndIndex(10, 10+space); err != nil {
+			t.Errorf("set range failed: %s", err)
+			return
+		}
 	}
 
 	var waitGroup sync.WaitGroup

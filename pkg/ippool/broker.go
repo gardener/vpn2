@@ -34,6 +34,9 @@ var logName bool
 // NewIPAddressBroker creates a new instance.
 func NewIPAddressBroker(manager IPPoolManager, cfg *config.VPNClient) (IPAddressBroker, error) {
 	base, startIndex, endIndex := network.BondingSeedClientRange(cfg.VPNNetwork.IP)
+	if err := checkRange(startIndex, endIndex); err != nil {
+		return nil, err
+	}
 	return &ipAddressBroker{
 		manager:    manager,
 		base:       base,
@@ -45,9 +48,13 @@ func NewIPAddressBroker(manager IPPoolManager, cfg *config.VPNClient) (IPAddress
 }
 
 // SetStartAndEndIndex overwrites default start and end index.
-func (b *ipAddressBroker) SetStartAndEndIndex(startIndex int, endIndex int) {
+func (b *ipAddressBroker) SetStartAndEndIndex(startIndex int, endIndex int) error {
+	if err := checkRange(startIndex, endIndex); err != nil {
+		return err
+	}
 	b.startIndex = startIndex
 	b.endIndex = endIndex
+	return nil
 }
 
 func (b *ipAddressBroker) getExistingIPAddresses(ctx context.Context) (*IPPoolUsageLookupResult, error) {
@@ -92,6 +99,9 @@ func (b *ipAddressBroker) findFreeIPAddress(lookupResult *IPPoolUsageLookupResul
 		ip := make(net.IP, len(b.base))
 		copy(ip, b.base)
 		ip[len(ip)-1] = byte(index)
+		if b.endIndex > 0xff {
+			ip[len(ip)-2] = byte(index >> 8)
+		}
 		s := ip.String()
 		if _, ok := lookupResult.ForeignUsed[s]; ok {
 			continue
@@ -148,4 +158,11 @@ func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 	}
 	b.log("using ip %s", b.ownIP)
 	return b.ownIP, nil
+}
+
+func checkRange(startIndex, endIndex int) error {
+	if startIndex < 0 || endIndex <= startIndex || endIndex > 0xffff {
+		return fmt.Errorf("invalid index range: start=%d, end=%d", startIndex, endIndex)
+	}
+	return nil
 }

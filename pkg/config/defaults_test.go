@@ -14,7 +14,7 @@ func TestGetVPNNetworkDefault(t *testing.T) {
 		t.Errorf("unexpected error %v", err)
 	}
 
-	want := "fd8f:6d53:b97a:1::/112"
+	want := "fd8f:6d53:b97a:1::/96"
 	if actualCid.String() != want {
 		t.Errorf("Expected CIDR: %v, Actual CIDR: %v", want, actualCid)
 	}
