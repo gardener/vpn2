@@ -6,19 +6,19 @@ package vpn_server
 
 import (
 	"fmt"
-	"net"
 	"os"
 	"regexp"
 	"strconv"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/openvpn"
 )
 
 func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	v := openvpn.SeedServerValues{
-		IPFamilies: cfg.IPFamilies,
+		IPFamily:   cfg.PrimaryIPFamily(),
 		StatusPath: cfg.StatusPath,
 	}
 
@@ -41,56 +41,20 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		v.HAVPNClients = -1
 	}
 
-	switch cfg.IPFamilies {
-	case config.IPv4Family:
-		if len(cfg.VPNNetwork.IP) != 4 {
-			return v, fmt.Errorf("vpn network prefix is not v4 although v4 address family was specified")
-		}
-		if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != 24 {
-			return v, fmt.Errorf("invalid prefixlength of vpn network prefix, must be /24, vpn network: %s", cfg.VPNNetwork)
-		}
-		vpnNetworkBytes := copyIP(cfg.VPNNetwork.IP)
-		switch v.IsHA {
-		case true:
-			vpnNetworkBytes[3] = byte(v.VPNIndex * 64)
-			v.OpenVPNNetwork = network.CIDR{
-				IP:   copyIP(vpnNetworkBytes),
-				Mask: net.CIDRMask(26, 32),
-			}
-			vpnNetworkBytes[3] = byte(v.VPNIndex*64 + 8)
-			v.IPv4PoolStartIP = vpnNetworkBytes.String()
-			vpnNetworkBytes[3] = byte(v.VPNIndex*64 + 62)
-			v.IPv4PoolEndIP = vpnNetworkBytes.String()
-		case false:
-			v.OpenVPNNetwork = cfg.VPNNetwork
-			vpnNetworkBytes[3] = byte(10)
-			v.IPv4PoolStartIP = vpnNetworkBytes.String()
-			vpnNetworkBytes[3] = byte(254)
-			v.IPv4PoolEndIP = vpnNetworkBytes.String()
-		}
-
-	case config.IPv6Family:
-		if len(cfg.VPNNetwork.IP) != 16 {
-			return v, fmt.Errorf("vpn network prefix is not v6 although v6 address family was specified")
-		}
-		if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != 120 {
-			return v, fmt.Errorf("invalid prefixlength of vpn network prefix, must be /120, vpn network: %s", cfg.VPNNetwork)
-		}
-		if v.IsHA {
-			return v, fmt.Errorf("error: the highly-available VPN setup is only supported for IPv4 single-stack shoots but IPv6 address family was specified")
-		}
-		v.OpenVPNNetwork = cfg.VPNNetwork
-
-	default:
-		return v, fmt.Errorf("no valid IP address family, ip address family: %s", cfg.IPFamilies)
+	if len(cfg.VPNNetwork.IP) != 16 {
+		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
 	}
-	return v, nil
-}
+	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
+		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
+	}
 
-func copyIP(ip net.IP) net.IP {
-	new := make(net.IP, len(ip))
-	copy(new, ip)
-	return new
+	if !v.IsHA {
+		v.OpenVPNNetwork = cfg.VPNNetwork
+	} else {
+		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
+	}
+
+	return v, nil
 }
 
 func getHAInfo() (bool, int) {

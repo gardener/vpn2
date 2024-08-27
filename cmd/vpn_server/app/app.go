@@ -54,7 +54,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, log logr.Logger) error {
+func run(_ context.Context, log logr.Logger) error {
 	cfg, err := config.GetVPNServerConfig(log)
 	if err != nil {
 		return fmt.Errorf("could not parse environment")

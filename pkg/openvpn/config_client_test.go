@@ -16,7 +16,7 @@ var _ = Describe("#ClientConfig", func() {
 			cfg := ClientValues{
 				Endpoint:       "123.123.0.0",
 				VPNClientIndex: -1,
-				IPFamilies:     "IPv4",
+				IPFamily:       "IPv4",
 				OpenVPNPort:    1143,
 				IsShootClient:  false,
 			}
@@ -42,10 +42,11 @@ ca /srv/secrets/vpn-client/ca.crt`))
 			cfg := ClientValues{
 				Endpoint:          "123.123.0.0",
 				VPNClientIndex:    -1,
-				IPFamilies:        "IPv4",
+				IPFamily:          "IPv4",
 				OpenVPNPort:       1143,
 				ReversedVPNHeader: "invalid-host",
 				IsShootClient:     true,
+				SeedPodNetwork:    "10.123.0.0/19",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -69,6 +70,12 @@ ca /srv/secrets/vpn-client/ca.crt
 http-proxy 123.123.0.0 1143
 http-proxy-option CUSTOM-HEADER Reversed-VPN invalid-host`))
 				})
+				It("adds route for seed pod network", func() {
+					Expect(content).To(ContainSubstring(`
+script-security 2
+up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
+`))
+				})
 			})
 
 		})
@@ -77,10 +84,11 @@ http-proxy-option CUSTOM-HEADER Reversed-VPN invalid-host`))
 			cfg := ClientValues{
 				Endpoint:          "123.123.0.0",
 				VPNClientIndex:    0,
-				IPFamilies:        "IPv4",
+				IPFamily:          "IPv4",
 				OpenVPNPort:       1143,
 				ReversedVPNHeader: "invalid-host",
 				IsShootClient:     true,
+				SeedPodNetwork:    "2001:db8:77::/96",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -99,6 +107,14 @@ cert /srv/secrets/vpn-client-0/tls.crt
 ca /srv/secrets/vpn-client-0/ca.crt
 `))
 				})
+
+				It("adds route for seed pod network", func() {
+					Expect(content).To(ContainSubstring(`
+script-security 2
+up "/bin/sh -c '/sbin/ip route replace 2001:db8:77::/96 dev $1' -- "
+`))
+				})
+
 			})
 		})
 
@@ -106,7 +122,7 @@ ca /srv/secrets/vpn-client-0/ca.crt
 			cfg := ClientValues{
 				Endpoint:       "123.123.0.0",
 				VPNClientIndex: -1,
-				IPFamilies:     "IPv6",
+				IPFamily:       "IPv6",
 				OpenVPNPort:    1143,
 			}
 

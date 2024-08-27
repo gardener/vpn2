@@ -2,107 +2,191 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package network
+package network_test
 
 import (
 	"bytes"
 	"net"
-	"reflect"
 	"testing"
+
+	"github.com/gardener/vpn2/pkg/constants"
+	. "github.com/gardener/vpn2/pkg/network"
 )
 
-func Test_ComputeShootTargetAndAddr(t *testing.T) {
-	type want struct {
-		subnet net.IPNet
-		target net.IP
-	}
+var vpnNetwork = &constants.DefaultVPNNetwork
+
+func Test_BondingShootClientIP(t *testing.T) {
 	tt := []struct {
 		name       string
-		vpnNetwork net.IPNet
-		want       want
+		vpnNetwork *net.IPNet
+		index      int
+		want       net.IP
 	}{
 		{
-			name: "ipv4 with /24",
-			vpnNetwork: net.IPNet{
-				IP:   net.IPv4(192, 168, 123, 0),
-				Mask: net.IPv4Mask(255, 255, 255, 0),
-			},
-			want: want{
-				subnet: net.IPNet{
-					IP: net.IPv4(192, 168, 123, 194),
-					// /26
-					Mask: net.IPv4Mask(255, 255, 255, 192),
-				},
-				target: net.IPv4(192, 168, 123, 193),
-			},
+			name:       "vpn-shoot-0",
+			vpnNetwork: vpnNetwork,
+			index:      0,
+			want:       net.ParseIP("fd8f:6d53:b97a:1::b:0"),
+		},
+		{
+			name:       "vpn-shoot-1",
+			vpnNetwork: vpnNetwork,
+			index:      1,
+			want:       net.ParseIP("fd8f:6d53:b97a:1::b:1"),
 		},
 	}
 	for _, testcase := range tt {
 		t.Run(testcase.name, func(t *testing.T) {
-			subnet, targets := GetBondAddressAndTargetsShootClient(&testcase.vpnNetwork, 0)
-			if len(targets) != 1 {
-				t.Errorf("target length is not 1, got: %d", len(targets))
-			}
-			if !targets[0].Equal(testcase.want.target) {
-				t.Errorf("unequal target: want: %+v, got: %+v", testcase.want.target, targets[0])
-			}
-
-			if !bytes.Equal(subnet.Mask, testcase.want.subnet.Mask) {
-				t.Errorf("unequal subnet masks: want: %s, got: %s", testcase.want.subnet.Mask, subnet.Mask)
-			}
-
-			if !subnet.IP.Equal(testcase.want.subnet.IP) {
-				t.Errorf("unequal subnet ip: want: %+v, got: %+v", testcase.want.subnet.IP, subnet.IP)
+			clientIP := BondingShootClientIP(testcase.vpnNetwork, testcase.index)
+			if !clientIP.Equal(testcase.want) {
+				t.Errorf("unequal shoot client ip: want: %+v, got: %+v", testcase.want, clientIP)
 			}
 		})
 	}
 }
 
-func Test_ComputeSeedTargetAndAddr(t *testing.T) {
-	type want struct {
-		subnet  net.IPNet
-		targets []net.IP
-	}
+func Test_BondingShootClientAddress(t *testing.T) {
 	tt := []struct {
-		name         string
-		vpnNetwork   net.IPNet
-		acquiredIP   net.IP
-		haVPNClients int
-		want         want
+		name       string
+		vpnNetwork *net.IPNet
+		index      int
+		want       net.IPNet
 	}{
 		{
-			name:       "ipv4 with /24",
-			acquiredIP: net.ParseIP("192.1.0.1"),
-			vpnNetwork: net.IPNet{
-				IP:   net.IPv4(192, 168, 123, 0),
-				Mask: net.IPv4Mask(255, 255, 255, 0),
+			name:       "vpn-shoot-0",
+			vpnNetwork: vpnNetwork,
+			index:      0,
+			want: net.IPNet{
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::b:0"),
+				Mask: net.CIDRMask(104, 128),
 			},
-			haVPNClients: 2,
-			want: want{
-				subnet: net.IPNet{
-					// acquiredIP
-					IP: net.ParseIP("192.1.0.1"),
-					// /26
-					Mask: net.IPv4Mask(255, 255, 255, 192),
-				},
-				targets: []net.IP{
-					net.IPv4(192, 168, 123, 194),
-					net.IPv4(192, 168, 123, 195),
-				},
+		},
+		{
+			name:       "vpn-shoot-1",
+			vpnNetwork: vpnNetwork,
+			index:      1,
+			want: net.IPNet{
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::b:1"),
+				Mask: net.CIDRMask(104, 128),
 			},
 		},
 	}
 	for _, testcase := range tt {
 		t.Run(testcase.name, func(t *testing.T) {
-			subnet, targets := GetBondAddressAndTargetsSeedClient(testcase.acquiredIP, &testcase.vpnNetwork, testcase.haVPNClients)
-			for i, target := range targets {
-				if !target.Equal(testcase.want.targets[i]) {
-					t.Errorf("unequal targets at index %d: want: %+v, got: %+v", i, testcase.want.targets[i], target)
-				}
+			subnet := BondingShootClientAddress(testcase.vpnNetwork, testcase.index)
+
+			if !bytes.Equal(subnet.Mask, testcase.want.Mask) {
+				t.Errorf("unequal subnet masks: want: %s, got: %s", testcase.want.Mask, subnet.Mask)
 			}
 
-			if !reflect.DeepEqual(*subnet, testcase.want.subnet) {
-				t.Fatalf("want: %+v, got: %+v", testcase.want.subnet, *subnet)
+			if !subnet.IP.Equal(testcase.want.IP) {
+				t.Errorf("unequal subnet ip: want: %+v, got: %+v", testcase.want.IP, subnet.IP)
+			}
+		})
+	}
+}
+
+func Test_AllBondingShootClientIPs(t *testing.T) {
+	ips := AllBondingShootClientIPs(vpnNetwork, 2)
+	want := []net.IP{
+		net.ParseIP("fd8f:6d53:b97a:1::b:0"),
+		net.ParseIP("fd8f:6d53:b97a:1::b:1"),
+	}
+	if len(ips) != len(want) {
+		t.Errorf("unequal number of ips: want: %d, got: %d", len(want), len(ips))
+	}
+	for i := range ips {
+		if !ips[i].Equal(want[i]) {
+			t.Errorf("unequal shoot client ip: want: %+v, got: %+v", want[i], ips[i])
+		}
+	}
+}
+
+func Test_BondingAddressForSeedClient(t *testing.T) {
+	tt := []struct {
+		name       string
+		acquiredIP net.IP
+		want       net.IPNet
+	}{
+		{
+			name:       "kube-apiserver-1",
+			acquiredIP: net.ParseIP("fd8f:6d53:b97a:1::a:47"),
+			want: net.IPNet{
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::a:47"),
+				Mask: net.CIDRMask(104, 128),
+			},
+		},
+		{
+			name:       "kube-apiserver-2",
+			acquiredIP: net.ParseIP("fd8f:6d53:b97a:1::a:ef"),
+			want: net.IPNet{
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::a:ef"),
+				Mask: net.CIDRMask(104, 128),
+			},
+		},
+	}
+	for _, testcase := range tt {
+		t.Run(testcase.name, func(t *testing.T) {
+			subnet := BondingAddressForClient(testcase.acquiredIP)
+			if !bytes.Equal(subnet.Mask, testcase.want.Mask) {
+				t.Errorf("unequal subnet masks: want: %s, got: %s", testcase.want.Mask, subnet.Mask)
+			}
+
+			if !subnet.IP.Equal(testcase.want.IP) {
+				t.Errorf("unequal subnet ip: want: %+v, got: %+v", testcase.want.IP, subnet.IP)
+			}
+		})
+	}
+}
+
+func Test_BondingSeedClientRange(t *testing.T) {
+	base, startIndex, endIndex := BondingSeedClientRange(vpnNetwork.IP)
+	wantBase := net.ParseIP("fd8f:6d53:b97a:1::a:0")
+	if !base.Equal(wantBase) {
+		t.Errorf("unequal base client ip: want: %+v, got: %+v", wantBase, base)
+	}
+	if startIndex != 1 {
+		t.Errorf("unequal startIndex: want: %d, got: %d", 1, startIndex)
+	}
+	if endIndex != 0xffff {
+		t.Errorf("unequal endIndex: want: %d, got: %d", 0xffff, endIndex)
+	}
+}
+
+func Test_HAVPNTunnelNetwork(t *testing.T) {
+	tt := []struct {
+		name       string
+		vpnNetwork *net.IPNet
+		vpnIndex   int
+		want       CIDR
+	}{
+		{
+			name:       "vpn-seed-server-0",
+			vpnNetwork: vpnNetwork,
+			vpnIndex:   0,
+			want: CIDR{
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::100:0"),
+				Mask: net.CIDRMask(112, 128),
+			},
+		},
+		{
+			name:       "vpn-seed-server-1",
+			vpnNetwork: vpnNetwork,
+			vpnIndex:   1,
+			want: CIDR{
+				IP:   net.ParseIP("fd8f:6d53:b97a:1::101:0"),
+				Mask: net.CIDRMask(112, 128),
+			},
+		},
+	}
+	for _, testcase := range tt {
+		t.Run(testcase.name, func(t *testing.T) {
+			subnet := HAVPNTunnelNetwork(testcase.vpnNetwork.IP, testcase.vpnIndex)
+			if !subnet.IP.Equal(testcase.want.IP) {
+				t.Errorf("unequal CIDR ip: want: %+v, got: %+v", testcase.want.IP, subnet.IP)
+			}
+			if !bytes.Equal(subnet.Mask, testcase.want.Mask) {
+				t.Errorf("unequal subnet masks: want: %s, got: %s", testcase.want.Mask, subnet.Mask)
 			}
 		})
 	}
