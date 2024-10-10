@@ -41,7 +41,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	}
 	log.Info("config parsed", "config", cfg)
 
-	err = vpn_client.KernelSettings(cfg)
+	err = vpn_client.KernelSettings(log, cfg)
 	if err != nil {
 		return err
 	}
