@@ -13,6 +13,7 @@ import (
 )
 
 const defaultOpenVPNConfigFile = "/openvpn.config"
+const defaultConfigFilePermissions = 0o600
 
 func executeTemplate(name string, w io.Writer, templt string, data any) error {
 	cidrMaskFunc :=

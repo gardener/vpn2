@@ -60,7 +60,7 @@ func WriteServerConfigFiles(v SeedServerValues) error {
 	if err != nil {
 		return fmt.Errorf("error %w: Could not generate openvpn config from %v", err, v)
 	}
-	if err := os.WriteFile(defaultOpenVPNConfigFile, []byte(openvpnConfig), 0o644); err != nil {
+	if err := os.WriteFile(defaultOpenVPNConfigFile, []byte(openvpnConfig), defaultConfigFilePermissions); err != nil {
 		return err
 	}
 
@@ -72,13 +72,13 @@ func WriteServerConfigFiles(v SeedServerValues) error {
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
-	if err := os.WriteFile(path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), []byte(vpnShootClientConfig), 0o644); err != nil {
+	if err := os.WriteFile(path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), []byte(vpnShootClientConfig), defaultConfigFilePermissions); err != nil {
 		return err
 	}
 
 	if v.IsHA {
 		for i := 0; i < v.HAVPNClients; i++ {
-			if err := os.WriteFile(fmt.Sprintf("%s-%d", path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), i), []byte(""), 0o644); err != nil {
+			if err := os.WriteFile(fmt.Sprintf("%s-%d", path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), i), []byte(""), defaultConfigFilePermissions); err != nil {
 				return err
 			}
 		}
