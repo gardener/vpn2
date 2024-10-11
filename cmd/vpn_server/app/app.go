@@ -8,6 +8,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/gardener/vpn2/cmd/vpn_server/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
@@ -50,6 +51,7 @@ func NewCommand() *cobra.Command {
 	verflag.AddFlags(flags)
 	cmd.AddCommand(firewallCommand())
 	cmd.AddCommand(exporterCommand())
+	cmd.AddCommand(setup.NewCommand())
 	cmd.PersistentFlags().BoolVar(&pprofEnabled, "enable-pprof", false, "enable pprof for profiling")
 	return cmd
 }
