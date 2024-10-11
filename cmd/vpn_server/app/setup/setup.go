@@ -34,20 +34,14 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
-	cfg, err := config.GetVPNClientConfig()
-	if err != nil {
-		return err
-	}
-	log.Info("config parsed", "config", cfg)
-
-	err = vpn_client.KernelSettings(log, cfg)
+func run(_ context.Context, _ context.CancelFunc, log logr.Logger) error {
+	cfg, err := config.GetVPNServerConfig(log)
 	if err != nil {
 		return err
 	}
 
 	if cfg.IsHA {
-		err = vpn_client.ConfigureBonding(ctx, log, &cfg)
+		err = vpn_client.EnableIPv6Networking(log)
 		if err != nil {
 			return err
 		}
