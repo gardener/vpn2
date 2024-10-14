@@ -35,6 +35,5 @@ func adjustPath(path string, proto iptables.Protocol) string {
 
 func iptablesWorks(path string) bool {
 	// check both iptables and ip6tables
-	return exec.Command(path, "-L").Run() == nil &&
-		exec.Command(adjustPath(path, iptables.ProtocolIPv6), "-L").Run() == nil
+	return exec.Command(path, "-L").Run() == nil && exec.Command(adjustPath(path, iptables.ProtocolIPv6), "-L").Run() == nil // #nosec: G204 -- Command line is completely static "/sbin/(iptables|ip6tables)-(legacy|nft) -L".
 }

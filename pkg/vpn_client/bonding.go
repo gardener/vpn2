@@ -52,7 +52,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 			return err
 		}
 
-		cmd := exec.CommandContext(ctx, "openvpn", "--mktun", "--dev", linkName)
+		cmd := exec.CommandContext(ctx, "openvpn", "--mktun", "--dev", linkName) // #nosec: G204 -- linkName is fairly static (see above) pointing to tap0/tap1.
 		err = cmd.Run()
 		if err != nil {
 			return err
