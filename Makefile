@@ -2,9 +2,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-GARDENER_HACK_DIR    		  := $(shell go list -m -f "{{.Dir}}" github.com/gardener/gardener)/hack
+ENSURE_GARDENER_MOD           := $(shell go get github.com/gardener/gardener@$$(go list -m -f "{{.Version}}" github.com/gardener/gardener))
+GARDENER_HACK_DIR             := $(shell go list -m -f "{{.Dir}}" github.com/gardener/gardener)/hack
 VERSION                       := $(shell cat VERSION)
 REPO_ROOT                     := $(shell dirname $(realpath $(lastword $(MAKEFILE_LIST))))
+HACK_DIR                      := $(REPO_ROOT)/hack
 REGISTRY                      := europe-docker.pkg.dev/gardener-project/public/gardener
 VPN_SERVER_IMAGE_REPOSITORY  := $(REGISTRY)/vpn-server
 VPN_SERVER_IMAGE_TAG         := $(VERSION)
@@ -20,11 +22,15 @@ ARCH                ?= amd64
 
 PATH                          := $(GOBIN):$(PATH)
 
+TOOLS_DIR := $(HACK_DIR)/tools
+include $(GARDENER_HACK_DIR)/tools.mk
+
 export PATH
 
 .PHONY: tidy
 tidy:
 	@GO111MODULE=on go mod tidy
+	@mkdir -p $(HACK_DIR) && cp $(GARDENER_HACK_DIR)/sast.sh $(HACK_DIR)/sast.sh && chmod +xw $(HACK_DIR)/sast.sh
 
 .PHONY: vpn-server-docker-image
 vpn-server-docker-image:
@@ -67,9 +73,23 @@ docker-push:
 	@gcloud docker -- push $(VPN_CLIENT_IMAGE_REPOSITORY):$(VPN_CLIENT_IMAGE_TAG)
 
 .PHONY: check
-check:
+check: sast-report
 	go fmt ./...
 	go vet ./...
+
+# TODO(scheererj): Remove once https://github.com/gardener/gardener/pull/10642 is available as release.
+TOOLS_PKG_PATH := $(shell go list -tags tools -f '{{ .Dir }}' github.com/gardener/gardener/hack/tools 2>/dev/null)
+.PHONY: adjust-install-gosec.sh
+adjust-install-gosec.sh:
+	@chmod +xw $(TOOLS_PKG_PATH)/install-gosec.sh
+
+.PHONY: sast
+sast: adjust-install-gosec.sh $(GOSEC)
+	@./hack/sast.sh
+
+.PHONY: sast-report
+sast-report: adjust-install-gosec.sh $(GOSEC)
+	@./hack/sast.sh --gosec-report true
 
 .PHONY: test
 test:

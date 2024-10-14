@@ -40,5 +40,5 @@ func WriteClientConfigFile(v ClientValues) error {
 	if err != nil {
 		return fmt.Errorf("error %w: Could not generate openvpn config from %v", err, v)
 	}
-	return os.WriteFile(defaultOpenVPNConfigFile, []byte(openvpnConfig), 0o644)
+	return os.WriteFile(defaultOpenVPNConfigFile, []byte(openvpnConfig), defaultConfigFilePermissions)
 }

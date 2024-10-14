@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/kumina/openvpn_exporter/exporters"
@@ -52,9 +53,11 @@ func Start(log logr.Logger, cfg Config) error {
 		return err
 	}
 
-	http.Handle(cfg.MetricsPath, promhttp.Handler())
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`
+	// Use non-default mux to avoid profiling being automatically enabled
+	handler := http.NewServeMux()
+	handler.Handle(cfg.MetricsPath, promhttp.Handler())
+	handler.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(`
 			<html>
 			<head><title>OpenVPN Exporter</title></head>
 			<body>
@@ -64,5 +67,10 @@ func Start(log logr.Logger, cfg Config) error {
 			</html>`))
 	})
 
-	return http.ListenAndServe(cfg.ListenAddress, nil)
+	return (&http.Server{
+		Addr:         cfg.ListenAddress,
+		Handler:      handler,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}).ListenAndServe()
 }

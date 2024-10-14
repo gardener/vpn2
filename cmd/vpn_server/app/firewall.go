@@ -50,7 +50,9 @@ func firewallCommand() *cobra.Command {
 func runFirewallCommand(log logr.Logger, device, mode string, networks []string) error {
 	// Firewall subcommand is called indirectly from openvpn. As PATH env variables seems not to be set,
 	// it is injected here.
-	os.Setenv("PATH", "/sbin")
+	if err := os.Setenv("PATH", "/sbin"); err != nil {
+		return fmt.Errorf("setting PATH environment variable failed: %w", err)
+	}
 	iptable4, err := network.NewIPTables(log, iptables.ProtocolIPv4)
 	if err != nil {
 		return err

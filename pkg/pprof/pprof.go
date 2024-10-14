@@ -8,7 +8,8 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // #nosec: G108 -- default http mux is only used when profiling is enable, only other server (exporter) uses separate http mux.
+	"time"
 
 	"github.com/go-logr/logr"
 )
@@ -16,7 +17,9 @@ import (
 // Serve starts a new http server serving pprof endpoints on :6060
 func Serve(ctx context.Context, log logr.Logger) {
 	server := &http.Server{
-		Addr: ":6060",
+		Addr:              ":6060",
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      10 * time.Second,
 	}
 	go func() {
 		log.Info("serving on :6060")

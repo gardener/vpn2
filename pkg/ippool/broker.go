@@ -95,7 +95,7 @@ func (b *ipAddressBroker) announceIPAddress(ctx context.Context, used bool, look
 
 func (b *ipAddressBroker) findFreeIPAddress(lookupResult *IPPoolUsageLookupResult) string {
 	for i := 0; i < 1000; i++ {
-		index := rand.N(b.endIndex-b.startIndex+1) + b.startIndex
+		index := rand.N(b.endIndex-b.startIndex+1) + b.startIndex // #nosec: G404 -- No cryptographic context.
 		ip := make(net.IP, len(b.base))
 		copy(ip, b.base)
 		ip[len(ip)-1] = byte(index)
@@ -145,7 +145,7 @@ func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 			break
 		}
 		b.log("conflict, retrying...")
-		time.Sleep(b.waitTime * time.Duration(rand.N(10)/10))
+		time.Sleep(b.waitTime * time.Duration(rand.N(10)/10)) // #nosec: G404 -- No cryptographic context.
 	}
 
 	if b.hasConflict(result) {

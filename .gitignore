@@ -1,4 +1,5 @@
 /bin
+hack/tools/bin
 /.kube-secrets
 /tmp/*
 /dev
@@ -11,3 +12,6 @@
 
 ./terraformer
 TODO
+
+# gosec
+gosec-report.sarif
