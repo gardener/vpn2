@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/kumina/openvpn_exporter/exporters"
@@ -64,5 +65,9 @@ func Start(log logr.Logger, cfg Config) error {
 			</html>`))
 	})
 
-	return http.ListenAndServe(cfg.ListenAddress, nil)
+	return (&http.Server{
+		Addr:         cfg.ListenAddress,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 10 * time.Second,
+	}).ListenAndServe()
 }
