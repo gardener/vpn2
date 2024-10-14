@@ -54,7 +54,7 @@ func Start(log logr.Logger, cfg Config) error {
 
 	http.Handle(cfg.MetricsPath, promhttp.Handler())
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`
+		_, _ = w.Write([]byte(`
 			<html>
 			<head><title>OpenVPN Exporter</title></head>
 			<body>
