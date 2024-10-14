@@ -8,7 +8,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	_ "net/http/pprof"
+	_ "net/http/pprof" // #nosec: G108 -- default http mux is only used when profiling is enable, only other server (exporter) uses separate http mux.
 	"time"
 
 	"github.com/go-logr/logr"
