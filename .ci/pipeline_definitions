@@ -1,5 +1,12 @@
 vpn2:
   base_definition:
+    repo:
+      source_labels:
+      - name: cloud.gardener.cnudie/dso/scanning-hints/source_analysis/v1
+        value:
+          policy: skip
+          comment: |
+            we use gosec for sast scanning. See attached log.
     steps:
       check:
         image: golang:1.22.6
@@ -80,6 +87,17 @@ vpn2:
               image: europe-docker.pkg.dev/gardener-project/releases/gardener/vpn-client
         release:
           nextversion: 'bump_minor'
+          assets:
+          - type: build-step-log
+            step_name: verify
+            purposes:
+            - lint
+            - sast
+            - gosec
+            comment: |
+                we use gosec (linter) for SAST scans
+                see: https://github.com/securego/gosec
+                enabled by https://github.com/gardener/vpn2/pull/108
         slack:
           default_channel: 'internal_scp_workspace'
           channel_cfgs:
