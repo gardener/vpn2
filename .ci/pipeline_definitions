@@ -89,7 +89,7 @@ vpn2:
           nextversion: 'bump_minor'
           assets:
           - type: build-step-log
-            step_name: verify
+            step_name: check
             purposes:
             - lint
             - sast
