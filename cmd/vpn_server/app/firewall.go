@@ -98,7 +98,7 @@ func runFirewallCommand(log logr.Logger, device, mode string, networks []string)
 		for _, nw := range networks {
 			_, ipnet, err := net.ParseCIDR(nw)
 			if err != nil {
-				return fmt.Errorf("parsing network %s failed: %s", networks, err)
+				return fmt.Errorf("parsing network %s failed: %s", nw, err)
 			}
 			if err := network.ReplaceRoute(log, ipnet, dev); err != nil {
 				return err

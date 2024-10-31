@@ -7,6 +7,7 @@ package openvpn
 import (
 	"io"
 	"net"
+	"strings"
 	"text/template"
 
 	"github.com/gardener/vpn2/pkg/network"
@@ -21,8 +22,14 @@ func executeTemplate(name string, w io.Writer, templt string, data any) error {
 			mask := net.CIDRMask(n.Mask.Size())
 			return net.IPv4(255, 255, 255, 255).Mask(mask).String()
 		}
-
-	var funcs = map[string]any{"cidrMask": cidrMaskFunc}
+	networksToStringFunc := func(net []network.CIDR) string {
+		networks := []string{}
+		for _, nw := range net {
+			networks = append(networks, nw.String())
+		}
+		return strings.Join(networks, ",")
+	}
+	var funcs = map[string]any{"cidrMask": cidrMaskFunc, "networksToString": networksToStringFunc}
 	t, err := template.New(name).
 		Funcs(funcs).
 		Parse(templt)

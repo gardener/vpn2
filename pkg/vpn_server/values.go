@@ -22,12 +22,20 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		StatusPath: cfg.StatusPath,
 	}
 
-	v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetwork)
+	v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
 
-	v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetwork)
+	v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
 
-	if cfg.NodeNetwork.String() != "" {
-		v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetwork)
+	if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
+		v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
+	}
+
+	for _, shootNetwork := range v.ShootNetworks {
+		if shootNetwork.IP.To4() != nil {
+			v.ShootNetworksV4 = append(v.ShootNetworksV4, shootNetwork)
+		} else {
+			v.ShootNetworksV6 = append(v.ShootNetworksV6, shootNetwork)
+		}
 	}
 
 	v.IsHA, v.VPNIndex = getHAInfo()
