@@ -137,5 +137,26 @@ up "/bin/sh -c '/sbin/ip route replace 2001:db8:77::/96 dev $1' -- "
 				})
 			})
 		})
+
+		Context("dual-stack non HA config", func() {
+			cfg := ClientValues{
+				Endpoint:       "123.123.0.0",
+				VPNClientIndex: -1,
+				IPFamily:       "IPv6",
+				OpenVPNPort:    1143,
+				IsDualStack:    true,
+			}
+
+			content, err := generateClientConfig(cfg)
+			It("does not error creating the template", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("generated config contain check", func() {
+				It("proto tcp6-client", func() {
+					Expect(content).To(ContainSubstring(`proto tcp-client`))
+				})
+			})
+		})
 	})
 })

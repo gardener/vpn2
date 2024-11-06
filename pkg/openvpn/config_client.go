@@ -25,6 +25,7 @@ type ClientValues struct {
 	IsHA              bool
 	Device            string
 	SeedPodNetwork    string
+	IsDualStack       bool
 }
 
 func generateClientConfig(cfg ClientValues) (string, error) {

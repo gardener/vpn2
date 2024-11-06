@@ -28,6 +28,7 @@ var _ = Describe("#SeedServerConfig", func() {
 
 	BeforeEach(func() {
 		cfgIPv4 = SeedServerValues{
+			IsDualStack:    false,
 			Device:         "tun0",
 			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
@@ -44,6 +45,7 @@ var _ = Describe("#SeedServerConfig", func() {
 			IPFamily: "IPv4",
 		}
 		cfgIPv6 = SeedServerValues{
+			IsDualStack:    false,
 			Device:         "tun0",
 			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
@@ -60,6 +62,7 @@ var _ = Describe("#SeedServerConfig", func() {
 			IPFamily: "IPv6",
 		}
 		cfgDualStack = SeedServerValues{
+			IsDualStack:    true,
 			Device:         "tun0",
 			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
@@ -162,7 +165,7 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
-			Expect(content).To(ContainSubstring(`proto tcp6-server
+			Expect(content).To(ContainSubstring(`proto tcp-server
 
 server-ipv6 fd8f:6d53:b97a:7777::/96
 `))
