@@ -17,13 +17,7 @@ tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
 # https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
 remote-cert-tls server
 
-{{- if .IsDualStack }}
 proto tcp-client
-{{- else if (eq .IPFamily "IPv4") }}
-proto tcp4-client
-{{- else if (eq .IPFamily "IPv6") }}
-proto tcp6-client
-{{- end }}
 
 {{- if (eq .VPNClientIndex -1) }}
 key /srv/secrets/vpn-client/tls.key

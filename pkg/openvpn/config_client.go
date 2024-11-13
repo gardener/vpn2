@@ -16,7 +16,6 @@ import (
 var clientTemplate string
 
 type ClientValues struct {
-	IPFamily          string
 	ReversedVPNHeader string
 	Endpoint          string
 	OpenVPNPort       int
@@ -25,7 +24,6 @@ type ClientValues struct {
 	IsHA              bool
 	Device            string
 	SeedPodNetwork    string
-	IsDualStack       bool
 }
 
 func generateClientConfig(cfg ClientValues) (string, error) {

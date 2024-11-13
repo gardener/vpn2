@@ -28,7 +28,6 @@ var _ = Describe("#SeedServerConfig", func() {
 
 	BeforeEach(func() {
 		cfgIPv4 = SeedServerValues{
-			IsDualStack:    false,
 			Device:         "tun0",
 			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
@@ -42,10 +41,8 @@ var _ = Describe("#SeedServerConfig", func() {
 				parseIPNet("100.96.0.0/11"),
 				parseIPNet("10.0.1.0/24"),
 			},
-			IPFamily: "IPv4",
 		}
 		cfgIPv6 = SeedServerValues{
-			IsDualStack:    false,
 			Device:         "tun0",
 			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
@@ -59,10 +56,8 @@ var _ = Describe("#SeedServerConfig", func() {
 				parseIPNet("2001:db8:2::/48"),
 				parseIPNet("2001:db8:3::/48"),
 			},
-			IPFamily: "IPv6",
 		}
 		cfgDualStack = SeedServerValues{
-			IsDualStack:    true,
 			Device:         "tun0",
 			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
@@ -84,7 +79,6 @@ var _ = Describe("#SeedServerConfig", func() {
 				parseIPNet("2001:db8:2::/48"),
 				parseIPNet("2001:db8:3::/48"),
 			},
-			IPFamily: "IPv6",
 		}
 	})
 
@@ -95,7 +89,7 @@ var _ = Describe("#SeedServerConfig", func() {
 
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
-			Expect(content).To(ContainSubstring(`proto tcp4-server
+			Expect(content).To(ContainSubstring(`proto tcp-server
 
 server-ipv6 fd8f:6d53:b97a:7777::/96
 `))
@@ -116,7 +110,7 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
-			Expect(content).To(ContainSubstring(`proto tcp4-server
+			Expect(content).To(ContainSubstring(`proto tcp-server
 
 server-ipv6 fd8f:6d53:b97a:7777::/96
 `))
@@ -146,7 +140,7 @@ status-version 2`))
 
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
-			Expect(content).To(ContainSubstring(`proto tcp6-server
+			Expect(content).To(ContainSubstring(`proto tcp-server
 
 server-ipv6 fd8f:6d53:b97a:7777::/96
 `))

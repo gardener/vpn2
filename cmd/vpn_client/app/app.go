@@ -7,7 +7,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/gardener/vpn2/cmd/vpn_client/app/pathcontroller"
 	"github.com/gardener/vpn2/cmd/vpn_client/app/setup"
@@ -56,7 +55,6 @@ func NewCommand() *cobra.Command {
 func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 	v := openvpn.ClientValues{
 		Device:            "tun0",
-		IPFamily:          cfg.PrimaryIPFamily(),
 		ReversedVPNHeader: cfg.ReversedVPNHeader,
 		Endpoint:          cfg.Endpoint,
 		OpenVPNPort:       cfg.OpenVPNPort,
@@ -66,10 +64,6 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 		SeedPodNetwork:    cfg.SeedPodNetwork.String(),
 	}
 	vpnSeedServer := "vpn-seed-server"
-
-	if len(strings.Split(cfg.IPFamilies, ",")) == 2 {
-		v.IsDualStack = true
-	}
 
 	if cfg.VPNServerIndex != "" {
 		vpnSeedServer = fmt.Sprintf("vpn-seed-server-%s", cfg.VPNServerIndex)

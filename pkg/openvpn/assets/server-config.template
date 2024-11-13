@@ -25,13 +25,7 @@ dh none
 auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 
-{{- if .IsDualStack }}
 proto tcp-server
-{{- else if (eq .IPFamily "IPv4") }}
-proto tcp4-server
-{{- else if (eq .IPFamily "IPv6") }}
-proto tcp6-server
-{{- end }}
 
 server-ipv6 {{ printf "%s" .OpenVPNNetwork }}
 

@@ -5,7 +5,6 @@
 package config
 
 import (
-	"strings"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/gardener/vpn2/pkg/network"
@@ -21,9 +20,6 @@ type PathController struct {
 	ServiceNetwork network.CIDR `env:"SERVICE_NETWORK"`
 }
 
-func (v PathController) PrimaryIPFamily() string {
-	return strings.Split(v.IPFamilies, ",")[0]
-}
 
 func GetPathControllerConfig(log logr.Logger) (PathController, error) {
 	cfg := PathController{}
