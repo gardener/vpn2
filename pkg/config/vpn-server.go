@@ -5,7 +5,6 @@
 package config
 
 import (
-	"strings"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/gardener/vpn2/pkg/network"
@@ -13,20 +12,16 @@ import (
 )
 
 type VPNServer struct {
-	IPFamilies     string       `env:"IP_FAMILIES" envDefault:"IPv4"`
-	ServiceNetwork network.CIDR `env:"SERVICE_NETWORK" envDefault:"100.64.0.0/13"`
-	PodNetwork     network.CIDR `env:"POD_NETWORK" envDefault:"100.96.0.0/11"`
-	NodeNetwork    network.CIDR `env:"NODE_NETWORK"`
-	VPNNetwork     network.CIDR `env:"VPN_NETWORK"`
-	PodName        string       `env:"POD_NAME"`
-	StatusPath     string       `env:"OPENVPN_STATUS_PATH"`
-	IsHA           bool         `env:"IS_HA"`
-	HAVPNClients   int          `env:"HA_VPN_CLIENTS"`
-	LocalNodeIP    string       `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
-}
-
-func (v VPNServer) PrimaryIPFamily() string {
-	return strings.Split(v.IPFamilies, ",")[0]
+	IPFamilies      string         `env:"IP_FAMILIES" envDefault:"IPv4"`
+	ServiceNetworks []network.CIDR `env:"SERVICE_NETWORKS" envDefault:"100.64.0.0/13"`
+	PodNetworks     []network.CIDR `env:"POD_NETWORKS" envDefault:"100.96.0.0/11"`
+	NodeNetworks    []network.CIDR `env:"NODE_NETWORKS"`
+	VPNNetwork      network.CIDR   `env:"VPN_NETWORK"`
+	PodName         string         `env:"POD_NAME"`
+	StatusPath      string         `env:"OPENVPN_STATUS_PATH"`
+	IsHA            bool           `env:"IS_HA"`
+	HAVPNClients    int            `env:"HA_VPN_CLIENTS"`
+	LocalNodeIP     string         `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
 }
 
 func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {

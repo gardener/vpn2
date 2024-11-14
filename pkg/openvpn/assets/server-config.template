@@ -25,13 +25,7 @@ dh none
 auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 
-{{- if (eq .IPFamily "IPv4") }}
-proto tcp4-server
-{{- end }}
-
-{{- if (eq .IPFamily "IPv6") }}
-proto tcp6-server
-{{- end }}
+proto tcp-server
 
 server-ipv6 {{ printf "%s" .OpenVPNNetwork }}
 
@@ -46,7 +40,7 @@ dev {{ .Device }}
 {{/* Add firewall rules to block all traffic originating from the shoot cluster.
      The scripts are run after the tun device has been created (up) or removed (down). */ -}}
 script-security 2
-up "/bin/vpn-server firewall --mode up --device {{ .Device }}{{ range .ShootNetworks }} --shoot-network={{ printf "%s" . }}{{ end }}"
+up "/bin/vpn-server firewall --mode up --device {{ .Device }} --shoot-network={{ networksToString .ShootNetworks }}"
 down "/bin/vpn-server firewall --mode down --device {{ .Device }}"
 
 {{ if not (eq .StatusPath "") -}}
