@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"strconv"
+	"strings"
 
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
@@ -18,6 +19,7 @@ import (
 
 func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	v := openvpn.SeedServerValues{
+		IPFamily:   cfg.PrimaryIPFamily(),
 		StatusPath: cfg.StatusPath,
 	}
 
@@ -35,6 +37,10 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		} else {
 			v.ShootNetworksV6 = append(v.ShootNetworksV6, shootNetwork)
 		}
+	}
+
+	if len(strings.Split(cfg.IPFamilies, ",")) == 2 {
+		v.IsDualStack = true
 	}
 
 	v.IsHA, v.VPNIndex = getHAInfo()

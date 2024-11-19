@@ -37,6 +37,10 @@ type VPNClient struct {
 	WaitTime          time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 }
 
+func (v VPNClient) PrimaryIPFamily() string {
+	return strings.Split(v.IPFamilies, ",")[0]
+}
+
 func GetVPNClientConfig() (VPNClient, error) {
 	cfg := VPNClient{}
 	if err := env.Parse(&cfg); err != nil {

@@ -5,6 +5,7 @@
 package config
 
 import (
+	"strings"
 
 	"github.com/caarlos0/env/v10"
 	"github.com/gardener/vpn2/pkg/network"
@@ -22,6 +23,10 @@ type VPNServer struct {
 	IsHA            bool           `env:"IS_HA"`
 	HAVPNClients    int            `env:"HA_VPN_CLIENTS"`
 	LocalNodeIP     string         `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
+}
+
+func (v VPNServer) PrimaryIPFamily() string {
+	return strings.Split(v.IPFamilies, ",")[0]
 }
 
 func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {

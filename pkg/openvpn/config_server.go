@@ -23,6 +23,7 @@ var (
 
 type SeedServerValues struct {
 	Device          string
+	IPFamily        string
 	StatusPath      string
 	OpenVPNNetwork  network.CIDR
 	ShootNetworks   []network.CIDR
@@ -32,6 +33,7 @@ type SeedServerValues struct {
 	IsHA            bool
 	VPNIndex        int
 	LocalNodeIP     string
+	IsDualStack     bool
 }
 
 func generateSeedServerConfig(cfg SeedServerValues) (string, error) {

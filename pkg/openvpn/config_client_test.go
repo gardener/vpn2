@@ -12,10 +12,11 @@ import (
 var _ = Describe("#ClientConfig", func() {
 
 	Describe("#GenerateClientConfig", func() {
-		Context("non HA running in seed config", func() {
+		Context("ipv4 non HA running in seed config", func() {
 			cfg := ClientValues{
-				Endpoint:       "api.something.local.gardener.cloud",
+				Endpoint:       "123.123.0.0",
 				VPNClientIndex: -1,
+				IPFamily:       "IPv4",
 				OpenVPNPort:    1143,
 				IsShootClient:  false,
 			}
@@ -25,8 +26,8 @@ var _ = Describe("#ClientConfig", func() {
 			})
 
 			Describe("generated config contain check", func() {
-				It("proto tcp-client", func() {
-					Expect(content).To(ContainSubstring(`proto tcp-client`))
+				It("proto tcp4-client", func() {
+					Expect(content).To(ContainSubstring(`proto tcp4-client`))
 				})
 
 				It("tls config", func() {
@@ -37,10 +38,11 @@ ca /srv/secrets/vpn-client/ca.crt`))
 			})
 		})
 
-		Context("non HA running in shoot config", func() {
+		Context("ipv4 non HA running in shoot config", func() {
 			cfg := ClientValues{
-				Endpoint:          "api.something.local.gardener.cloud",
+				Endpoint:          "123.123.0.0",
 				VPNClientIndex:    -1,
+				IPFamily:          "IPv4",
 				OpenVPNPort:       1143,
 				ReversedVPNHeader: "invalid-host",
 				IsShootClient:     true,
@@ -53,8 +55,8 @@ ca /srv/secrets/vpn-client/ca.crt`))
 			})
 
 			Describe("generated config contain check", func() {
-				It("proto tcp-client", func() {
-					Expect(content).To(ContainSubstring(`proto tcp-client`))
+				It("proto tcp4-client", func() {
+					Expect(content).To(ContainSubstring(`proto tcp4-client`))
 				})
 				It("tls config", func() {
 					Expect(content).To(ContainSubstring(`
@@ -65,7 +67,7 @@ ca /srv/secrets/vpn-client/ca.crt
 				})
 				It("has http proxy options", func() {
 					Expect(content).To(ContainSubstring(`
-http-proxy api.something.local.gardener.cloud 1143
+http-proxy 123.123.0.0 1143
 http-proxy-option CUSTOM-HEADER Reversed-VPN invalid-host`))
 				})
 				It("adds route for seed pod network", func() {
@@ -78,10 +80,11 @@ up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 
 		})
 
-		Context("HA config", func() {
+		Context("ipv4 HA config", func() {
 			cfg := ClientValues{
-				Endpoint:          "api.something.local.gardener.cloud",
+				Endpoint:          "123.123.0.0",
 				VPNClientIndex:    0,
+				IPFamily:          "IPv4",
 				OpenVPNPort:       1143,
 				ReversedVPNHeader: "invalid-host",
 				IsShootClient:     true,
@@ -94,8 +97,8 @@ up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 			})
 
 			Describe("generated config contain check", func() {
-				It("proto tcp-client", func() {
-					Expect(content).To(ContainSubstring(`proto tcp-client`))
+				It("proto tcp4-client", func() {
+					Expect(content).To(ContainSubstring(`proto tcp4-client`))
 				})
 				It("tls config", func() {
 					Expect(content).To(ContainSubstring(`
@@ -110,6 +113,48 @@ ca /srv/secrets/vpn-client-0/ca.crt
 script-security 2
 up "/bin/sh -c '/sbin/ip route replace 2001:db8:77::/96 dev $1' -- "
 `))
+				})
+
+			})
+		})
+
+		Context("ipv6 non HA config", func() {
+			cfg := ClientValues{
+				Endpoint:       "123.123.0.0",
+				VPNClientIndex: -1,
+				IPFamily:       "IPv6",
+				OpenVPNPort:    1143,
+			}
+
+			content, err := generateClientConfig(cfg)
+			It("does not error creating the template", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("generated config contain check", func() {
+				It("proto tcp6-client", func() {
+					Expect(content).To(ContainSubstring(`proto tcp6-client`))
+				})
+			})
+		})
+
+		Context("dual-stack non HA config", func() {
+			cfg := ClientValues{
+				Endpoint:       "123.123.0.0",
+				VPNClientIndex: -1,
+				IPFamily:       "IPv6",
+				OpenVPNPort:    1143,
+				IsDualStack:    true,
+			}
+
+			content, err := generateClientConfig(cfg)
+			It("does not error creating the template", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("generated config contain check", func() {
+				It("proto tcp6-client", func() {
+					Expect(content).To(ContainSubstring(`proto tcp-client`))
 				})
 			})
 		})
