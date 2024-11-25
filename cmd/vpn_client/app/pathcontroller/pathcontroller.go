@@ -56,6 +56,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	netlinkRouter := &netlinkRouter{
 		podNetwork:     (*net.IPNet)(&cfg.PodNetwork),
 		serviceNetwork: (*net.IPNet)(&cfg.ServiceNetwork),
+		log:            log,
 	}
 	if cfg.NodeNetwork.String() != "" {
 		netlinkRouter.nodeNetwork = (*net.IPNet)(&cfg.NodeNetwork)
