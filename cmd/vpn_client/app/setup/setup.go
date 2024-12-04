@@ -37,6 +37,7 @@ func NewCommand() *cobra.Command {
 func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	cfg, err := config.GetVPNClientConfig()
 	if err != nil {
+		log.Info("failed to parse config", "error", err)
 		return err
 	}
 	log.Info("config parsed", "config", cfg)

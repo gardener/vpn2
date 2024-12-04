@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net"
 	"os"
 	"time"
 
@@ -45,21 +44,21 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		return err
 	}
 
-	checkNetwork := cfg.NodeNetwork
-	if checkNetwork.String() == "" {
-		checkNetwork = cfg.ServiceNetwork
+	checkNetworks := cfg.NodeNetworks
+	if len(checkNetworks) == 0 {
+		checkNetworks = cfg.ServiceNetworks
 	}
-	if checkNetwork.String() == "" {
+	if len(checkNetworks) == 0 {
 		return errors.New("network to check is undefined")
 	}
 
 	netlinkRouter := &netlinkRouter{
-		podNetwork:     (*net.IPNet)(&cfg.PodNetwork),
-		serviceNetwork: (*net.IPNet)(&cfg.ServiceNetwork),
-		log:            log,
+		podNetworks:     cfg.PodNetworks,
+		serviceNetworks: cfg.ServiceNetworks,
+		log:             log,
 	}
-	if cfg.NodeNetwork.String() != "" {
-		netlinkRouter.nodeNetwork = (*net.IPNet)(&cfg.NodeNetwork)
+	if len(cfg.NodeNetworks) != 0 {
+		netlinkRouter.nodeNetworks = cfg.NodeNetworks
 	}
 
 	podIP := os.Getenv("POD_IP")
@@ -75,7 +74,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		ticker:             time.NewTicker(2 * time.Second),
 		kubeAPIServerPodIP: podIP,
 		netRouter:          netlinkRouter,
-		checkedNet:         checkNetwork.ToIPNet(),
+		checkedNet:         checkNetworks[0].ToIPNet(),
 		goodIPs:            make(map[string]struct{}),
 		log:                log.WithName("pingRouter"),
 	}
