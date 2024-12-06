@@ -111,9 +111,9 @@ func (r *clientRouter) pingAllShootClients(clients []net.IP) {
 }
 
 type netlinkRouter struct {
-	podNetwork     *net.IPNet
-	serviceNetwork *net.IPNet
-	nodeNetwork    *net.IPNet
+	podNetworks     []network.CIDR
+	serviceNetworks []network.CIDR
+	nodeNetworks    []network.CIDR
 
 	log logr.Logger
 }
@@ -125,20 +125,22 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 		return err
 	}
 
-	nets := []*net.IPNet{
-		r.serviceNetwork,
-		r.podNetwork,
+	nets := [][]network.CIDR{
+		r.serviceNetworks,
+		r.podNetworks,
 	}
-	if r.nodeNetwork != nil {
-		nets = append(nets, r.nodeNetwork)
+	if r.nodeNetworks != nil {
+		nets = append(nets, r.nodeNetworks)
 	}
 
-	for _, n := range nets {
-		route := routeForNetwork(n, tunnelLink)
-		r.log.Info("replacing route", "route", route, "net", n)
-		err = netlink.RouteReplace(&route)
-		if err != nil {
-			return fmt.Errorf("error replacing route for %s: %w", n, err)
+	for _, net := range nets {
+		for _, n := range net {
+			route := routeForNetwork(n.ToIPNet(), tunnelLink)
+			r.log.Info("replacing route", "route", route, "net", n)
+			err = netlink.RouteReplace(&route)
+			if err != nil {
+				return fmt.Errorf("error replacing route for %s: %w", n, err)
+			}
 		}
 	}
 	return nil
