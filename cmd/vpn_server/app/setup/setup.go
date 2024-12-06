@@ -7,7 +7,6 @@ package setup
 import (
 	"context"
 
-	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/gardener/vpn2/pkg/vpn_client"
 	"github.com/go-logr/logr"
@@ -35,16 +34,5 @@ func NewCommand() *cobra.Command {
 }
 
 func run(_ context.Context, _ context.CancelFunc, log logr.Logger) error {
-	cfg, err := config.GetVPNServerConfig(log)
-	if err != nil {
-		return err
-	}
-
-	if cfg.IsHA {
-		err = vpn_client.EnableIPv6Networking(log)
-		if err != nil {
-			return err
-		}
-	}
-	return nil
+	return vpn_client.EnableIPv6Networking(log)
 }
