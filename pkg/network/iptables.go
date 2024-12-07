@@ -17,7 +17,7 @@ import (
 // It has been introduced to avoid the risk that the command doesn't work due to missing kernel modules.
 func NewIPTables(log logr.Logger, proto iptables.Protocol) (*iptables.IPTables, error) {
 	for _, suffix := range []string{"legacy", "nft"} {
-		if path := "/sbin/iptables-" + suffix; iptablesWorks(path) {
+		if path := "/usr/sbin/iptables-" + suffix; iptablesWorks(path) {
 			log.Info("using iptables backend " + suffix)
 			return iptables.New(iptables.IPFamily(proto), iptables.Path(adjustPath(path, proto)))
 		}
@@ -35,5 +35,5 @@ func adjustPath(path string, proto iptables.Protocol) string {
 
 func iptablesWorks(path string) bool {
 	// check both iptables and ip6tables
-	return exec.Command(path, "-L").Run() == nil && exec.Command(adjustPath(path, iptables.ProtocolIPv6), "-L").Run() == nil // #nosec: G204 -- Command line is completely static "/sbin/(iptables|ip6tables)-(legacy|nft) -L".
+	return exec.Command(path, "-L").Run() == nil && exec.Command(adjustPath(path, iptables.ProtocolIPv6), "-L").Run() == nil // #nosec: G204 -- Command line is completely static "/usr/sbin/(iptables|ip6tables)-(legacy|nft) -L".
 }
