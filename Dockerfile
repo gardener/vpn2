@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ## base
-FROM alpine:3.20.3 as base
+FROM alpine:3.21.0 as base
 
 RUN apk add --update openvpn iptables iptables-legacy && \
     rm -rf /var/cache/apk/*
@@ -30,18 +30,16 @@ RUN    cp -d /lib/ld-musl-* ./lib                                           && e
     && cp -d /usr/lib/libpsx.* ./usr/lib                                    && echo package libcap2 \
     && cp -d /usr/lib/libcap-ng.* ./usr/lib                                 && echo package libcap-ng \
     && cp -d /usr/lib/libdrop_ambient.* ./usr/lib                           && echo package libcap-ng \
-    && cp -d /lib/libz.* ./lib                                              && echo package zlib \
+    && cp -d /usr/lib/libz.* ./usr/lib                                      && echo package zlib \
     && cp -d /usr/lib/libzstd.* ./usr/lib                                   && echo package zstd-libs \
     && cp -d /usr/lib/libelf* ./usr/lib                                     && echo package libelf \
     && cp -d /usr/lib/libmnl.* ./usr/lib                                    && echo package libmnl \
     && cp -d /sbin/ip ./sbin                                                && echo package iproute2-minimal \
     && cp -d /usr/share/iproute2/* ./usr/share/iproute2                     && echo package iproute2-minimal \
     && cp -d -r /etc/ssl/* ./etc/ssl                                        && echo package libcrypto3 \
-    && cp -d /lib/libcrypto.so.* ./lib                                      && echo package libcrypto3 \
     && cp -d /usr/lib/libcrypto.so.* ./usr/lib                              && echo package libcrypto3 \
     && cp -d /usr/lib/engines-3/* ./usr/lib/engines-3                       && echo package libcrypto3 \
     && cp -d /usr/lib/ossl-modules/* ./usr/lib/ossl-modules                 && echo package libcrypto3 \
-    && cp -d /lib/libssl.so.* ./lib                                         && echo package libssl3 \
     && cp -d /usr/lib/libssl.so.* ./usr/lib                                 && echo package libssl3 \
     && cp -d /usr/lib/liblzo2.so.* ./usr/lib                                && echo package lzo \
     && cp -d /usr/lib/liblz4.so.* ./usr/lib                                 && echo package lz4-libs \
@@ -50,9 +48,9 @@ RUN    cp -d /lib/ld-musl-* ./lib                                           && e
     && cp -d /usr/lib/openvpn/plugins/openvpn* ./usr/lib/openvpn/plugins    && echo package openvpn \
     && cp -d /usr/lib/libnftnl* ./usr/lib                                   && echo package libnftnl \
     && cp -d /etc/ethertypes ./etc                                          && echo package iptables \
-    && cp -d /sbin/iptables* ./sbin                                         && echo package iptables \
-    && cp -d /sbin/ip6tables* ./sbin                                        && echo package iptables \
-    && cp -d /sbin/xtables* ./sbin                                          && echo package iptables \
+    && cp -d /usr/sbin/iptables* ./usr/sbin                                 && echo package iptables \
+    && cp -d /usr/sbin/ip6tables* ./usr/sbin                                && echo package iptables \
+    && cp -d /usr/sbin/xtables* ./usr/sbin                                  && echo package iptables \
     && cp -d /usr/lib/libxtables* ./usr/lib                                 && echo package iptables \
     && cp -d /usr/lib/libip4* ./usr/lib                                     && echo package iptables \
     && cp -d /usr/lib/libip6* ./usr/lib                                     && echo package iptables \
