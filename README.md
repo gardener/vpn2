@@ -62,7 +62,7 @@ Please see [Reversed VPN Tunnel Setup and Configuration](https://github.com/gard
   *Note: Remember the image name reported at the end similar to*  
 
   ```txt
-  VPN client image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-client:0.26.0-dev
+  VPN client image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-client:0.33.0-dev
   ```
 
   **VPN server image**
@@ -76,22 +76,22 @@ Please see [Reversed VPN Tunnel Setup and Configuration](https://github.com/gard
   *Note: Remember the image name reported at the end similar to*
 
   ```txt
-  VPN server image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-server:0.26.0-dev
+  VPN server image: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-server:0.33.0-dev
   ```
 
-- adjust the image vector file `imagevector/images.yaml` in Gardener to image repositories and tags provided by the last step
+- adjust the image vector file `imagevector/containers.yaml` in Gardener to image repositories and tags provided by the last step
 
   ```
   ...
   - name: vpn-server
   sourceRepository: github.com/gardener/vpn2
   repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-server
-  tag: 0.26.0-dev
+  tag: 0.33.0-dev
   ...
   - name: vpn-client
   sourceRepository: github.com/gardener/vpn2
   repository: localhost:5001/europe-docker_pkg_dev_gardener-project_public_gardener_vpn-client
-  tag: 0.26.0-dev
+  tag: 0.33.0-dev
   ...
   ```
 
