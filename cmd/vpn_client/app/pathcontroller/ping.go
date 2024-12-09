@@ -84,12 +84,12 @@ func (p *icmpPinger) ping(client net.IP) error {
 		return fmt.Errorf("error setting deadline: %w", err)
 	}
 
-	seq := p.lastSeq.Add(1)
+	seq := p.lastSeq.Add(1) & 0xffff // is marshalled as uint16 so we need to mask it
 	msg := icmp.Message{
 		Type: ipv6.ICMPTypeEchoRequest,
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:   os.Getpid() & 0xffff,
+			ID:   os.Getpid() & 0xffff, // is marshalled as uint16 so we need to mask it
 			Seq:  int(seq),
 			Data: []byte(echoPayload),
 		},
