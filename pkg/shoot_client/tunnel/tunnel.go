@@ -73,7 +73,11 @@ func (d *kubeApiserverData) update() {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	name := fmt.Sprintf("%s-ip6tnl-%02x", constants.BondDevice, d.remoteAddr[len(d.remoteAddr)-1])
+	name, err := d.linkName()
+	if err != nil {
+		d._setFailed(err)
+		return
+	}
 
 	if err := network.DeleteLinkByName(name); err != nil {
 		d._setFailed(fmt.Errorf("failed to delete link %s: %w", name, err))
@@ -116,12 +120,25 @@ func (d *kubeApiserverData) delete() {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	name := fmt.Sprintf("%s-ip6tnl-%02x", constants.BondDevice, d.remoteAddr[len(d.remoteAddr)-1])
+	name, err := d.linkName()
+	if err != nil {
+		d._setFailed(err)
+		return
+	}
+
 	if err := network.DeleteLinkByName(name); err != nil {
 		d.log.Error(err, "failed to delete old tunnel device", "name", name)
 	} else {
 		d.log.Info("tunnel device deleted", "name", name)
 	}
+}
+
+func (d *kubeApiserverData) linkName() (string, error) {
+	s := fmt.Sprintf("%sip6tnl%02x%02x", constants.BondDevice, d.remoteAddr[len(d.remoteAddr)-2], d.remoteAddr[len(d.remoteAddr)-1])
+	if len(s) > 15 {
+		return "", fmt.Errorf("link name too long: %s", s)
+	}
+	return s, nil
 }
 
 func (d *kubeApiserverData) _setFailed(err error) {
