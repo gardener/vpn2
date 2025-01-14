@@ -73,12 +73,7 @@ func (d *kubeApiserverData) update() {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	name, err := d.linkName()
-	if err != nil {
-		d._setFailed(err)
-		return
-	}
-
+	name := d.linkName()
 	if err := network.DeleteLinkByName(name); err != nil {
 		d._setFailed(fmt.Errorf("failed to delete link %s: %w", name, err))
 		return
@@ -120,12 +115,7 @@ func (d *kubeApiserverData) delete() {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
-	name, err := d.linkName()
-	if err != nil {
-		d._setFailed(err)
-		return
-	}
-
+	name := d.linkName()
 	if err := network.DeleteLinkByName(name); err != nil {
 		d.log.Error(err, "failed to delete old tunnel device", "name", name)
 	} else {
@@ -133,12 +123,10 @@ func (d *kubeApiserverData) delete() {
 	}
 }
 
-func (d *kubeApiserverData) linkName() (string, error) {
-	s := fmt.Sprintf("%sip6tnl%02x%02x", constants.BondDevice, d.remoteAddr[len(d.remoteAddr)-2], d.remoteAddr[len(d.remoteAddr)-1])
-	if len(s) > 15 {
-		return "", fmt.Errorf("link name too long: %s", s)
-	}
-	return s, nil
+func (d *kubeApiserverData) linkName() string {
+	// link name must be unique, so we use the last two bytes of the remote address as it is chosen from a /112 range.
+	// The link name must be 15 characters or less in Linux.
+	return fmt.Sprintf("%sip6tnl%02x%02x", constants.BondDevice, d.remoteAddr[len(d.remoteAddr)-2], d.remoteAddr[len(d.remoteAddr)-1])
 }
 
 func (d *kubeApiserverData) _setFailed(err error) {
@@ -215,6 +203,12 @@ func (c *Controller) Run(log logr.Logger) error {
 				podIP:      podIP,
 			}
 			c.kubeApiservers[key] = data
+			// edge case: if the remoteAddr was used by another kube-apiserver before and cleanup has not run yet, the entry must be removed
+			for k, d := range c.kubeApiservers {
+				if k != key && data.remoteAddr.Equal(d.remoteAddr) {
+					delete(c.kubeApiservers, k)
+				}
+			}
 		}
 		c.lock.Unlock()
 
