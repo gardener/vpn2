@@ -36,3 +36,15 @@ func (c CIDR) ToIPNet() *net.IPNet {
 	netw := net.IPNet(c)
 	return &netw
 }
+
+func (c *CIDR) IsIPv4() bool {
+	return c.IP.To4() != nil
+}
+
+func ParseIPNet(cidr string) CIDR {
+	_, prefix, err := net.ParseCIDR(cidr)
+	if err != nil {
+		panic(err)
+	}
+	return CIDR(*prefix)
+}

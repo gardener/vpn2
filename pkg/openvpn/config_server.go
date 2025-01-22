@@ -28,6 +28,7 @@ type SeedServerValues struct {
 	ShootNetworks   []network.CIDR
 	ShootNetworksV4 []network.CIDR
 	ShootNetworksV6 []network.CIDR
+	SeedPodNetwork  network.CIDR
 	HAVPNClients    int
 	IsHA            bool
 	VPNIndex        int

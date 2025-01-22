@@ -12,6 +12,7 @@ import (
 	"github.com/gardener/vpn2/cmd/vpn_client/app/pathcontroller"
 	"github.com/gardener/vpn2/cmd/vpn_client/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
@@ -55,15 +56,16 @@ func NewCommand() *cobra.Command {
 
 func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 	v := openvpn.ClientValues{
-		Device:            "tun0",
-		IPFamily:          cfg.PrimaryIPFamily(),
-		ReversedVPNHeader: cfg.ReversedVPNHeader,
-		Endpoint:          cfg.Endpoint,
-		OpenVPNPort:       cfg.OpenVPNPort,
-		VPNClientIndex:    cfg.VPNClientIndex,
-		IsShootClient:     cfg.IsShootClient,
-		IsHA:              cfg.IsHA,
-		SeedPodNetwork:    cfg.SeedPodNetwork.String(),
+		Device:               "tun0",
+		IPFamily:             cfg.PrimaryIPFamily(),
+		ReversedVPNHeader:    cfg.ReversedVPNHeader,
+		Endpoint:             cfg.Endpoint,
+		OpenVPNPort:          cfg.OpenVPNPort,
+		VPNClientIndex:       cfg.VPNClientIndex,
+		IsShootClient:        cfg.IsShootClient,
+		IsHA:                 cfg.IsHA,
+		SeedPodNetwork:       cfg.SeedPodNetwork.String(),
+		SeedPodNetworkMapped: constants.SeedPodNetworkMapped,
 	}
 	vpnSeedServer := "vpn-seed-server"
 

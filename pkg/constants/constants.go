@@ -18,6 +18,12 @@ const (
 	BondDevice = "bond0"
 	// VPNNetworkPrefixSize is the required prefix size for the VPN network.
 	VPNNetworkMask = 96
+
+	//TODO: move to gardener
+	ShootPodNetworkMapped  = "244.0.0.0/8"
+	ShootSvcNetworkMapped  = "243.0.0.0/8"
+	ShootNodeNetworkMapped = "242.0.0.0/8"
+	SeedPodNetworkMapped   = "241.0.0.0/8"
 )
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.

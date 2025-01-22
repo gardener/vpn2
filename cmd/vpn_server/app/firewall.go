@@ -7,6 +7,7 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/gardener/vpn2/pkg/constants"
 	"net"
 	"os"
 	"strings"
@@ -21,9 +22,10 @@ import (
 
 func firewallCommand() *cobra.Command {
 	var (
-		device        string
-		mode          string
-		shootNetworks []string
+		device         string
+		mode           string
+		shootNetworks  []string
+		seedPodNetwork string
 	)
 
 	cmd := &cobra.Command{
@@ -35,19 +37,20 @@ func firewallCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFirewallCommand(log, device, mode, shootNetworks)
+			return runFirewallCommand(log, device, mode, shootNetworks, seedPodNetwork)
 		},
 	}
 
 	cmd.Flags().StringVar(&device, "device", "", "device to configure")
 	cmd.Flags().StringVar(&mode, "mode", "", "mode of firewall (up or down)")
 	cmd.Flags().StringSliceVar(&shootNetworks, "shoot-network", nil, "shoot networks to add routes for")
+	cmd.Flags().StringVar(&seedPodNetwork, "seed-network", "", "seed pod network to add mapping rules for")
 	cmd.MarkFlagsRequiredTogether("device", "mode")
 
 	return cmd
 }
 
-func runFirewallCommand(log logr.Logger, device, mode string, networks []string) error {
+func runFirewallCommand(log logr.Logger, device, mode string, networks []string, seedPodNetwork string) error {
 	// Firewall subcommand is called indirectly from openvpn. As PATH env variables seems not to be set,
 	// it is injected here.
 	if err := os.Setenv("PATH", "/sbin"); err != nil {
@@ -88,6 +91,15 @@ func runFirewallCommand(log logr.Logger, device, mode string, networks []string)
 			return err
 		}
 		log.Info(fmt.Sprintf("iptables %s INPUT %s", opName, strings.Join(spec, " ")))
+	}
+
+	err = op4("nat", "PREROUTING", "--in-interface", device, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", seedPodNetwork)
+	if err != nil {
+		return err
+	}
+	err = op4("nat", "POSTROUTING", "--out-interface", device, "-s", seedPodNetwork, "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
+	if err != nil {
+		return err
 	}
 
 	if mode == "up" {
