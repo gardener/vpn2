@@ -21,20 +21,11 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		StatusPath: cfg.StatusPath,
 	}
 
-	v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
-
-	v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
-
-	if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
-		v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
+	if len(cfg.VPNNetwork.IP) != 16 {
+		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
 	}
-
-	for _, shootNetwork := range v.ShootNetworks {
-		if shootNetwork.IP.To4() != nil {
-			v.ShootNetworksV4 = append(v.ShootNetworksV4, shootNetwork)
-		} else {
-			v.ShootNetworksV6 = append(v.ShootNetworksV6, shootNetwork)
-		}
+	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
+		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
 	}
 
 	v.IsHA, v.VPNIndex = getHAInfo()
@@ -43,22 +34,31 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	case true:
 		v.Device = "tap0"
 		v.HAVPNClients = cfg.HAVPNClients
+		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
+
+		v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
+		v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
+		if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
+			v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
+		}
+
 	case false:
 		v.Device = "tun0"
 		v.HAVPNClients = -1
-	}
-
-	if len(cfg.VPNNetwork.IP) != 16 {
-		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
-	}
-	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
-		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
-	}
-
-	if !v.IsHA {
 		v.OpenVPNNetwork = cfg.VPNNetwork
-	} else {
-		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
+
+		v.SeedPodNetwork = cfg.SeedPodNetwork
+		v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootNodeNetworkMapped))
+		v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootSvcNetworkMapped))
+		v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootPodNetworkMapped))
+	}
+
+	for _, shootNetwork := range v.ShootNetworks {
+		if shootNetwork.IP.To4() != nil {
+			v.ShootNetworksV4 = append(v.ShootNetworksV4, shootNetwork)
+		} else {
+			v.ShootNetworksV6 = append(v.ShootNetworksV6, shootNetwork)
+		}
 	}
 
 	return v, nil

@@ -5,8 +5,6 @@
 package openvpn
 
 import (
-	"net"
-
 	"github.com/gardener/vpn2/pkg/network"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -21,7 +19,7 @@ var _ = Describe("#SeedServerConfig", func() {
 		prepareIPv4HA = func() {
 			cfgIPv4.IsHA = true
 			cfgIPv4.Device = "tap0"
-			cfgIPv4.OpenVPNNetwork = parseIPNet("fd8f:6d53:b97a:7777::/96")
+			cfgIPv4.OpenVPNNetwork = network.ParseIPNet("fd8f:6d53:b97a:7777::/96")
 			cfgIPv4.StatusPath = "/srv/status/openvpn.status"
 		}
 	)
@@ -29,55 +27,55 @@ var _ = Describe("#SeedServerConfig", func() {
 	BeforeEach(func() {
 		cfgIPv4 = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
-				parseIPNet("100.64.0.0/13"),
-				parseIPNet("100.96.0.0/11"),
-				parseIPNet("10.0.1.0/24"),
+				network.ParseIPNet("100.64.0.0/13"),
+				network.ParseIPNet("100.96.0.0/11"),
+				network.ParseIPNet("10.0.1.0/24"),
 			},
 			ShootNetworksV4: []network.CIDR{
-				parseIPNet("100.64.0.0/13"),
-				parseIPNet("100.96.0.0/11"),
-				parseIPNet("10.0.1.0/24"),
+				network.ParseIPNet("100.64.0.0/13"),
+				network.ParseIPNet("100.96.0.0/11"),
+				network.ParseIPNet("10.0.1.0/24"),
 			},
 		}
 		cfgIPv6 = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
-				parseIPNet("2001:db8:1::/48"),
-				parseIPNet("2001:db8:2::/48"),
-				parseIPNet("2001:db8:3::/48"),
+				network.ParseIPNet("2001:db8:1::/48"),
+				network.ParseIPNet("2001:db8:2::/48"),
+				network.ParseIPNet("2001:db8:3::/48"),
 			},
 			ShootNetworksV6: []network.CIDR{
-				parseIPNet("2001:db8:1::/48"),
-				parseIPNet("2001:db8:2::/48"),
-				parseIPNet("2001:db8:3::/48"),
+				network.ParseIPNet("2001:db8:1::/48"),
+				network.ParseIPNet("2001:db8:2::/48"),
+				network.ParseIPNet("2001:db8:3::/48"),
 			},
 		}
 		cfgDualStack = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: parseIPNet("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNet("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
-				parseIPNet("100.64.0.0/13"),
-				parseIPNet("100.96.0.0/11"),
-				parseIPNet("10.0.1.0/24"),
-				parseIPNet("2001:db8:1::/48"),
-				parseIPNet("2001:db8:2::/48"),
-				parseIPNet("2001:db8:3::/48"),
+				network.ParseIPNet("100.64.0.0/13"),
+				network.ParseIPNet("100.96.0.0/11"),
+				network.ParseIPNet("10.0.1.0/24"),
+				network.ParseIPNet("2001:db8:1::/48"),
+				network.ParseIPNet("2001:db8:2::/48"),
+				network.ParseIPNet("2001:db8:3::/48"),
 			},
 			ShootNetworksV4: []network.CIDR{
-				parseIPNet("100.64.0.0/13"),
-				parseIPNet("100.96.0.0/11"),
-				parseIPNet("10.0.1.0/24"),
+				network.ParseIPNet("100.64.0.0/13"),
+				network.ParseIPNet("100.96.0.0/11"),
+				network.ParseIPNet("10.0.1.0/24"),
 			},
 			ShootNetworksV6: []network.CIDR{
-				parseIPNet("2001:db8:1::/48"),
-				parseIPNet("2001:db8:2::/48"),
-				parseIPNet("2001:db8:3::/48"),
+				network.ParseIPNet("2001:db8:1::/48"),
+				network.ParseIPNet("2001:db8:2::/48"),
+				network.ParseIPNet("2001:db8:3::/48"),
 			},
 		}
 	})
@@ -223,11 +221,3 @@ iroute-ipv6 2001:db8:3::/48
 		})
 	})
 })
-
-func parseIPNet(cidr string) network.CIDR {
-	_, prefix, err := net.ParseCIDR(cidr)
-	if err != nil {
-		panic(err)
-	}
-	return network.CIDR(*prefix)
-}

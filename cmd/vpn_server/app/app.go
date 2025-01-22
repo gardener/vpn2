@@ -8,8 +8,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/coreos/go-iptables/iptables"
 	"github.com/gardener/vpn2/cmd/vpn_server/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
@@ -65,6 +68,40 @@ func run(_ context.Context, log logr.Logger) error {
 	v, err := vpn_server.BuildValues(cfg)
 	if err != nil {
 		return err
+	}
+
+	if !cfg.IsHA {
+		log.Info("setting up iptables rules for Envoy")
+		ipTable, err := network.NewIPTables(log, iptables.ProtocolIPv4)
+		if err != nil {
+			return err
+		}
+
+		for _, nw := range cfg.PodNetworks {
+			if nw.IsIPv4() {
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", "65532", "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		for _, nw := range cfg.ServiceNetworks {
+			if nw.IsIPv4() {
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", "65532", "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootSvcNetworkMapped)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		for _, nw := range cfg.NodeNetworks {
+			if nw.IsIPv4() {
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", "65532", "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
 	}
 
 	log.Info("writing openvpn config file", "values", v)

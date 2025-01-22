@@ -35,6 +35,30 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				if err != nil {
 					return err
 				}
+				err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootPodNetworkMapped, "-j", "NETMAP", "--to", cfg.ShootPodNetwork.String())
+				if err != nil {
+					return err
+				}
+				err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.ShootPodNetwork.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+				if err != nil {
+					return err
+				}
+				err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootSvcNetworkMapped, "-j", "NETMAP", "--to", cfg.ShootServiceNetwork.String())
+				if err != nil {
+					return err
+				}
+				err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.ShootServiceNetwork.String(), "-j", "NETMAP", "--to", constants.ShootSvcNetworkMapped)
+				if err != nil {
+					return err
+				}
+				err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootNodeNetworkMapped, "-j", "NETMAP", "--to", cfg.ShootNodeNetwork.String())
+				if err != nil {
+					return err
+				}
+				err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.ShootNodeNetwork.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+				if err != nil {
+					return err
+				}
 			}
 
 			err = ipTable.Append("filter", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu")
