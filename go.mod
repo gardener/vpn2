@@ -15,7 +15,7 @@ require (
 	github.com/spf13/cobra v1.8.1
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20240524165444-4d4ba1473f21
 	go.uber.org/zap v1.27.0
-	golang.org/x/net v0.28.0
+	golang.org/x/net v0.33.0
 	k8s.io/apimachinery v0.29.8
 	k8s.io/client-go v0.29.8
 	k8s.io/component-base v0.29.8
