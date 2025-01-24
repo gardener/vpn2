@@ -47,7 +47,7 @@ func NewIPAddressBroker(manager IPPoolManager, cfg *config.VPNClient) (IPAddress
 	}, nil
 }
 
-// SetStartAndEndIndex overwrites default start and end index.
+// SetStartAndEndIndex overwrites default start and end index (inclusive).
 func (b *ipAddressBroker) SetStartAndEndIndex(startIndex int, endIndex int) error {
 	if err := checkRange(startIndex, endIndex); err != nil {
 		return err
@@ -145,7 +145,7 @@ func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 			break
 		}
 		b.log("conflict, retrying...")
-		time.Sleep(b.waitTime * time.Duration(rand.N(10)/10)) // #nosec: G404 -- No cryptographic context.
+		time.Sleep((b.waitTime * time.Duration(rand.N(10))) / 10) // #nosec: G404 -- No cryptographic context.
 	}
 
 	if b.hasConflict(result) {

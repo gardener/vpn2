@@ -25,14 +25,15 @@ type ipdata struct {
 }
 type mockManager struct {
 	sync.Mutex
-	data map[string]*ipdata
+	data         map[string]ipdata
+	setWaitGroup sync.WaitGroup
 }
 
 var _ IPPoolManager = &mockManager{}
 
 func newMockIPPoolManager() *mockManager {
 	return &mockManager{
-		data: map[string]*ipdata{},
+		data: map[string]ipdata{},
 	}
 }
 
@@ -62,22 +63,27 @@ func (m *mockManager) UsageLookup(ctx context.Context, podName string) (*IPPoolU
 }
 
 func (m *mockManager) SetIPAddress(ctx context.Context, podName, ip string, used bool) error {
+	m.setWaitGroup.Add(1)
 	go func() {
 		time.Sleep(baseWait / 3)
 		m.Lock()
 		defer m.Unlock()
 
-		v := m.data[podName]
-		if v == nil {
-			v = &ipdata{}
-			m.data[podName] = v
-		}
-
-		v.ip = ip
-		v.used = used
+		m.data[podName] = ipdata{ip: ip, used: used}
+		m.setWaitGroup.Done()
 	}()
 
 	return nil
+}
+
+func (m *mockManager) waitSetIPAddressComplete() {
+	m.setWaitGroup.Wait()
+}
+
+func (m *mockManager) getData() map[string]ipdata {
+	m.Lock()
+	defer m.Unlock()
+	return m.data
 }
 
 func podName(i int) string {
@@ -127,7 +133,7 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 			t.Errorf("new failed: %s", err)
 			return
 		}
-		if err = brokers[i].SetStartAndEndIndex(10, 10+space); err != nil {
+		if err = brokers[i].SetStartAndEndIndex(10, 10+space-1); err != nil {
 			t.Errorf("set range failed: %s", err)
 			return
 		}
@@ -140,20 +146,29 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 			ctx := context.TODO()
 			_, err2 := broker.AcquireIP(ctx)
 			if err2 != nil {
-				err = err2
+				err = fmt.Errorf("pod-%d failed: %s", i, err2)
+
 			}
 			waitGroup.Done()
 		}(brokers[i])
 	}
 	waitGroup.Wait()
-	time.Sleep(baseWait / 2) // wait for delayed update of mockManager
+
+	manager.waitSetIPAddressComplete()
 
 	if space < count {
 		if err == nil {
 			t.Errorf("expected to fail as no free IP available")
 		} else {
-			if !strings.Contains(err.Error(), "cannot find any free IP address") {
-				t.Errorf("unexpected error: %s (should contain 'cannot find any free IP address')", err)
+			found := false
+			for _, txt := range []string{"cannot find any free IP address", "no free IP address found"} {
+				if strings.Contains(err.Error(), txt) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				t.Errorf("unexpected error: %s", err)
 			}
 		}
 		return
@@ -163,13 +178,15 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 		t.Errorf("acquire failed: %s", err)
 	}
 
-	if len(manager.data) != count {
-		t.Errorf("pod count mismatch: %d != %d", len(manager.data), count)
+	data := manager.getData()
+	if len(data) != count {
+		t.Errorf("pod count mismatch: %d != %d", len(data), count)
 	}
 	ips := map[string]string{}
-	for name, value := range manager.data {
+	for name, value := range data {
 		if value.ip == "" || !value.used {
 			t.Errorf("no used IP for pod %s", name)
+			continue
 		}
 		if other := ips[value.ip]; other != "" {
 			t.Errorf("duplicate IP for pod %s and %s", name, other)
