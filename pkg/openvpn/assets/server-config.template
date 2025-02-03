@@ -12,6 +12,11 @@ data-ciphers AES-256-GCM:AES-256-CBC
 # manifest
 port 1194
 
+tun-mtu 1380
+mssfix 1340
+
+verb 4
+
 keepalive 10 60
 
 # client-config-dir to push client specific configuration

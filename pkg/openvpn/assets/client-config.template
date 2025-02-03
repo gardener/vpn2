@@ -8,6 +8,11 @@ pull
 data-ciphers AES-256-GCM
 tls-client
 
+link-mtu 1440
+mssfix 1340
+
+verb 4
+
 # retry every second, increase retry timeout to max 5
 connect-retry 1 5
 
