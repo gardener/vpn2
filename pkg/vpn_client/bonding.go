@@ -89,7 +89,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	if err = netlink.LinkAdd(bond); err != nil {
 		return fmt.Errorf("failed to create %s link device: %w", constants.BondDevice, err)
 	}
-	if err := netlink.LinkSetMTU(bond, 1380); err != nil {
+	if err := netlink.LinkSetMTU(bond, 1312); err != nil {
 		return fmt.Errorf("failed to set MTU %s: %w", constants.BondDevice, err)
 	}
 	for i := range cfg.HAVPNServers {

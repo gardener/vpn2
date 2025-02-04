@@ -11,10 +11,7 @@ data-ciphers AES-256-GCM:AES-256-CBC
 # port can be configured for the external load balancer in the service
 # manifest
 port 1194
-
-tun-mtu 1380
-mssfix 1340
-
+tun-mtu 1312
 verb 4
 
 keepalive 10 60

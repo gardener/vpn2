@@ -40,7 +40,7 @@ func CreateTunnel(linkName string, local, remote net.IP) error {
 	tunnel := &netlink.Ip6tnl{
 		LinkAttrs: netlink.LinkAttrs{
 			Name: linkName,
-			MTU: 1380,
+			MTU: 1312,
 		},
 		Local:  local,
 		Remote: remote,
@@ -48,7 +48,6 @@ func CreateTunnel(linkName string, local, remote net.IP) error {
 	if err := netlink.LinkAdd(tunnel); err != nil {
 		return fmt.Errorf("failed to add link %s: %w", linkName, err)
 	}
-
 	if err := netlink.LinkSetUp(tunnel); err != nil {
 		return fmt.Errorf("failed to set up link %s: %w", linkName, err)
 	}

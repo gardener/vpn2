@@ -7,10 +7,7 @@ txqueuelen 1000
 pull
 data-ciphers AES-256-GCM
 tls-client
-
-link-mtu 1440
-mssfix 1340
-
+tun-mtu 1312
 verb 4
 
 # retry every second, increase retry timeout to max 5
