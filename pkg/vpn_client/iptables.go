@@ -37,6 +37,11 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				}
 			}
 
+			err = ipTable.Append("filter", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu")
+			if err != nil {
+				return err
+			}
+
 			err = ipTable.Append("nat", "POSTROUTING", "--out-interface", "eth0", "-j", "MASQUERADE")
 			if err != nil {
 				return err
