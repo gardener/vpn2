@@ -58,6 +58,7 @@ func (d *kubeApiserverData) needsUpdate(podIP string) bool {
 	defer d.lock.Unlock()
 
 	if d.podIP != podIP {
+		d.log.Info("pod IP changed:", "old", d.podIP, "new", podIP)
 		return true
 	}
 	if d.creationComplete {
@@ -69,10 +70,11 @@ func (d *kubeApiserverData) needsUpdate(podIP string) bool {
 	return true
 }
 
-func (d *kubeApiserverData) update() {
+func (d *kubeApiserverData) update(podIP string) {
 	d.lock.Lock()
 	defer d.lock.Unlock()
 
+	d.podIP = podIP
 	name := d.linkName()
 	if err := network.DeleteLinkByName(name); err != nil {
 		d._setFailed(fmt.Errorf("failed to delete link %s: %w", name, err))
@@ -202,19 +204,14 @@ func (c *Controller) Run(log logr.Logger) error {
 				remoteAddr: clientAddr.IP,
 				podIP:      podIP,
 			}
+			log.Info("new kube-apiserver", "remoteAddr", clientAddr.IP, "podIP", podIP)
 			c.kubeApiservers[key] = data
-			// edge case: if the remoteAddr was used by another kube-apiserver before and cleanup has not run yet, the entry must be removed
-			for k, d := range c.kubeApiservers {
-				if k != key && data.remoteAddr.Equal(d.remoteAddr) {
-					delete(c.kubeApiservers, k)
-				}
-			}
 		}
 		c.lock.Unlock()
 
 		data.setLastSeen()
 		if data.needsUpdate(podIP) {
-			go data.update()
+			go data.update(podIP)
 		}
 		if c.nextClean.After(time.Now()) {
 			c.nextClean = time.Now().Add(cleanUpPeriod)
