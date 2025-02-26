@@ -32,7 +32,7 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 
 	switch v.IsHA {
 	case true:
-		v.Device = "tap0"
+		v.Device = constants.TapDevice
 		v.HAVPNClients = cfg.HAVPNClients
 		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
 
@@ -43,7 +43,7 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		}
 
 	case false:
-		v.Device = "tun0"
+		v.Device = constants.TunnelDevice
 		v.HAVPNClients = -1
 		v.OpenVPNNetwork = cfg.VPNNetwork
 

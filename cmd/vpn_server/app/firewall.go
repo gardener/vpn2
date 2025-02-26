@@ -93,13 +93,15 @@ func runFirewallCommand(log logr.Logger, device, mode string, networks []string,
 		log.Info(fmt.Sprintf("iptables %s INPUT %s", opName, strings.Join(spec, " ")))
 	}
 
-	err = op4("nat", "PREROUTING", "--in-interface", device, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", seedPodNetwork)
-	if err != nil {
-		return err
-	}
-	err = op4("nat", "POSTROUTING", "--out-interface", device, "-s", seedPodNetwork, "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
-	if err != nil {
-		return err
+	if device == constants.TunnelDevice {
+		err = op4("nat", "PREROUTING", "--in-interface", device, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", seedPodNetwork)
+		if err != nil {
+			return err
+		}
+		err = op4("nat", "POSTROUTING", "--out-interface", device, "-s", seedPodNetwork, "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
+		if err != nil {
+			return err
+		}
 	}
 
 	if mode == "up" {
