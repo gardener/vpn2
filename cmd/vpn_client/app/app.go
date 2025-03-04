@@ -56,21 +56,24 @@ func NewCommand() *cobra.Command {
 
 func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 	v := openvpn.ClientValues{
-		Device:               constants.TunnelDevice,
-		IPFamily:             cfg.PrimaryIPFamily(),
-		ReversedVPNHeader:    cfg.ReversedVPNHeader,
-		Endpoint:             cfg.Endpoint,
-		OpenVPNPort:          cfg.OpenVPNPort,
-		VPNClientIndex:       cfg.VPNClientIndex,
-		IsShootClient:        cfg.IsShootClient,
-		IsHA:                 cfg.IsHA,
-		SeedPodNetwork:       cfg.SeedPodNetwork.String(),
-		SeedPodNetworkMapped: constants.SeedPodNetworkMapped,
+		Device:            constants.TunnelDevice,
+		IPFamily:          cfg.PrimaryIPFamily(),
+		ReversedVPNHeader: cfg.ReversedVPNHeader,
+		Endpoint:          cfg.Endpoint,
+		OpenVPNPort:       cfg.OpenVPNPort,
+		VPNClientIndex:    cfg.VPNClientIndex,
+		IsShootClient:     cfg.IsShootClient,
+		IsHA:              cfg.IsHA,
+		SeedPodNetwork:    cfg.SeedPodNetwork.String(),
 	}
 	vpnSeedServer := "vpn-seed-server"
 
 	if len(strings.Split(cfg.IPFamilies, ",")) == 2 {
 		v.IsDualStack = true
+	}
+
+	if !cfg.IsHA && cfg.SeedPodNetwork.IsIPv4() {
+		v.SeedPodNetwork = constants.SeedPodNetworkMapped
 	}
 
 	if cfg.VPNServerIndex != "" {

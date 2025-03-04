@@ -28,6 +28,8 @@ const (
 	ShootSvcNetworkMapped  = "243.0.0.0/8"
 	ShootNodeNetworkMapped = "242.0.0.0/8"
 	SeedPodNetworkMapped   = "241.0.0.0/8"
+
+	EnvoyNonRootUserId = "65532"
 )
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.

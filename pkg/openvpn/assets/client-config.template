@@ -45,5 +45,5 @@ remote {{ .Endpoint }}
 
 {{- if and .IsShootClient (not .IsHA) }}
 script-security 2
-up "/bin/sh -c '/sbin/ip route replace {{ .SeedPodNetworkMapped }} dev $1' -- "
+up "/bin/sh -c '/sbin/ip route replace {{ .SeedPodNetwork }} dev $1' -- "
 {{- end }}

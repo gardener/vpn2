@@ -79,7 +79,7 @@ func run(_ context.Context, log logr.Logger) error {
 
 		for _, nw := range cfg.PodNetworks {
 			if nw.IsIPv4() {
-				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", "65532", "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
 				if err != nil {
 					return err
 				}
@@ -87,7 +87,7 @@ func run(_ context.Context, log logr.Logger) error {
 		}
 		for _, nw := range cfg.ServiceNetworks {
 			if nw.IsIPv4() {
-				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", "65532", "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootSvcNetworkMapped)
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootSvcNetworkMapped)
 				if err != nil {
 					return err
 				}
@@ -95,7 +95,7 @@ func run(_ context.Context, log logr.Logger) error {
 		}
 		for _, nw := range cfg.NodeNetworks {
 			if nw.IsIPv4() {
-				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", "65532", "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
 				if err != nil {
 					return err
 				}
