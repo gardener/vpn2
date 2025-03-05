@@ -66,7 +66,7 @@ RUN if [ "$DEBUG" = "true" ]; then \
     fi
 
 ## gobuilder
-FROM --platform=$BUILDPLATFORM golang:1.24.0 AS gobuilder
+FROM --platform=$BUILDPLATFORM golang:1.24.1 AS gobuilder
 WORKDIR /build
 COPY ./VERSION ./VERSION
 COPY ./go.mod /go.sum ./
