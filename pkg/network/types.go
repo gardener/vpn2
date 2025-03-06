@@ -11,6 +11,10 @@ import (
 
 type CIDR net.IPNet
 
+func (c CIDR) Equal(other CIDR) bool {
+	return c.IP.Equal(other.IP) && c.Mask.String() == other.Mask.String()
+}
+
 func (c *CIDR) UnmarshalText(text []byte) error {
 	// empty strings are allowed
 	if string(text) == "" {
