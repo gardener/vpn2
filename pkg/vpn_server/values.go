@@ -6,9 +6,10 @@ package vpn_server
 
 import (
 	"fmt"
-	"os"
 	"regexp"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
@@ -28,7 +29,11 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
 	}
 
-	v.IsHA, v.VPNIndex = getHAInfo()
+	v.IsHA, v.VPNIndex = getHAInfo(cfg)
+
+	if v.IsHA != cfg.IsHA {
+		return v, fmt.Errorf("IS_HA flag in config does not match HA info from pod name: IS_HA = %t, POD_NAME = %s", cfg.IsHA, cfg.PodName)
+	}
 
 	switch v.IsHA {
 	case true:
@@ -72,6 +77,14 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		}
 	}
 
+	// remove possible duplicates. sort, then compact.
+	slices.SortFunc(v.ShootNetworks, func(a, b network.CIDR) int {
+		return strings.Compare(a.String(), b.String())
+	})
+	v.ShootNetworks = slices.CompactFunc(v.ShootNetworks, func(a network.CIDR, b network.CIDR) bool {
+		return a.Equal(b)
+	})
+
 	for _, shootNetwork := range v.ShootNetworks {
 		if shootNetwork.IP.To4() != nil {
 			v.ShootNetworksV4 = append(v.ShootNetworksV4, shootNetwork)
@@ -83,9 +96,9 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	return v, nil
 }
 
-func getHAInfo() (bool, int) {
-	podName, ok := os.LookupEnv("POD_NAME")
-	if !ok {
+func getHAInfo(cfg config.VPNServer) (bool, int) {
+	podName := cfg.PodName
+	if podName == "" {
 		return false, 0
 	}
 
