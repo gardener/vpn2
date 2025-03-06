@@ -9,6 +9,10 @@ import (
 	"fmt"
 
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/go-logr/logr"
+	"github.com/spf13/cobra"
+	"k8s.io/component-base/version/verflag"
+
 	"github.com/gardener/vpn2/cmd/vpn_server/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
@@ -17,9 +21,6 @@ import (
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/gardener/vpn2/pkg/vpn_server"
-	"github.com/go-logr/logr"
-	"github.com/spf13/cobra"
-	"k8s.io/component-base/version/verflag"
 )
 
 // Name is a const for the name of this component.

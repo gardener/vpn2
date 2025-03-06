@@ -10,12 +10,13 @@ import (
 	"net"
 	"os/exec"
 
+	"github.com/go-logr/logr"
+	"github.com/vishvananda/netlink"
+
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/ippool"
 	"github.com/gardener/vpn2/pkg/network"
-	"github.com/go-logr/logr"
-	"github.com/vishvananda/netlink"
 )
 
 func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClient) error {

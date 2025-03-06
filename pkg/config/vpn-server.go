@@ -6,8 +6,9 @@ package config
 
 import (
 	"github.com/caarlos0/env/v10"
-	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
+
+	"github.com/gardener/vpn2/pkg/network"
 )
 
 type VPNServer struct {

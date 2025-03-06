@@ -8,8 +8,9 @@ import (
 	"fmt"
 
 	"github.com/cilium/cilium/pkg/sysctl"
-	"github.com/gardener/vpn2/pkg/config"
 	"github.com/go-logr/logr"
+
+	"github.com/gardener/vpn2/pkg/config"
 )
 
 // EnableIPv6Networking enables IPv6 networking on the system.

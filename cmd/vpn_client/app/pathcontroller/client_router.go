@@ -12,10 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gardener/vpn2/pkg/network"
-	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
+
+	"github.com/gardener/vpn2/pkg/network"
+	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
 )
 
 type clientRouter struct {
