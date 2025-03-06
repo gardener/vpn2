@@ -7,17 +7,18 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/gardener/vpn2/pkg/constants"
 	"net"
 	"os"
 	"strings"
 
 	"github.com/coreos/go-iptables/iptables"
-	"github.com/gardener/vpn2/pkg/network"
-	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/vishvananda/netlink"
+
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
+	"github.com/gardener/vpn2/pkg/utils"
 )
 
 func firewallCommand() *cobra.Command {

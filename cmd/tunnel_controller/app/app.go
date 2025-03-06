@@ -5,9 +5,10 @@
 package app
 
 import (
+	"github.com/spf13/cobra"
+
 	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
 	"github.com/gardener/vpn2/pkg/utils"
-	"github.com/spf13/cobra"
 )
 
 const Name = "tunnel-controller"

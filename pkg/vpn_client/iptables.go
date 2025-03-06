@@ -5,12 +5,14 @@
 package vpn_client
 
 import (
+	"strings"
+
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/go-logr/logr"
+
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
-	"github.com/go-logr/logr"
-	"strings"
 )
 
 func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {

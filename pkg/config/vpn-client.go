@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/caarlos0/env/v10"
+
 	"github.com/gardener/vpn2/pkg/network"
 )
 

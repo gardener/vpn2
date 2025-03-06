@@ -11,11 +11,12 @@ import (
 	"os"
 	"time"
 
+	"github.com/go-logr/logr"
+	"github.com/spf13/cobra"
+
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/utils"
-	"github.com/go-logr/logr"
-	"github.com/spf13/cobra"
 )
 
 const Name = "path-controller"
