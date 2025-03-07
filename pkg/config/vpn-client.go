@@ -20,25 +20,25 @@ type VPNClient struct {
 		KeepAliveInterval int64 `env:"KEEPALIVE_INTVL" envDefault:"75"`
 		KeepAliveProbes   int64 `env:"KEEPALIVE_PROBES" envDefault:"9"`
 	} `envPrefix:"TCP_"`
-	IPFamilies          string       `env:"IP_FAMILIES" envDefault:"IPv4"`
-	Endpoint            string       `env:"ENDPOINT"`
-	OpenVPNPort         int          `env:"OPENVPN_PORT" envDefault:"8132"`
-	VPNNetwork          network.CIDR `env:"VPN_NETWORK"`
-	SeedPodNetwork      network.CIDR `env:"SEED_POD_NETWORK"`
-	ShootServiceNetwork network.CIDR `env:"SHOOT_SERVICE_NETWORK"`
-	ShootPodNetwork     network.CIDR `env:"SHOOT_POD_NETWORK"`
-	ShootNodeNetwork    network.CIDR `env:"SHOOT_NODE_NETWORK"`
-	IsShootClient       bool         `env:"IS_SHOOT_CLIENT"`
-	PodName             string       `env:"POD_NAME"`
-	Namespace           string       `env:"NAMESPACE"`
-	VPNServerIndex      string       `env:"VPN_SERVER_INDEX"`
-	VPNClientIndex      int
-	IsHA                bool          `env:"IS_HA"`
-	ReversedVPNHeader   string        `env:"REVERSED_VPN_HEADER" envDefault:"invalid-host"`
-	HAVPNClients        int           `env:"HA_VPN_CLIENTS"`
-	HAVPNServers        int           `env:"HA_VPN_SERVERS"`
-	PodLabelSelector    string        `env:"POD_LABEL_SELECTOR" envDefault:"app=kubernetes,role=apiserver"`
-	WaitTime            time.Duration `env:"WAIT_TIME" envDefault:"2s"`
+	IPFamilies            string       `env:"IP_FAMILIES" envDefault:"IPv4"`
+	Endpoint              string       `env:"ENDPOINT"`
+	OpenVPNPort           int          `env:"OPENVPN_PORT" envDefault:"8132"`
+	VPNNetwork            network.CIDR `env:"VPN_NETWORK"`
+	SeedPodNetworkV4      network.CIDR `env:"SEED_POD_NETWORK_V4"`
+	ShootServiceNetworkV4 network.CIDR `env:"SHOOT_SERVICE_NETWORK_V4"`
+	ShootPodNetworkV4     network.CIDR `env:"SHOOT_POD_NETWORK_V4"`
+	ShootNodeNetworkV4    network.CIDR `env:"SHOOT_NODE_NETWORK_V4"`
+	IsShootClient         bool         `env:"IS_SHOOT_CLIENT"`
+	PodName               string       `env:"POD_NAME"`
+	Namespace             string       `env:"NAMESPACE"`
+	VPNServerIndex        string       `env:"VPN_SERVER_INDEX"`
+	VPNClientIndex        int
+	IsHA                  bool          `env:"IS_HA"`
+	ReversedVPNHeader     string        `env:"REVERSED_VPN_HEADER" envDefault:"invalid-host"`
+	HAVPNClients          int           `env:"HA_VPN_CLIENTS"`
+	HAVPNServers          int           `env:"HA_VPN_SERVERS"`
+	PodLabelSelector      string        `env:"POD_LABEL_SELECTOR" envDefault:"app=kubernetes,role=apiserver"`
+	WaitTime              time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 }
 
 func (v VPNClient) PrimaryIPFamily() string {

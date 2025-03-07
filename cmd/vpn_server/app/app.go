@@ -88,7 +88,7 @@ func run(_ context.Context, log logr.Logger) error {
 		}
 		for _, nw := range cfg.ServiceNetworks {
 			if nw.IsIPv4() {
-				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootSvcNetworkMapped)
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
 				if err != nil {
 					return err
 				}

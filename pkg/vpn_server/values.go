@@ -51,11 +51,11 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		v.HAVPNClients = -1
 		v.OpenVPNNetwork = cfg.VPNNetwork
 
-		v.SeedPodNetwork = cfg.SeedPodNetwork
+		v.SeedPodNetworkV4 = cfg.SeedPodNetworkV4
 		// v4 networks are mapped to 240/4, v6 networks are kept as is
 		for _, serviceNetwork := range cfg.ServiceNetworks {
 			if serviceNetwork.IP.To4() != nil {
-				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootSvcNetworkMapped))
+				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootServiceNetworkMapped))
 			} else {
 				v.ShootNetworks = append(v.ShootNetworks, serviceNetwork)
 			}

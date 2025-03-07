@@ -27,7 +27,7 @@ var _ = Describe("BuildValues", func() {
 
 	BeforeEach(func() {
 		cfg = config.VPNServer{
-			StatusPath:  "/status",
+			StatusPath:  "/srv/status/openvpn.status",
 			LocalNodeIP: "10.10.10.10",
 		}
 	})
@@ -243,7 +243,7 @@ var _ = Describe("BuildValues", func() {
 						cfg.NodeNetworks = []network.CIDR{network.ParseIPNet("100.82.0.0/16")}
 						v4NetworksMapped = []network.CIDR{
 							network.ParseIPNet(constants.ShootNodeNetworkMapped),
-							network.ParseIPNet(constants.ShootSvcNetworkMapped),
+							network.ParseIPNet(constants.ShootServiceNetworkMapped),
 							network.ParseIPNet(constants.ShootPodNetworkMapped),
 						}
 					})
