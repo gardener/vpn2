@@ -72,7 +72,7 @@ func run(_ context.Context, log logr.Logger) error {
 	}
 
 	if !cfg.IsHA {
-		log.Info("setting up iptables rules for Envoy")
+		log.Info("setting up double NAT IPv4 iptables rules")
 		ipTable, err := network.NewIPTables(log, iptables.ProtocolIPv4)
 		if err != nil {
 			return err
@@ -102,7 +102,6 @@ func run(_ context.Context, log logr.Logger) error {
 				}
 			}
 		}
-
 	}
 
 	log.Info("writing openvpn config file", "values", v)

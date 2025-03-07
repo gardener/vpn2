@@ -46,7 +46,6 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
 			v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
 		}
-
 	case false:
 		v.Device = constants.TunnelDevice
 		v.HAVPNClients = -1
