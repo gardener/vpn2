@@ -20,7 +20,7 @@ var _ = Describe("#SeedServerConfig", func() {
 		prepareIPv4HA = func() {
 			cfgIPv4.IsHA = true
 			cfgIPv4.Device = "tap0"
-			cfgIPv4.OpenVPNNetwork = network.ParseIPNet("fd8f:6d53:b97a:7777::/96")
+			cfgIPv4.OpenVPNNetwork = network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96")
 			cfgIPv4.StatusPath = "/srv/status/openvpn.status"
 		}
 	)
@@ -28,59 +28,59 @@ var _ = Describe("#SeedServerConfig", func() {
 	BeforeEach(func() {
 		cfgIPv4 = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: network.ParseIPNet("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
-				network.ParseIPNet("100.64.0.0/13"),
-				network.ParseIPNet("100.96.0.0/11"),
-				network.ParseIPNet("10.0.1.0/24"),
+				network.ParseIPNetIgnoreError("100.64.0.0/13"),
+				network.ParseIPNetIgnoreError("100.96.0.0/11"),
+				network.ParseIPNetIgnoreError("10.0.1.0/24"),
 			},
 			ShootNetworksV4: []network.CIDR{
-				network.ParseIPNet("100.64.0.0/13"),
-				network.ParseIPNet("100.96.0.0/11"),
-				network.ParseIPNet("10.0.1.0/24"),
+				network.ParseIPNetIgnoreError("100.64.0.0/13"),
+				network.ParseIPNetIgnoreError("100.96.0.0/11"),
+				network.ParseIPNetIgnoreError("10.0.1.0/24"),
 			},
-			SeedPodNetworkV4: network.ParseIPNet("100.64.0.0/12"),
+			SeedPodNetworkV4: network.ParseIPNetIgnoreError("100.64.0.0/12"),
 		}
 		cfgIPv6 = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: network.ParseIPNet("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
-				network.ParseIPNet("2001:db8:1::/48"),
-				network.ParseIPNet("2001:db8:2::/48"),
-				network.ParseIPNet("2001:db8:3::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:1::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:2::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:3::/48"),
 			},
 			ShootNetworksV6: []network.CIDR{
-				network.ParseIPNet("2001:db8:1::/48"),
-				network.ParseIPNet("2001:db8:2::/48"),
-				network.ParseIPNet("2001:db8:3::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:1::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:2::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:3::/48"),
 			},
-			SeedPodNetworkV4: network.ParseIPNet("100.64.0.0/12"),
+			SeedPodNetworkV4: network.ParseIPNetIgnoreError("100.64.0.0/12"),
 		}
 		cfgDualStack = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: network.ParseIPNet("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
-				network.ParseIPNet("100.64.0.0/13"),
-				network.ParseIPNet("100.96.0.0/11"),
-				network.ParseIPNet("10.0.1.0/24"),
-				network.ParseIPNet("2001:db8:1::/48"),
-				network.ParseIPNet("2001:db8:2::/48"),
-				network.ParseIPNet("2001:db8:3::/48"),
+				network.ParseIPNetIgnoreError("100.64.0.0/13"),
+				network.ParseIPNetIgnoreError("100.96.0.0/11"),
+				network.ParseIPNetIgnoreError("10.0.1.0/24"),
+				network.ParseIPNetIgnoreError("2001:db8:1::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:2::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:3::/48"),
 			},
 			ShootNetworksV4: []network.CIDR{
-				network.ParseIPNet("100.64.0.0/13"),
-				network.ParseIPNet("100.96.0.0/11"),
-				network.ParseIPNet("10.0.1.0/24"),
+				network.ParseIPNetIgnoreError("100.64.0.0/13"),
+				network.ParseIPNetIgnoreError("100.96.0.0/11"),
+				network.ParseIPNetIgnoreError("10.0.1.0/24"),
 			},
 			ShootNetworksV6: []network.CIDR{
-				network.ParseIPNet("2001:db8:1::/48"),
-				network.ParseIPNet("2001:db8:2::/48"),
-				network.ParseIPNet("2001:db8:3::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:1::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:2::/48"),
+				network.ParseIPNetIgnoreError("2001:db8:3::/48"),
 			},
-			SeedPodNetworkV4: network.ParseIPNet("100.64.0.0/12"),
+			SeedPodNetworkV4: network.ParseIPNetIgnoreError("100.64.0.0/12"),
 		}
 	})
 

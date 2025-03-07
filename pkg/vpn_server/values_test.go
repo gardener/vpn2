@@ -42,7 +42,7 @@ var _ = Describe("BuildValues", func() {
 		})
 		Context("when VPN_NETWORK is not a IPv6 CIDR", func() {
 			BeforeEach(func() {
-				cfg.VPNNetwork = network.ParseIPNet("192.168.0.0/24")
+				cfg.VPNNetwork = network.ParseIPNetIgnoreError("192.168.0.0/24")
 			})
 
 			It("should return an error", func() {
@@ -53,7 +53,7 @@ var _ = Describe("BuildValues", func() {
 		})
 		Context("when VPN_NETWORK is not a /96 IPv6 CIDR", func() {
 			BeforeEach(func() {
-				cfg.VPNNetwork = network.ParseIPNet("2001:db8::/64")
+				cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/64")
 			})
 
 			It("should return an error", func() {
@@ -64,7 +64,7 @@ var _ = Describe("BuildValues", func() {
 		})
 		Context("when VPN_NETWORK is a /96 IPv6 CIDR", func() {
 			BeforeEach(func() {
-				cfg.VPNNetwork = network.ParseIPNet("2001:db8::/96")
+				cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
 			})
 
 			It("should pass", func() {
@@ -76,7 +76,7 @@ var _ = Describe("BuildValues", func() {
 
 	Describe("HA", func() {
 		BeforeEach(func() {
-			cfg.VPNNetwork = network.ParseIPNet("2001:db8::/96")
+			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
 		})
 		Context("when IS_HA is set", func() {
 			BeforeEach(func() {
@@ -107,9 +107,9 @@ var _ = Describe("BuildValues", func() {
 				Context("when networks are set (v4)", func() {
 					var v4Networks []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNet("100.80.0.0/16")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNet("100.81.0.0/16")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNet("100.82.0.0/16")}
+						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
+						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
+						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
 						v4Networks = slices.Concat(cfg.ServiceNetworks, cfg.PodNetworks, cfg.NodeNetworks)
 					})
 					It("should configure HA VPN correctly (v4)", func() {
@@ -135,9 +135,9 @@ var _ = Describe("BuildValues", func() {
 					Context("when networks are set (v4 + v6)", func() {
 						var v6Networks []network.CIDR
 						BeforeEach(func() {
-							v6Services := network.ParseIPNet("2001:db8:1::/64")
-							v6Pods := network.ParseIPNet("2001:db8:2::/64")
-							v6Nodes := network.ParseIPNet("2001:db8:3::/64")
+							v6Services := network.ParseIPNetIgnoreError("2001:db8:1::/64")
+							v6Pods := network.ParseIPNetIgnoreError("2001:db8:2::/64")
+							v6Nodes := network.ParseIPNetIgnoreError("2001:db8:3::/64")
 							cfg.ServiceNetworks = append(cfg.ServiceNetworks, v6Services)
 							cfg.PodNetworks = append(cfg.PodNetworks, v6Pods)
 							cfg.NodeNetworks = append(cfg.NodeNetworks, v6Nodes)
@@ -168,9 +168,9 @@ var _ = Describe("BuildValues", func() {
 				Context("when networks are set (v6)", func() {
 					var v6Networks []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNet("2001:db8:1::/64")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNet("2001:db8:2::/64")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNet("2001:db8:3::/64")}
+						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/64")}
+						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/64")}
+						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/64")}
 						v6Networks = slices.Concat(cfg.ServiceNetworks, cfg.PodNetworks, cfg.NodeNetworks)
 					})
 					It("should configure HA VPN correctly (v6)", func() {
@@ -200,7 +200,7 @@ var _ = Describe("BuildValues", func() {
 
 	Describe("non-HA", func() {
 		BeforeEach(func() {
-			cfg.VPNNetwork = network.ParseIPNet("2001:db8::/96")
+			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
 		})
 		Context("when IS_HA is not set", func() {
 			It("should be false", func() {
@@ -238,13 +238,13 @@ var _ = Describe("BuildValues", func() {
 				Context("when networks are set (v4)", func() {
 					var v4NetworksMapped []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNet("100.80.0.0/16")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNet("100.81.0.0/16")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNet("100.82.0.0/16")}
+						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
+						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
+						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
 						v4NetworksMapped = []network.CIDR{
-							network.ParseIPNet(constants.ShootNodeNetworkMapped),
-							network.ParseIPNet(constants.ShootServiceNetworkMapped),
-							network.ParseIPNet(constants.ShootPodNetworkMapped),
+							network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped),
+							network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped),
+							network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped),
 						}
 					})
 					It("should configure HA VPN correctly (v4)", func() {
@@ -270,9 +270,9 @@ var _ = Describe("BuildValues", func() {
 					Context("when networks are set (v4 + v6)", func() {
 						var v6Networks []network.CIDR
 						BeforeEach(func() {
-							v6Services := network.ParseIPNet("2001:db8:1::/64")
-							v6Pods := network.ParseIPNet("2001:db8:2::/64")
-							v6Nodes := network.ParseIPNet("2001:db8:3::/64")
+							v6Services := network.ParseIPNetIgnoreError("2001:db8:1::/64")
+							v6Pods := network.ParseIPNetIgnoreError("2001:db8:2::/64")
+							v6Nodes := network.ParseIPNetIgnoreError("2001:db8:3::/64")
 							cfg.ServiceNetworks = append(cfg.ServiceNetworks, v6Services)
 							cfg.PodNetworks = append(cfg.PodNetworks, v6Pods)
 							cfg.NodeNetworks = append(cfg.NodeNetworks, v6Nodes)
@@ -303,9 +303,9 @@ var _ = Describe("BuildValues", func() {
 				Context("when networks are set (v6)", func() {
 					var v6Networks []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNet("2001:db8:1::/64")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNet("2001:db8:2::/64")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNet("2001:db8:3::/64")}
+						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/64")}
+						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/64")}
+						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/64")}
 						v6Networks = slices.Concat(cfg.ServiceNetworks, cfg.PodNetworks, cfg.NodeNetworks)
 					})
 					It("should configure HA VPN correctly (v6)", func() {
