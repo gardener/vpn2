@@ -24,10 +24,10 @@ const (
 	VPNNetworkMask = 96
 
 	//TODO: use v1beta1constants.ReservedxxxMappedRange after Gardener is updated
-	ShootPodNetworkMapped  = "244.0.0.0/8"
-	ShootSvcNetworkMapped  = "243.0.0.0/8"
-	ShootNodeNetworkMapped = "242.0.0.0/8"
-	SeedPodNetworkMapped   = "241.0.0.0/8"
+	ShootPodNetworkMapped     = "244.0.0.0/8"
+	ShootServiceNetworkMapped = "243.0.0.0/8"
+	ShootNodeNetworkMapped    = "242.0.0.0/8"
+	SeedPodNetworkMapped      = "241.0.0.0/8"
 
 	EnvoyNonRootUserId = "65532"
 )
