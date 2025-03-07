@@ -55,21 +55,21 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		// v4 networks are mapped to 240/4, v6 networks are kept as is
 		for _, serviceNetwork := range cfg.ServiceNetworks {
 			if serviceNetwork.IP.To4() != nil {
-				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootServiceNetworkMapped))
+				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))
 			} else {
 				v.ShootNetworks = append(v.ShootNetworks, serviceNetwork)
 			}
 		}
 		for _, podNetwork := range cfg.PodNetworks {
 			if podNetwork.IP.To4() != nil {
-				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootPodNetworkMapped))
+				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped))
 			} else {
 				v.ShootNetworks = append(v.ShootNetworks, podNetwork)
 			}
 		}
 		for _, nodeNetwork := range cfg.NodeNetworks {
 			if nodeNetwork.IP.To4() != nil {
-				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNet(constants.ShootNodeNetworkMapped))
+				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped))
 			} else {
 				v.ShootNetworks = append(v.ShootNetworks, nodeNetwork)
 			}

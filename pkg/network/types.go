@@ -45,10 +45,17 @@ func (c *CIDR) IsIPv4() bool {
 	return c.IP.To4() != nil
 }
 
-func ParseIPNet(cidr string) CIDR {
+// ParseIPNet parses a CIDR string and returns a network.CIDR (for user-provided values)
+func ParseIPNet(cidr string) (CIDR, error) {
 	_, prefix, err := net.ParseCIDR(cidr)
 	if err != nil {
-		panic(err)
+		return CIDR{}, err
 	}
-	return CIDR(*prefix)
+	return CIDR(*prefix), nil
+}
+
+// ParseIPNetIgnoreError parses a CIDR string and ignores any error (for testing and constants)
+func ParseIPNetIgnoreError(cidr string) CIDR {
+	parsed, _ := ParseIPNet(cidr)
+	return parsed
 }
