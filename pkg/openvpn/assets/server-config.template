@@ -41,7 +41,7 @@ dev {{ .Device }}
 {{/* Add firewall rules to block all traffic originating from the shoot cluster.
      The scripts are run after the tun device has been created (up) or removed (down). */ -}}
 script-security 2
-up "/bin/vpn-server firewall --mode up --device {{ .Device }} --shoot-network={{ networksToString .ShootNetworks }}"
+up "/bin/vpn-server firewall --mode up --device {{ .Device }} --shoot-network={{ networksToString .ShootNetworks }} --seed-pod-network-v4={{ .SeedPodNetworkV4 }}"
 down "/bin/vpn-server firewall --mode down --device {{ .Device }}"
 
 {{ if not (eq .StatusPath "") -}}

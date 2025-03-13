@@ -5,9 +5,8 @@
 package openvpn
 
 import (
-	_ "embed"
-
 	"bytes"
+	_ "embed"
 	"fmt"
 	"os"
 )
@@ -24,7 +23,7 @@ type ClientValues struct {
 	IsShootClient     bool
 	IsHA              bool
 	Device            string
-	SeedPodNetwork    string
+	SeedPodNetworkV4  string
 	IsDualStack       bool
 }
 

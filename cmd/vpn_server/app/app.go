@@ -8,15 +8,19 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/coreos/go-iptables/iptables"
+	"github.com/go-logr/logr"
+	"github.com/spf13/cobra"
+	"k8s.io/component-base/version/verflag"
+
 	"github.com/gardener/vpn2/cmd/vpn_server/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/gardener/vpn2/pkg/vpn_server"
-	"github.com/go-logr/logr"
-	"github.com/spf13/cobra"
-	"k8s.io/component-base/version/verflag"
 )
 
 // Name is a const for the name of this component.
@@ -65,6 +69,39 @@ func run(_ context.Context, log logr.Logger) error {
 	v, err := vpn_server.BuildValues(cfg)
 	if err != nil {
 		return err
+	}
+
+	if !cfg.IsHA {
+		log.Info("setting up double NAT IPv4 iptables rules")
+		ipTable, err := network.NewIPTables(log, iptables.ProtocolIPv4)
+		if err != nil {
+			return err
+		}
+
+		for _, nw := range cfg.PodNetworks {
+			if nw.IsIPv4() {
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		for _, nw := range cfg.ServiceNetworks {
+			if nw.IsIPv4() {
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		for _, nw := range cfg.NodeNetworks {
+			if nw.IsIPv4() {
+				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+				if err != nil {
+					return err
+				}
+			}
+		}
 	}
 
 	log.Info("writing openvpn config file", "values", v)

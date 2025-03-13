@@ -7,11 +7,12 @@ package setup
 import (
 	"context"
 
+	"github.com/go-logr/logr"
+	"github.com/spf13/cobra"
+
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/gardener/vpn2/pkg/vpn_client"
-	"github.com/go-logr/logr"
-	"github.com/spf13/cobra"
 )
 
 const Name = "setup"
