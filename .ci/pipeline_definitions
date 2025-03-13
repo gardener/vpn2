@@ -9,9 +9,9 @@ vpn2:
             we use gosec for sast scanning. See attached log.
     steps:
       check:
-        image: golang:1.22.6
+        image: golang:1.24.1
       test:
-        image: golang:1.22.6
+        image: golang:1.24.1
     traits:
       component_descriptor:
         ocm_repository: europe-docker.pkg.dev/gardener-project/snapshots
