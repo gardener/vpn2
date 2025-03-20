@@ -78,28 +78,35 @@ func run(_ context.Context, log logr.Logger) error {
 			return err
 		}
 
-		for _, nw := range cfg.PodNetworks {
-			if nw.IsIPv4() {
-				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
-				if err != nil {
-					return err
-				}
+		ipv4PodNetworks := network.GetByIPFamily(cfg.PodNetworks, network.IPv4Family)
+		if len(ipv4PodNetworks) > 1 {
+			return fmt.Errorf("exactly one v4 pod network is supported. v4 pod networks: %s", ipv4PodNetworks)
+		}
+		ipv4ServiceNetworks := network.GetByIPFamily(cfg.ServiceNetworks, network.IPv4Family)
+		if len(ipv4ServiceNetworks) > 1 {
+			return fmt.Errorf("exactly one v4 service network is supported. v4 service networks: %s", ipv4ServiceNetworks)
+		}
+		ipv4NodeNetworks := network.GetByIPFamily(cfg.NodeNetworks, network.IPv4Family)
+		if len(ipv4NodeNetworks) > 1 {
+			return fmt.Errorf("exactly one v4 node network is supported. v4 node networks: %s", ipv4NodeNetworks)
+		}
+
+		for _, nw := range ipv4PodNetworks {
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+			if err != nil {
+				return err
 			}
 		}
-		for _, nw := range cfg.ServiceNetworks {
-			if nw.IsIPv4() {
-				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
-				if err != nil {
-					return err
-				}
+		for _, nw := range ipv4ServiceNetworks {
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+			if err != nil {
+				return err
 			}
 		}
-		for _, nw := range cfg.NodeNetworks {
-			if nw.IsIPv4() {
-				err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
-				if err != nil {
-					return err
-				}
+		for _, nw := range ipv4NodeNetworks {
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", constants.EnvoyNonRootUserId, "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+			if err != nil {
+				return err
 			}
 		}
 	}
