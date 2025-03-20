@@ -10,11 +10,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/gardener/vpn2/pkg/constants"
-	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
 	"k8s.io/utils/ptr"
+
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
 )
 
 const (

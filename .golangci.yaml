@@ -1,0 +1,110 @@
+run:
+  concurrency: 4
+  timeout: 10m
+
+issues:
+  exclude-files:
+    - "zz_generated\\..*\\.go$"
+
+linters:
+  disable:
+  - unused
+  enable:
+  - gci
+  - importas
+
+linters-settings:
+  gci:
+    sections:
+      - standard
+      - default
+      - localmodule
+    skip-generated: true
+    custom-order: true
+
+  importas:
+    # Source: github.com/gardener/gardener/.golangci.yaml
+    alias:
+      # External imported packages
+      - pkg: k8s.io/api/(\w+)/(v[\w\d]+)
+        alias: $1$2
+      - pkg: k8s.io/apimachinery/pkg/apis/(\w+)/(v[\w\d]+)
+        alias: $1$2
+      - pkg: k8s.io/apimachinery/pkg/api/([^m]\w+)
+        alias: api${1}
+      - pkg: k8s.io/apimachinery/pkg/util/(\w+)
+        alias: util${1}
+      - pkg: k8s.io/client-go/kubernetes
+        alias: kubernetesclientset
+      - pkg: k8s.io/client-go/tools/clientcmd/api/(\w+)
+        alias: clientcmd${1}
+      - pkg: k8s.io/component-base/config
+        alias: componentbaseconfig
+      - pkg: k8s.io/component-base/logs/api/v1
+        alias: logsv1
+      - pkg: sigs.k8s.io/controller-runtime/pkg/client/fake
+        alias: fakeclient
+      - pkg: sigs.k8s.io/controller-runtime/pkg/log/zap
+        alias: logzap
+      - pkg: sigs.k8s.io/controller-runtime/pkg/log
+        alias: logf
+      - pkg: go.uber.org/mock/gomock
+        alias: gmock
+      # Gardener extension package
+      - pkg: github.com/gardener/gardener/extensions/.*/(\w+)/mock$
+        alias: extensionsmock${1}
+      - pkg: github.com/gardener/gardener/extensions/pkg/apis/config
+        alias: extensionsconfig
+      - pkg: github.com/gardener/gardener/extensions/pkg/controller
+        alias: extensionscontroller
+      - pkg: github.com/gardener/gardener/extensions/pkg/predicate
+        alias: extensionspredicate
+      - pkg: github.com/gardener/gardener/extensions/pkg/controller/([^m]\w+)
+        alias: extensions${1}controller
+      - pkg: github.com/gardener/gardener/extensions/pkg/controller/heartbeat/cmd
+        alias: extensionsheartbeatcmd
+      - pkg: github.com/gardener/gardener/extensions/pkg/controller/worker/helper
+        alias: extensionsworkerhelper
+      - pkg: github.com/gardener/gardener/extensions/pkg/util/secret/manager
+        alias: extensionssecretsmanager
+      - pkg: github.com/gardener/gardener/extensions/pkg/webhook
+        alias: extensionswebhook
+      - pkg: github.com/gardener/gardener/extensions/pkg/webhook/([^m]\w+)
+        alias:  extensions${1}webhook
+      # Gardener other packages
+      - pkg: github.com/gardener/gardener/pkg/api/extensions
+        alias: apiextensions
+      - pkg: github.com/gardener/gardener/pkg/apis/core
+        alias: gardencore
+      - pkg: github.com/gardener/gardener/pkg/apis/core/([\w\d]+)
+        alias: gardencore${1}
+      - pkg: github.com/gardener/gardener/pkg/apis/core/([\w\d]+)/helper
+        alias: ${1}helper
+      - pkg: github.com/gardener/gardener/pkg/apis/core/([\w\d]+)/constants
+        alias: ${1}constants
+      - pkg: github.com/gardener/gardener/pkg/apis/([^c]\w+)/([\w\d]+)
+        alias: $1$2
+      - pkg: github.com/gardener/gardener/pkg/apis/([^c]\w+)/([\w\d]+)/([\w\d]+)
+        alias: $1$2$3
+      - pkg: github.com/gardener/gardener/pkg/(\w+)/apis/config
+        alias: ${1}config
+      - pkg: github.com/gardener/gardener/pkg/(\w+)/apis/config/([\w\d]+)
+        alias: $1$2
+      - pkg: github.com/gardener/gardener/pkg/(\w+)/features
+        alias: ${1}features
+      - pkg: github.com/gardener/gardener/pkg/\w+/controller/([\w\d]+)
+        alias: ${1}controller
+      - pkg: github.com/gardener/gardener/pkg/\w+/webhook/([\w\d]+)
+        alias: ${1}webhook
+      - pkg: github.com/gardener/gardener/pkg/client/kubernetes
+        alias: kubernetesclient
+      - pkg: github.com/gardener/gardener/pkg/client/kubernetes/(\w+)
+        alias: kubernetes${1}
+      - pkg: github.com/gardener/gardener/pkg/controllerutils/(\w+)
+        alias: ${1}utils
+      - pkg: github.com/gardener/gardener/pkg/extensions
+        alias: gardenerextensions
+      - pkg: github.com/gardener/gardener/pkg/component/(\w+)/constants
+        alias: ${1}constants
+      - pkg: github.com/gardener/gardener/pkg/utils/(\w+)
+        alias: ${1}utils

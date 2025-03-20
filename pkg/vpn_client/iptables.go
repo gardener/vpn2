@@ -5,16 +5,18 @@
 package vpn_client
 
 import (
+	"strings"
+
 	"github.com/coreos/go-iptables/iptables"
+	"github.com/go-logr/logr"
+
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
-	"github.com/go-logr/logr"
-	"strings"
 )
 
 func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
-	forwardDevice := "tun0"
+	forwardDevice := constants.TunnelDevice
 	if cfg.VPNServerIndex != "" {
 		forwardDevice = constants.BondDevice
 	}
@@ -34,6 +36,32 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				err = ipTable.Append("filter", "FORWARD", "--in-interface", forwardDevice, "-j", "ACCEPT")
 				if err != nil {
 					return err
+				}
+				if !cfg.IsHA {
+					err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootPodNetworkMapped, "-j", "NETMAP", "--to", cfg.ShootPodNetworkV4.String())
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.ShootPodNetworkV4.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootServiceNetworkMapped, "-j", "NETMAP", "--to", cfg.ShootServiceNetworkV4.String())
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.ShootServiceNetworkV4.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootNodeNetworkMapped, "-j", "NETMAP", "--to", cfg.ShootNodeNetworkV4.String())
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.ShootNodeNetworkV4.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+					if err != nil {
+						return err
+					}
 				}
 			}
 

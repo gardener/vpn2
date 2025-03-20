@@ -8,8 +8,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/gardener/vpn2/cmd/tunnel_controller/app"
 	"sigs.k8s.io/controller-runtime/pkg/manager/signals"
+
+	"github.com/gardener/vpn2/cmd/tunnel_controller/app"
 )
 
 func main() {
