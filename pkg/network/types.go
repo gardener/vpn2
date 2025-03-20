@@ -9,6 +9,13 @@ import (
 	"net"
 )
 
+const (
+	// IPv4Family represents the IPv4 IP family.
+	IPv4Family = "ipv4"
+	// IPv6Family represents the IPv6 IP family.
+	IPv6Family = "ipv6"
+)
+
 type CIDR net.IPNet
 
 func (c CIDR) Equal(other CIDR) bool {
@@ -58,4 +65,22 @@ func ParseIPNet(cidr string) (CIDR, error) {
 func ParseIPNetIgnoreError(cidr string) CIDR {
 	parsed, _ := ParseIPNet(cidr)
 	return parsed
+}
+
+// GetByIPFamily returns a list of CIDRs that belong to the given IP family.
+func GetByIPFamily(cidrs []CIDR, ipFamily string) []CIDR {
+	var result []CIDR
+	for _, nw := range cidrs {
+		switch ipFamily {
+		case IPv4Family:
+			if nw.IP.To4() != nil && len(nw.IP) == net.IPv4len {
+				result = append(result, nw)
+			}
+		case IPv6Family:
+			if nw.IP.To16() != nil && len(nw.IP) == net.IPv6len {
+				result = append(result, nw)
+			}
+		}
+	}
+	return result
 }
