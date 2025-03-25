@@ -18,7 +18,7 @@ type ClientValues struct {
 	IPFamily          string
 	ReversedVPNHeader string
 	Endpoint          string
-	OpenVPNPort       int
+	OpenVPNPort       uint
 	VPNClientIndex    int
 	IsShootClient     bool
 	IsHA              bool

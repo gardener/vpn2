@@ -11,9 +11,9 @@ import (
 
 const (
 	// IPv4Family represents the IPv4 IP family.
-	IPv4Family = "ipv4"
+	IPv4Family = "IPv4"
 	// IPv6Family represents the IPv6 IP family.
-	IPv6Family = "ipv6"
+	IPv6Family = "IPv6"
 )
 
 type CIDR net.IPNet

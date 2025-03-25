@@ -7,8 +7,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"strings"
-
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"k8s.io/component-base/version/verflag"
@@ -69,7 +67,7 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 	}
 	vpnSeedServer := "vpn-seed-server"
 
-	if len(strings.Split(cfg.IPFamilies, ",")) == 2 {
+	if len(cfg.IPFamilies) == 2 {
 		v.IsDualStack = true
 	}
 

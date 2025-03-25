@@ -5,8 +5,6 @@
 package vpn_client
 
 import (
-	"strings"
-
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/go-logr/logr"
 
@@ -21,7 +19,7 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 		forwardDevice = constants.BondDevice
 	}
 
-	for _, family := range strings.Split(cfg.IPFamilies, ",") {
+	for _, family := range cfg.IPFamilies {
 		protocol := iptables.ProtocolIPv4
 		if family == constants.IPv6Family {
 			protocol = iptables.ProtocolIPv6

@@ -5,6 +5,8 @@
 package config
 
 import (
+	"fmt"
+
 	"github.com/caarlos0/env/v10"
 	"github.com/go-logr/logr"
 
@@ -39,6 +41,19 @@ func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 	if err := validateVPNNetworkCIDR(cfg.VPNNetwork); err != nil {
 		return VPNServer{}, err
 	}
+
+	if cfg.IsHA {
+		if cfg.PodName == "" {
+			return VPNServer{}, fmt.Errorf("IS_HA is set to true but POD_NAME is not set")
+		}
+		if cfg.HAVPNClients <= 0 {
+			return VPNServer{}, fmt.Errorf("IS_HA is set to true but HA_VPN_CLIENTS is not set or invalid")
+		}
+		if cfg.StatusPath == "" {
+			return VPNServer{}, fmt.Errorf("IS_HA is set to true but OPENVPN_STATUS_PATH is not set")
+		}
+	}
+
 	log.Info("config parsed", "config", cfg)
 	return cfg, nil
 }
