@@ -3,7 +3,6 @@ package config_test
 import (
 	"maps"
 	"os"
-	"testing"
 	"time"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -15,11 +14,6 @@ import (
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/network"
 )
-
-func TestVPNClient(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "VPNClient Suite")
-}
 
 var _ = Describe("GetVPNClientConfig", func() {
 	var (

@@ -3,7 +3,6 @@ package config_test
 import (
 	"maps"
 	"os"
-	"testing"
 
 	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/go-logr/logr"
@@ -16,11 +15,6 @@ import (
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/network"
 )
-
-func TestVPNServer(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "VPNServer Suite")
-}
 
 var _ = Describe("GetVPNServerConfig", func() {
 	var (

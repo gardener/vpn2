@@ -116,6 +116,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 
 	if !cfg.IsShootClient {
 		for i := range cfg.HAVPNClients {
+			// #nosec: G115 -- overflow unlikely (max value at least 2147483647 before overflow)
 			if err := network.CreateTunnel(network.BondIP6TunnelLinkName(int(i)), addr.IP, network.BondingShootClientIP(cfg.VPNNetwork.ToIPNet(), int(i))); err != nil {
 				return fmt.Errorf("failed to create tunnel ip6-net link: %w", err)
 			}
