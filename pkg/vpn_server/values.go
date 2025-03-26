@@ -52,7 +52,7 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		v.OpenVPNNetwork = cfg.VPNNetwork
 
 		v.SeedPodNetworkV4 = cfg.SeedPodNetworkV4
-		// v4 networks are mapped to 240/4, v6 networks are kept as is
+		// IPv4 networks are mapped to 240/4, IPv6 networks are kept as is
 		for _, serviceNetwork := range cfg.ServiceNetworks {
 			if serviceNetwork.IP.To4() != nil {
 				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))

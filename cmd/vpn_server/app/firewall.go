@@ -45,7 +45,7 @@ func firewallCommand() *cobra.Command {
 	cmd.Flags().StringVar(&device, "device", "", "device to configure")
 	cmd.Flags().StringVar(&mode, "mode", "", "mode of firewall (up or down)")
 	cmd.Flags().StringSliceVar(&shootNetworks, "shoot-network", nil, "shoot networks to add routes for")
-	cmd.Flags().StringVar(&seedPodNetworkV4, "seed-pod-network-v4", "", "v4 seed pod network to add double-nat mapping rules for")
+	cmd.Flags().StringVar(&seedPodNetworkV4, "seed-pod-network-v4", "", "ipv4 seed pod network to add double-nat mapping rules for")
 	cmd.MarkFlagsRequiredTogether("device", "mode")
 
 	return cmd

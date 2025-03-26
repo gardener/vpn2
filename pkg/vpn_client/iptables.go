@@ -41,15 +41,15 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 					log.Info("setting up double NAT IPv4 iptables rules")
 					ipv4PodNetworks := network.GetByIPFamily(cfg.ShootPodNetworks, network.IPv4Family)
 					if len(ipv4PodNetworks) > 1 {
-						return fmt.Errorf("exactly one v4 pod network is supported. v4 pod networks: %s", ipv4PodNetworks)
+						return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
 					}
 					ipv4ServiceNetworks := network.GetByIPFamily(cfg.ShootServiceNetworks, network.IPv4Family)
 					if len(ipv4ServiceNetworks) > 1 {
-						return fmt.Errorf("exactly one v4 service network is supported. v4 service networks: %s", ipv4ServiceNetworks)
+						return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
 					}
 					ipv4NodeNetworks := network.GetByIPFamily(cfg.ShootNodeNetworks, network.IPv4Family)
 					if len(ipv4NodeNetworks) > 1 {
-						return fmt.Errorf("exactly one v4 node network is supported. v4 node networks: %s", ipv4NodeNetworks)
+						return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
 					}
 
 					for _, nw := range ipv4PodNetworks {
