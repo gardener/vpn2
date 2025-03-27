@@ -109,32 +109,47 @@ var _ = Describe("GetVPNClientConfig", func() {
 		}),
 		Entry("invalid HA configuration should fail", testCase{
 			envVars: map[string]string{
-				"IS_HA":            "banana",
-				"VPN_SERVER_INDEX": "",
-				"POD_NAME":         "",
+				"IS_HA":    "banana",
+				"POD_NAME": "",
 			},
 			expectedError: true,
 		}),
-		Entry("HA configuration should fail if POD_NAME is missing", testCase{
+		Entry("HA configuration should fail if POD_NAME is missing (IS_SHOOT_CLIENT is true)", testCase{
 			envVars: map[string]string{
-				"IS_HA":            "true",
-				"VPN_SERVER_INDEX": "1",
-				"POD_NAME":         "",
+				"IS_HA":    "true",
+				"POD_NAME": "",
 			},
 			expectedError: true,
 		}),
-		Entry("HA configuration should fail if VPN_SERVER_INDEX is missing", testCase{
+		Entry("HA configuration if POD_NAME is missing (IS_SHOOT_CLIENT is false)", testCase{
 			envVars: map[string]string{
-				"IS_HA":            "true",
-				"VPN_SERVER_INDEX": "",
-				"POD_NAME":         "test-pod-1",
+				"IS_HA":           "true",
+				"IS_SHOOT_CLIENT": "false",
+				"POD_NAME":        "",
+			},
+			expectedError: false,
+		}),
+		Entry("HA configuration should fail if HA_VPN_SERVERS is missing", testCase{
+			envVars: map[string]string{
+				"IS_HA":          "true",
+				"POD_NAME":       "test-pod-1",
+				"HA_VPN_SERVERS": "",
 			},
 			expectedError: true,
 		}),
-		Entry("non-HA configuration should not require VPN_SERVER_INDEX", testCase{
+		Entry("HA configuration should fail if HA_VPN_CLIENTS is missing", testCase{
 			envVars: map[string]string{
-				"IS_HA":            "false",
-				"VPN_SERVER_INDEX": "",
+				"IS_HA":          "true",
+				"POD_NAME":       "test-pod-1",
+				"HA_VPN_CLIENTS": "",
+			},
+			expectedError: true,
+		}),
+		Entry("non-HA configuration should not require HA_VPN_SERVERS or HA_VPN_CLIENTS", testCase{
+			envVars: map[string]string{
+				"IS_HA":          "false",
+				"HA_VPN_SERVERS": "",
+				"HA_VPN_CLIENTS": "",
 			},
 			expectedError: false,
 		}),
