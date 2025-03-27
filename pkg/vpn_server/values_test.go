@@ -37,7 +37,7 @@ var _ = Describe("BuildValues", func() {
 			It("should return an error", func() {
 				_, err := vpn_server.BuildValues(cfg)
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError("VPN_NETWORK must be a IPv6 CIDR: " + cfg.VPNNetwork.String()))
+				Expect(err).To(MatchError("VPN_NETWORK must be set"))
 			})
 		})
 		Context("when VPN_NETWORK is not a IPv6 CIDR", func() {

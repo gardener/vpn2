@@ -74,8 +74,8 @@ func GetVPNClientConfig() (VPNClient, error) {
 		}
 	}
 
-	if len(cfg.IPFamilies) > 2 {
-		return VPNClient{}, fmt.Errorf("IP_FAMILIES must not contain more than 2 elements")
+	if len(cfg.IPFamilies) < 1 || len(cfg.IPFamilies) > 2 {
+		return VPNClient{}, fmt.Errorf("IP_FAMILIES must contain at least one but no more than 2 elements")
 	}
 
 	for _, ipFamily := range cfg.IPFamilies {

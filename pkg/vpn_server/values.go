@@ -22,7 +22,10 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		StatusPath: cfg.StatusPath,
 	}
 
-	if len(cfg.VPNNetwork.IP) != 16 {
+	if cfg.VPNNetwork.IP == nil {
+		return v, fmt.Errorf("VPN_NETWORK must be set")
+	}
+	if cfg.VPNNetwork.IsIPv4() {
 		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
 	}
 	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
