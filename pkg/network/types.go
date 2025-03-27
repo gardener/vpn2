@@ -10,9 +10,9 @@ import (
 )
 
 const (
-	// IPv4Family represents the IPv4 IP family.
+	// IPv4Family represents the IPv4 address family.
 	IPv4Family = "IPv4"
-	// IPv6Family represents the IPv6 IP family.
+	// IPv6Family represents the IPv6 address family.
 	IPv6Family = "IPv6"
 )
 
@@ -73,11 +73,11 @@ func GetByIPFamily(cidrs []CIDR, ipFamily string) []CIDR {
 	for _, nw := range cidrs {
 		switch ipFamily {
 		case IPv4Family:
-			if nw.IP.To4() != nil && len(nw.IP) == net.IPv4len {
+			if nw.IP.To4() != nil {
 				result = append(result, nw)
 			}
 		case IPv6Family:
-			if nw.IP.To16() != nil && len(nw.IP) == net.IPv6len {
+			if nw.IP.To4() == nil {
 				result = append(result, nw)
 			}
 		}

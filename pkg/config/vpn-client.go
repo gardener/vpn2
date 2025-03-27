@@ -80,7 +80,7 @@ func GetVPNClientConfig() (VPNClient, error) {
 
 	for _, ipFamily := range cfg.IPFamilies {
 		if ipFamily != network.IPv4Family && ipFamily != constants.IPv6Family {
-			return VPNClient{}, fmt.Errorf("IP_FAMILIES must only contain %s and %s", network.IPv4Family, constants.IPv6Family)
+			return VPNClient{}, fmt.Errorf("IP_FAMILIES can only contain %s or %s, found value %q", network.IPv4Family, constants.IPv6Family, ipFamily)
 		}
 	}
 
