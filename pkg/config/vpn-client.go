@@ -66,11 +66,16 @@ func GetVPNClientConfig() (VPNClient, error) {
 	cfg.VPNClientIndex = -1
 
 	if cfg.IsHA {
-		if cfg.PodName == "" {
-			return VPNClient{}, fmt.Errorf("IS_HA is set to true but POD_NAME is not set")
+		if cfg.IsShootClient {
+			if cfg.PodName == "" {
+				return VPNClient{}, fmt.Errorf("IS_HA and IS_SHOOT_CLIENT are set to true but POD_NAME is not set")
+			}
 		}
-		if cfg.VPNServerIndex == "" {
-			return VPNClient{}, fmt.Errorf("IS_HA is set to true but VPN_SERVER_INDEX is not set")
+		if cfg.HAVPNServers > 0 && cfg.HAVPNClients == 0 {
+			return VPNClient{}, fmt.Errorf("HA_VPN_SERVERS is set to %d but HA_VPN_CLIENTS is set to 0", cfg.HAVPNServers)
+		}
+		if cfg.HAVPNClients > 0 && cfg.HAVPNServers == 0 {
+			return VPNClient{}, fmt.Errorf("HA_VPN_CLIENTS is set to %d but HA_VPN_SERVERS is set to 0", cfg.HAVPNClients)
 		}
 	}
 
