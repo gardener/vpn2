@@ -7,18 +7,19 @@ package app
 import (
 	"context"
 	"fmt"
-	"strings"
+
+	"github.com/go-logr/logr"
+	"github.com/spf13/cobra"
+	"k8s.io/component-base/version/verflag"
 
 	"github.com/gardener/vpn2/cmd/vpn_client/app/pathcontroller"
 	"github.com/gardener/vpn2/cmd/vpn_client/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/gardener/vpn2/pkg/vpn_client"
-	"github.com/go-logr/logr"
-	"github.com/spf13/cobra"
-	"k8s.io/component-base/version/verflag"
 )
 
 // Name is a const for the name of this component.
@@ -55,7 +56,7 @@ func NewCommand() *cobra.Command {
 
 func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 	v := openvpn.ClientValues{
-		Device:            "tun0",
+		Device:            constants.TunnelDevice,
 		IPFamily:          cfg.PrimaryIPFamily(),
 		ReversedVPNHeader: cfg.ReversedVPNHeader,
 		Endpoint:          cfg.Endpoint,
@@ -63,12 +64,16 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 		VPNClientIndex:    cfg.VPNClientIndex,
 		IsShootClient:     cfg.IsShootClient,
 		IsHA:              cfg.IsHA,
-		SeedPodNetwork:    cfg.SeedPodNetwork.String(),
+		SeedPodNetworkV4:  cfg.SeedPodNetworkV4.String(),
 	}
 	vpnSeedServer := "vpn-seed-server"
 
-	if len(strings.Split(cfg.IPFamilies, ",")) == 2 {
+	if len(cfg.IPFamilies) == 2 {
 		v.IsDualStack = true
+	}
+
+	if !cfg.IsHA && cfg.SeedPodNetworkV4.IsIPv4() {
+		v.SeedPodNetworkV4 = constants.SeedPodNetworkMapped
 	}
 
 	if cfg.VPNServerIndex != "" {

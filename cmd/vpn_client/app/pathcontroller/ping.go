@@ -14,11 +14,12 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/gardener/vpn2/pkg/constants"
-	"github.com/gardener/vpn2/pkg/network"
 	"github.com/go-logr/logr"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv6"
+
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
 )
 
 type icmpPinger struct {

@@ -9,7 +9,18 @@ import (
 	"net"
 )
 
+const (
+	// IPv4Family represents the IPv4 address family.
+	IPv4Family = "IPv4"
+	// IPv6Family represents the IPv6 address family.
+	IPv6Family = "IPv6"
+)
+
 type CIDR net.IPNet
+
+func (c CIDR) Equal(other CIDR) bool {
+	return c.IP.Equal(other.IP) && c.Mask.String() == other.Mask.String()
+}
 
 func (c *CIDR) UnmarshalText(text []byte) error {
 	// empty strings are allowed
@@ -35,4 +46,41 @@ func (c CIDR) String() string {
 func (c CIDR) ToIPNet() *net.IPNet {
 	netw := net.IPNet(c)
 	return &netw
+}
+
+func (c *CIDR) IsIPv4() bool {
+	return c.IP.To4() != nil
+}
+
+// ParseIPNet parses a CIDR string and returns a network.CIDR (for user-provided values)
+func ParseIPNet(cidr string) (CIDR, error) {
+	_, prefix, err := net.ParseCIDR(cidr)
+	if err != nil {
+		return CIDR{}, err
+	}
+	return CIDR(*prefix), nil
+}
+
+// ParseIPNetIgnoreError parses a CIDR string and ignores any error (for testing and constants)
+func ParseIPNetIgnoreError(cidr string) CIDR {
+	parsed, _ := ParseIPNet(cidr)
+	return parsed
+}
+
+// GetByIPFamily returns a list of CIDRs that belong to the given IP family.
+func GetByIPFamily(cidrs []CIDR, ipFamily string) []CIDR {
+	var result []CIDR
+	for _, nw := range cidrs {
+		switch ipFamily {
+		case IPv4Family:
+			if nw.IP.To4() != nil {
+				result = append(result, nw)
+			}
+		case IPv6Family:
+			if nw.IP.To4() == nil {
+				result = append(result, nw)
+			}
+		}
+	}
+	return result
 }

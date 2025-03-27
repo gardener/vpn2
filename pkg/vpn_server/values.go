@@ -6,9 +6,10 @@ package vpn_server
 
 import (
 	"fmt"
-	"os"
 	"regexp"
+	"slices"
 	"strconv"
+	"strings"
 
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
@@ -21,13 +22,70 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		StatusPath: cfg.StatusPath,
 	}
 
-	v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
-
-	v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
-
-	if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
-		v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
+	if cfg.VPNNetwork.IP == nil {
+		return v, fmt.Errorf("VPN_NETWORK must be set")
 	}
+	if cfg.VPNNetwork.IsIPv4() {
+		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
+	}
+	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
+		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
+	}
+
+	v.IsHA, v.VPNIndex = getHAInfo(cfg)
+
+	if v.IsHA != cfg.IsHA {
+		return v, fmt.Errorf("IS_HA flag in config does not match HA info from pod name: IS_HA = %t, POD_NAME = %s", cfg.IsHA, cfg.PodName)
+	}
+
+	switch v.IsHA {
+	case true:
+		v.Device = constants.TapDevice
+		v.HAVPNClients = cfg.HAVPNClients
+		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
+
+		v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
+		v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
+		if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
+			v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
+		}
+	case false:
+		v.Device = constants.TunnelDevice
+		v.HAVPNClients = -1
+		v.OpenVPNNetwork = cfg.VPNNetwork
+
+		v.SeedPodNetworkV4 = cfg.SeedPodNetworkV4
+		// IPv4 networks are mapped to 240/4, IPv6 networks are kept as is
+		for _, serviceNetwork := range cfg.ServiceNetworks {
+			if serviceNetwork.IP.To4() != nil {
+				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))
+			} else {
+				v.ShootNetworks = append(v.ShootNetworks, serviceNetwork)
+			}
+		}
+		for _, podNetwork := range cfg.PodNetworks {
+			if podNetwork.IP.To4() != nil {
+				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped))
+			} else {
+				v.ShootNetworks = append(v.ShootNetworks, podNetwork)
+			}
+		}
+		for _, nodeNetwork := range cfg.NodeNetworks {
+			if nodeNetwork.IP.To4() != nil {
+				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped))
+			} else {
+				v.ShootNetworks = append(v.ShootNetworks, nodeNetwork)
+			}
+		}
+	}
+
+	// remove possible duplicates. sort, then compact.
+	slices.SortFunc(v.ShootNetworks, func(a, b network.CIDR) int {
+		return strings.Compare(a.String(), b.String())
+	})
+	v.ShootNetworks = slices.CompactFunc(v.ShootNetworks, func(a network.CIDR, b network.CIDR) bool {
+		return a.Equal(b)
+	})
 
 	for _, shootNetwork := range v.ShootNetworks {
 		if shootNetwork.IP.To4() != nil {
@@ -37,36 +95,12 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		}
 	}
 
-	v.IsHA, v.VPNIndex = getHAInfo()
-
-	switch v.IsHA {
-	case true:
-		v.Device = "tap0"
-		v.HAVPNClients = cfg.HAVPNClients
-	case false:
-		v.Device = "tun0"
-		v.HAVPNClients = -1
-	}
-
-	if len(cfg.VPNNetwork.IP) != 16 {
-		return v, fmt.Errorf("VPN_NETWORK must be a IPv6 CIDR: %s", cfg.VPNNetwork)
-	}
-	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
-		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
-	}
-
-	if !v.IsHA {
-		v.OpenVPNNetwork = cfg.VPNNetwork
-	} else {
-		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
-	}
-
 	return v, nil
 }
 
-func getHAInfo() (bool, int) {
-	podName, ok := os.LookupEnv("POD_NAME")
-	if !ok {
+func getHAInfo(cfg config.VPNServer) (bool, int) {
+	podName := cfg.PodName
+	if podName == "" {
 		return false, 0
 	}
 

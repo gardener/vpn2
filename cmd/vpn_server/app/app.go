@@ -8,15 +8,16 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/go-logr/logr"
+	"github.com/spf13/cobra"
+	"k8s.io/component-base/version/verflag"
+
 	"github.com/gardener/vpn2/cmd/vpn_server/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/gardener/vpn2/pkg/vpn_server"
-	"github.com/go-logr/logr"
-	"github.com/spf13/cobra"
-	"k8s.io/component-base/version/verflag"
 )
 
 // Name is a const for the name of this component.
@@ -63,6 +64,11 @@ func run(_ context.Context, log logr.Logger) error {
 	}
 
 	v, err := vpn_server.BuildValues(cfg)
+	if err != nil {
+		return err
+	}
+
+	err = vpn_server.SetIPTableRules(log, cfg)
 	if err != nil {
 		return err
 	}

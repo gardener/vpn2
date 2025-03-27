@@ -16,8 +16,20 @@ const (
 
 	// BondDevice is the name of the bond device used for the HA deployment.
 	BondDevice = "bond0"
-	// VPNNetworkPrefixSize is the required prefix size for the VPN network.
+	// TapDevice is the name of the tap device used for the HA VPN.
+	TapDevice = "tap0"
+	// TunnelDevice is the name of the tunnel device used for non-HA VPN.
+	TunnelDevice = "tun0"
+	// VPNNetworkMask is the required prefix size for the VPN network.
 	VPNNetworkMask = 96
+
+	//TODO: use v1beta1constants.ReservedxxxMappedRange after Gardener is updated
+	ShootPodNetworkMapped     = "244.0.0.0/8"
+	ShootServiceNetworkMapped = "243.0.0.0/8"
+	ShootNodeNetworkMapped    = "242.0.0.0/8"
+	SeedPodNetworkMapped      = "241.0.0.0/8"
+
+	EnvoyNonRootUserId = "65532"
 )
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.

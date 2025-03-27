@@ -5,9 +5,8 @@
 package openvpn
 
 import (
-	_ "embed"
-
 	"bytes"
+	_ "embed"
 	"fmt"
 	"os"
 )
@@ -19,12 +18,12 @@ type ClientValues struct {
 	IPFamily          string
 	ReversedVPNHeader string
 	Endpoint          string
-	OpenVPNPort       int
+	OpenVPNPort       uint
 	VPNClientIndex    int
 	IsShootClient     bool
 	IsHA              bool
 	Device            string
-	SeedPodNetwork    string
+	SeedPodNetworkV4  string
 	IsDualStack       bool
 }
 

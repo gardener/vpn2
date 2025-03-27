@@ -12,18 +12,21 @@ import (
 	"strings"
 
 	"github.com/coreos/go-iptables/iptables"
-	"github.com/gardener/vpn2/pkg/network"
-	"github.com/gardener/vpn2/pkg/utils"
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 	"github.com/vishvananda/netlink"
+
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
+	"github.com/gardener/vpn2/pkg/utils"
 )
 
 func firewallCommand() *cobra.Command {
 	var (
-		device        string
-		mode          string
-		shootNetworks []string
+		device           string
+		mode             string
+		shootNetworks    []string
+		seedPodNetworkV4 string
 	)
 
 	cmd := &cobra.Command{
@@ -35,19 +38,20 @@ func firewallCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runFirewallCommand(log, device, mode, shootNetworks)
+			return runFirewallCommand(log, device, mode, shootNetworks, seedPodNetworkV4)
 		},
 	}
 
 	cmd.Flags().StringVar(&device, "device", "", "device to configure")
 	cmd.Flags().StringVar(&mode, "mode", "", "mode of firewall (up or down)")
 	cmd.Flags().StringSliceVar(&shootNetworks, "shoot-network", nil, "shoot networks to add routes for")
+	cmd.Flags().StringVar(&seedPodNetworkV4, "seed-pod-network-v4", "", "ipv4 seed pod network to add double-nat mapping rules for")
 	cmd.MarkFlagsRequiredTogether("device", "mode")
 
 	return cmd
 }
 
-func runFirewallCommand(log logr.Logger, device, mode string, networks []string) error {
+func runFirewallCommand(log logr.Logger, device, mode string, networks []string, seedPodNetworkV4 string) error {
 	// Firewall subcommand is called indirectly from openvpn. As PATH env variables seems not to be set,
 	// it is injected here.
 	if err := os.Setenv("PATH", "/sbin"); err != nil {
@@ -88,6 +92,17 @@ func runFirewallCommand(log logr.Logger, device, mode string, networks []string)
 			return err
 		}
 		log.Info(fmt.Sprintf("iptables %s INPUT %s", opName, strings.Join(spec, " ")))
+	}
+
+	if device == constants.TunnelDevice {
+		err = op4("nat", "PREROUTING", "--in-interface", device, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", seedPodNetworkV4)
+		if err != nil {
+			return err
+		}
+		err = op4("nat", "POSTROUTING", "--out-interface", device, "-s", seedPodNetworkV4, "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
+		if err != nil {
+			return err
+		}
 	}
 
 	if mode == "up" {
