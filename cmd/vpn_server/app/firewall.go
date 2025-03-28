@@ -95,13 +95,16 @@ func runFirewallCommand(log logr.Logger, device, mode string, networks []string,
 	}
 
 	if device == constants.TunnelDevice {
-		err = op4("nat", "PREROUTING", "--in-interface", device, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", seedPodNetworkV4)
-		if err != nil {
-			return err
-		}
-		err = op4("nat", "POSTROUTING", "--out-interface", device, "-s", seedPodNetworkV4, "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
-		if err != nil {
-			return err
+		cidr, err := network.ParseIPNet(seedPodNetworkV4)
+		if err == nil && cidr.IsIPv4() {
+			err = op4("nat", "PREROUTING", "--in-interface", device, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", seedPodNetworkV4)
+			if err != nil {
+				return err
+			}
+			err = op4("nat", "POSTROUTING", "--out-interface", device, "-s", seedPodNetworkV4, "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
