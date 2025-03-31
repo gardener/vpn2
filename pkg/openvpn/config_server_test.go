@@ -40,7 +40,7 @@ var _ = Describe("#SeedServerConfig", func() {
 				network.ParseIPNetIgnoreError("100.96.0.0/11"),
 				network.ParseIPNetIgnoreError("10.0.1.0/24"),
 			},
-			SeedPodNetworkV4: network.ParseIPNetIgnoreError("100.64.0.0/12"),
+			SeedPodNetwork: network.ParseIPNetIgnoreError("100.64.0.0/12"),
 		}
 		cfgIPv6 = SeedServerValues{
 			Device:         "tun0",
@@ -56,7 +56,7 @@ var _ = Describe("#SeedServerConfig", func() {
 				network.ParseIPNetIgnoreError("2001:db8:2::/48"),
 				network.ParseIPNetIgnoreError("2001:db8:3::/48"),
 			},
-			SeedPodNetworkV4: network.ParseIPNetIgnoreError("100.64.0.0/12"),
+			SeedPodNetwork: network.ParseIPNetIgnoreError("100.64.0.0/12"),
 		}
 		cfgDualStack = SeedServerValues{
 			Device:         "tun0",
@@ -80,7 +80,7 @@ var _ = Describe("#SeedServerConfig", func() {
 				network.ParseIPNetIgnoreError("2001:db8:2::/48"),
 				network.ParseIPNetIgnoreError("2001:db8:3::/48"),
 			},
-			SeedPodNetworkV4: network.ParseIPNetIgnoreError("100.64.0.0/12"),
+			SeedPodNetwork: network.ParseIPNetIgnoreError("100.64.0.0/12"),
 		}
 	})
 
@@ -101,7 +101,7 @@ server-ipv6 fd8f:6d53:b97a:7777::/96
 
 			Expect(content).To(ContainSubstring(`
 script-security 2
-up "/bin/vpn-server firewall --mode up --device tun0 --shoot-network=100.64.0.0/13,100.96.0.0/11,10.0.1.0/24 --seed-pod-network-v4=100.64.0.0/12"
+up "/bin/vpn-server firewall --mode up --device tun0 --shoot-network=100.64.0.0/13,100.96.0.0/11,10.0.1.0/24 --seed-pod-network=100.64.0.0/12"
 down "/bin/vpn-server firewall --mode down --device tun0"`))
 			Expect(content).To(HaveNoLineLongerThan(OpenVPNConfigMaxLineLength))
 		})
@@ -129,7 +129,7 @@ dev tap0
 
 			Expect(content).To(ContainSubstring(`
 script-security 2
-up "/bin/vpn-server firewall --mode up --device tap0 --shoot-network=100.64.0.0/13,100.96.0.0/11,10.0.1.0/24 --seed-pod-network-v4=100.64.0.0/12"
+up "/bin/vpn-server firewall --mode up --device tap0 --shoot-network=100.64.0.0/13,100.96.0.0/11,10.0.1.0/24 --seed-pod-network=100.64.0.0/12"
 down "/bin/vpn-server firewall --mode down --device tap0"`))
 
 			Expect(content).To(ContainSubstring(`
@@ -153,7 +153,7 @@ dev tun0
 `))
 			Expect(content).To(ContainSubstring(`
 script-security 2
-up "/bin/vpn-server firewall --mode up --device tun0 --shoot-network=2001:db8:1::/48,2001:db8:2::/48,2001:db8:3::/48 --seed-pod-network-v4=100.64.0.0/12"
+up "/bin/vpn-server firewall --mode up --device tun0 --shoot-network=2001:db8:1::/48,2001:db8:2::/48,2001:db8:3::/48 --seed-pod-network=100.64.0.0/12"
 down "/bin/vpn-server firewall --mode down --device tun0"`))
 			Expect(content).To(HaveNoLineLongerThan(OpenVPNConfigMaxLineLength))
 		})
@@ -173,7 +173,7 @@ dev tun0
 `))
 			Expect(content).To(ContainSubstring(`
 script-security 2
-up "/bin/vpn-server firewall --mode up --device tun0 --shoot-network=100.64.0.0/13,100.96.0.0/11,10.0.1.0/24,2001:db8:1::/48,2001:db8:2::/48,2001:db8:3::/48 --seed-pod-network-v4=100.64.0.0/12"
+up "/bin/vpn-server firewall --mode up --device tun0 --shoot-network=100.64.0.0/13,100.96.0.0/11,10.0.1.0/24,2001:db8:1::/48,2001:db8:2::/48,2001:db8:3::/48 --seed-pod-network=100.64.0.0/12"
 down "/bin/vpn-server firewall --mode down --device tun0"`))
 			Expect(content).To(HaveNoLineLongerThan(OpenVPNConfigMaxLineLength))
 		})

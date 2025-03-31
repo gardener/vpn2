@@ -23,7 +23,7 @@ type ClientValues struct {
 	IsShootClient     bool
 	IsHA              bool
 	Device            string
-	SeedPodNetworkV4  string
+	SeedPodNetwork    string
 	IsDualStack       bool
 }
 

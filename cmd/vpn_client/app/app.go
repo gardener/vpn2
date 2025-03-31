@@ -64,7 +64,7 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 		VPNClientIndex:    cfg.VPNClientIndex,
 		IsShootClient:     cfg.IsShootClient,
 		IsHA:              cfg.IsHA,
-		SeedPodNetworkV4:  cfg.SeedPodNetworkV4.String(),
+		SeedPodNetwork:    cfg.SeedPodNetwork.String(),
 	}
 	vpnSeedServer := "vpn-seed-server"
 
@@ -72,8 +72,8 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 		v.IsDualStack = true
 	}
 
-	if !cfg.IsHA && cfg.SeedPodNetworkV4.IsIPv4() {
-		v.SeedPodNetworkV4 = constants.SeedPodNetworkMapped
+	if !cfg.IsHA && cfg.SeedPodNetwork.IsIPv4() {
+		v.SeedPodNetwork = constants.SeedPodNetworkMapped
 	}
 
 	if cfg.VPNServerIndex != "" {
