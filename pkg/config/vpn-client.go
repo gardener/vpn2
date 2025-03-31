@@ -27,7 +27,7 @@ type VPNClient struct {
 	Endpoint             string         `env:"ENDPOINT"`
 	OpenVPNPort          uint           `env:"OPENVPN_PORT" envDefault:"8132"`
 	VPNNetwork           network.CIDR   `env:"VPN_NETWORK"`
-	SeedPodNetworkV4     network.CIDR   `env:"SEED_POD_NETWORK_V4"`
+	SeedPodNetwork       network.CIDR   `env:"SEED_POD_NETWORK"`
 	ShootServiceNetworks []network.CIDR `env:"SHOOT_SERVICE_NETWORKS"`
 	ShootPodNetworks     []network.CIDR `env:"SHOOT_POD_NETWORKS"`
 	ShootNodeNetworks    []network.CIDR `env:"SHOOT_NODE_NETWORKS"`
