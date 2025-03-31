@@ -34,7 +34,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 			"POD_NETWORKS":        "100.96.0.0/11",
 			"NODE_NETWORKS":       "100.128.0.0/10",
 			"VPN_NETWORK":         "fd8f:6d53:b97a:1::/96",
-			"SEED_POD_NETWORK_V4": "10.0.0.0/8",
+			"SEED_POD_NETWORK":    "10.0.0.0/8",
 			"POD_NAME":            "test-pod",
 			"OPENVPN_STATUS_PATH": "/status",
 			"IS_HA":               "true",
@@ -49,7 +49,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 		Expect(os.Unsetenv("POD_NETWORKS")).To(Succeed())
 		Expect(os.Unsetenv("NODE_NETWORKS")).To(Succeed())
 		Expect(os.Unsetenv("VPN_NETWORK")).To(Succeed())
-		Expect(os.Unsetenv("SEED_POD_NETWORK_V4")).To(Succeed())
+		Expect(os.Unsetenv("SEED_POD_NETWORK")).To(Succeed())
 		Expect(os.Unsetenv("POD_NAME")).To(Succeed())
 		Expect(os.Unsetenv("OPENVPN_STATUS_PATH")).To(Succeed())
 		Expect(os.Unsetenv("IS_HA")).To(Succeed())
@@ -194,7 +194,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 		}),
 		Entry("multiple seed pod networks should fail", testCase{
 			envVars: map[string]string{
-				"SEED_POD_NETWORK_V4": "10.0.0.0/8,11.0.0.0/8,12.0.0.0/8",
+				"SEED_POD_NETWORK": "10.0.0.0/8,11.0.0.0/8,12.0.0.0/8",
 			},
 			expectedError: true,
 		}),
