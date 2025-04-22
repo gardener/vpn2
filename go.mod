@@ -6,7 +6,7 @@ toolchain go1.24.0
 
 require (
 	github.com/caarlos0/env/v10 v10.0.0
-	github.com/cilium/cilium v1.15.15
+	github.com/cilium/cilium v1.15.16
 	github.com/coreos/go-iptables v0.7.1-0.20240112124308-65c67c9f46e6
 	github.com/gardener/gardener v1.114.0
 	github.com/go-logr/logr v1.4.2
@@ -63,7 +63,7 @@ require (
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
-	golang.org/x/oauth2 v0.26.0 // indirect
+	golang.org/x/oauth2 v0.27.0 // indirect
 	golang.org/x/sync v0.12.0 // indirect
 	golang.org/x/sys v0.31.0 // indirect
 	golang.org/x/term v0.30.0 // indirect
