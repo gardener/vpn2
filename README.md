@@ -23,7 +23,7 @@ Main features:
     using a bonding device.
 - It is written in Go
 
-Please see [Reversed VPN Tunnel Setup and Configuration](https://github.com/gardener/gardener/blob/master/docs/usage/reversed-vpn-tunnel.md) for a detailed discussion of the architecture.
+Please see [Reversed VPN Tunnel Setup and Configuration](https://github.com/gardener/gardener/blob/master/docs/development/reversed-vpn-tunnel.md) for a detailed discussion of the architecture.
 
 ## Local test environment
 
