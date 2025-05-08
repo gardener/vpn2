@@ -102,14 +102,8 @@ func (r *clientRouter) pingAllShootClients(clients []net.IP) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// map pod IP to 241/8 range
-			mappedIP, err := network.Netmap(r.kubeAPIServerPodIP, constants.SeedPodNetworkMapped)
-			if err != nil {
-				r.log.Info("error mapping pod IP to 241/8 range", "podIP", r.kubeAPIServerPodIP, "error", err)
-				return
-			}
-			// sending mapped IP to other side of tunnel so that the back route can be setup correctly
-			err = tunnel.Send(client, mappedIP)
+			// sending own IP to other side of tunnel so that the back route can be setup correctly
+			err := tunnel.Send(client, r.kubeAPIServerPodIP)
 			if err != nil {
 				r.log.Info("error sending UDP packet with own IP to vpn-shoot", "ip", client, "error", err)
 			}

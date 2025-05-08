@@ -19,7 +19,8 @@ import (
 func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 	forwardDevice := constants.TunnelDevice
 	if cfg.VPNServerIndex != "" {
-		forwardDevice = constants.BondDevice
+		// we don't know the name of the bond0ip6tnl devices ahead of time, so we use a wildcard
+		forwardDevice = fmt.Sprintf("%s+", constants.BondDevice)
 	}
 
 	for _, family := range cfg.IPFamilies {
@@ -132,16 +133,15 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 						return err
 					}
 				}
-				if forwardDevice == constants.BondDevice {
-					if cfg.SeedPodNetwork.IsIPv4() {
-						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", cfg.SeedPodNetwork.String())
-						if err != nil {
-							return err
-						}
-						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.SeedPodNetwork.String(), "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
-						if err != nil {
-							return err
-						}
+
+				if cfg.SeedPodNetwork.IsIPv4() {
+					err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", cfg.SeedPodNetwork.String())
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.SeedPodNetwork.String(), "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
+					if err != nil {
+						return err
 					}
 				}
 			}
