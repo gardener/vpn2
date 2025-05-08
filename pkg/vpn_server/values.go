@@ -44,40 +44,41 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		v.HAVPNClients = cfg.HAVPNClients
 		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
 
-		v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
-		v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
-		if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
-			v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
-		}
+		//v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
+		//v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
+		//if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
+		//	v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
+		//}
 	case false:
 		v.Device = constants.TunnelDevice
 		v.HAVPNClients = -1
 		v.OpenVPNNetwork = cfg.VPNNetwork
+	}
 
-		v.SeedPodNetwork = cfg.SeedPodNetwork
-		// IPv4 networks are mapped to 240/4, IPv6 networks are kept as is
-		for _, serviceNetwork := range cfg.ServiceNetworks {
-			if serviceNetwork.IP.To4() != nil {
-				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))
-			} else {
-				v.ShootNetworks = append(v.ShootNetworks, serviceNetwork)
-			}
-		}
-		for _, podNetwork := range cfg.PodNetworks {
-			if podNetwork.IP.To4() != nil {
-				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped))
-			} else {
-				v.ShootNetworks = append(v.ShootNetworks, podNetwork)
-			}
-		}
-		for _, nodeNetwork := range cfg.NodeNetworks {
-			if nodeNetwork.IP.To4() != nil {
-				v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped))
-			} else {
-				v.ShootNetworks = append(v.ShootNetworks, nodeNetwork)
-			}
+	v.SeedPodNetwork = cfg.SeedPodNetwork
+	// IPv4 networks are mapped to 240/4, IPv6 networks are kept as is
+	for _, serviceNetwork := range cfg.ServiceNetworks {
+		if serviceNetwork.IP.To4() != nil {
+			v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))
+		} else {
+			v.ShootNetworks = append(v.ShootNetworks, serviceNetwork)
 		}
 	}
+	for _, podNetwork := range cfg.PodNetworks {
+		if podNetwork.IP.To4() != nil {
+			v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped))
+		} else {
+			v.ShootNetworks = append(v.ShootNetworks, podNetwork)
+		}
+	}
+	for _, nodeNetwork := range cfg.NodeNetworks {
+		if nodeNetwork.IP.To4() != nil {
+			v.ShootNetworks = append(v.ShootNetworks, network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped))
+		} else {
+			v.ShootNetworks = append(v.ShootNetworks, nodeNetwork)
+		}
+	}
+	//}
 
 	// remove possible duplicates. sort, then compact.
 	slices.SortFunc(v.ShootNetworks, func(a, b network.CIDR) int {

@@ -6,6 +6,7 @@ package vpn_client
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/coreos/go-iptables/iptables"
 	"github.com/go-logr/logr"
@@ -37,50 +38,48 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				if err != nil {
 					return err
 				}
-				if !cfg.IsHA {
-					log.Info("setting up double NAT IPv4 iptables rules")
-					ipv4PodNetworks := network.GetByIPFamily(cfg.ShootPodNetworks, network.IPv4Family)
-					if len(ipv4PodNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
-					}
-					ipv4ServiceNetworks := network.GetByIPFamily(cfg.ShootServiceNetworks, network.IPv4Family)
-					if len(ipv4ServiceNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
-					}
-					ipv4NodeNetworks := network.GetByIPFamily(cfg.ShootNodeNetworks, network.IPv4Family)
-					if len(ipv4NodeNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
-					}
+				log.Info("setting up double NAT IPv4 iptables rules (shoot)")
+				ipv4PodNetworks := network.GetByIPFamily(cfg.ShootPodNetworks, network.IPv4Family)
+				if len(ipv4PodNetworks) > 1 {
+					return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
+				}
+				ipv4ServiceNetworks := network.GetByIPFamily(cfg.ShootServiceNetworks, network.IPv4Family)
+				if len(ipv4ServiceNetworks) > 1 {
+					return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
+				}
+				ipv4NodeNetworks := network.GetByIPFamily(cfg.ShootNodeNetworks, network.IPv4Family)
+				if len(ipv4NodeNetworks) > 1 {
+					return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
+				}
 
-					for _, nw := range ipv4PodNetworks {
-						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootPodNetworkMapped, "-j", "NETMAP", "--to", nw.String())
-						if err != nil {
-							return err
-						}
-						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
-						if err != nil {
-							return err
-						}
+				for _, nw := range ipv4PodNetworks {
+					err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootPodNetworkMapped, "-j", "NETMAP", "--to", nw.String())
+					if err != nil {
+						return err
 					}
-					for _, nw := range ipv4ServiceNetworks {
-						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootServiceNetworkMapped, "-j", "NETMAP", "--to", nw.String())
-						if err != nil {
-							return err
-						}
-						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
-						if err != nil {
-							return err
-						}
+					err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+					if err != nil {
+						return err
 					}
-					for _, nw := range ipv4NodeNetworks {
-						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootNodeNetworkMapped, "-j", "NETMAP", "--to", nw.String())
-						if err != nil {
-							return err
-						}
-						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
-						if err != nil {
-							return err
-						}
+				}
+				for _, nw := range ipv4ServiceNetworks {
+					err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootServiceNetworkMapped, "-j", "NETMAP", "--to", nw.String())
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+					if err != nil {
+						return err
+					}
+				}
+				for _, nw := range ipv4NodeNetworks {
+					err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootNodeNetworkMapped, "-j", "NETMAP", "--to", nw.String())
+					if err != nil {
+						return err
+					}
+					err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+					if err != nil {
+						return err
 					}
 				}
 			}
@@ -95,6 +94,57 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				return err
 			}
 		} else {
+			if protocol == iptables.ProtocolIPv4 {
+				log.Info("setting up double NAT IPv4 iptables rules (seed)")
+				ipTable, err := network.NewIPTables(log, iptables.ProtocolIPv4)
+				if err != nil {
+					return err
+				}
+
+				ipv4PodNetworks := network.GetByIPFamily(cfg.ShootPodNetworks, network.IPv4Family)
+				if len(ipv4PodNetworks) > 1 {
+					return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
+				}
+				ipv4ServiceNetworks := network.GetByIPFamily(cfg.ShootServiceNetworks, network.IPv4Family)
+				if len(ipv4ServiceNetworks) > 1 {
+					return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
+				}
+				ipv4NodeNetworks := network.GetByIPFamily(cfg.ShootNodeNetworks, network.IPv4Family)
+				if len(ipv4NodeNetworks) > 1 {
+					return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
+				}
+
+				for _, nw := range ipv4PodNetworks {
+					err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", strconv.Itoa(constants.EnvoyNonRootUserId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+					if err != nil {
+						return err
+					}
+				}
+				for _, nw := range ipv4ServiceNetworks {
+					err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", strconv.Itoa(constants.EnvoyNonRootUserId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+					if err != nil {
+						return err
+					}
+				}
+				for _, nw := range ipv4NodeNetworks {
+					err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", strconv.Itoa(constants.EnvoyNonRootUserId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+					if err != nil {
+						return err
+					}
+				}
+				if forwardDevice == constants.BondDevice {
+					if cfg.SeedPodNetwork.IsIPv4() {
+						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.SeedPodNetworkMapped, "-j", "NETMAP", "--to", cfg.SeedPodNetwork.String())
+						if err != nil {
+							return err
+						}
+						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", cfg.SeedPodNetwork.String(), "-j", "NETMAP", "--to", constants.SeedPodNetworkMapped)
+						if err != nil {
+							return err
+						}
+					}
+				}
+			}
 			if protocol == iptables.ProtocolIPv6 {
 				// allow icmp6 for Neighbor Discovery Protocol
 				err = ipTable.AppendUnique("filter", "INPUT", "-i", forwardDevice, "-p", "icmpv6", "-j", "ACCEPT")
