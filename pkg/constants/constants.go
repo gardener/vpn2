@@ -28,7 +28,7 @@ const (
 	ShootNodeNetworkMapped    = constants.ReservedShootNodeNetworkMappedRange
 	SeedPodNetworkMapped      = constants.ReservedSeedPodNetworkMappedRange
 
-	EnvoyNonRootUserId = constants.EnvoyNonRootUserId
+	EnvoyVPNGroupId = 31415 //TODO: use constants.EnvoyVPNGroupId from Gardener
 )
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.

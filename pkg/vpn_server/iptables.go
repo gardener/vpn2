@@ -34,19 +34,19 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNServer) error {
 		}
 
 		for _, nw := range ipv4PodNetworks {
-			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", strconv.Itoa(constants.EnvoyNonRootUserId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
 			if err != nil {
 				return err
 			}
 		}
 		for _, nw := range ipv4ServiceNetworks {
-			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", strconv.Itoa(constants.EnvoyNonRootUserId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
 			if err != nil {
 				return err
 			}
 		}
 		for _, nw := range ipv4NodeNetworks {
-			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--uid-owner", strconv.Itoa(constants.EnvoyNonRootUserId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
 			if err != nil {
 				return err
 			}
