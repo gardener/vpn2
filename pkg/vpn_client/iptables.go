@@ -35,7 +35,7 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 
 		if cfg.IsShootClient {
 			if protocol == iptables.ProtocolIPv4 {
-				err = ipTable.Append("filter", "FORWARD", "--in-interface", forwardDevice, "-j", "ACCEPT")
+				err = ipTable.AppendUnique("filter", "FORWARD", "--in-interface", forwardDevice, "-j", "ACCEPT")
 				if err != nil {
 					return err
 				}
@@ -85,12 +85,12 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				}
 			}
 
-			err = ipTable.Append("filter", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu")
+			err = ipTable.AppendUnique("filter", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu")
 			if err != nil {
 				return err
 			}
 
-			err = ipTable.Append("nat", "POSTROUTING", "--out-interface", "eth0", "-j", "MASQUERADE")
+			err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", "eth0", "-j", "MASQUERADE")
 			if err != nil {
 				return err
 			}
