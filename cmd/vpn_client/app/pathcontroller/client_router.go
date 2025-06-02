@@ -172,9 +172,7 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 	nets := [][]network.CIDR{
 		serviceNetworks,
 		podNetworks,
-	}
-	if r.nodeNetworks != nil {
-		nets = append(nets, nodeNetworks)
+		nodeNetworks,
 	}
 
 	for _, nw := range nets {
