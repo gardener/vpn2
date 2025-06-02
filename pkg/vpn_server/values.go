@@ -43,12 +43,6 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		v.Device = constants.TapDevice
 		v.HAVPNClients = cfg.HAVPNClients
 		v.OpenVPNNetwork = network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, v.VPNIndex)
-
-		//v.ShootNetworks = append(v.ShootNetworks, cfg.ServiceNetworks...)
-		//v.ShootNetworks = append(v.ShootNetworks, cfg.PodNetworks...)
-		//if len(cfg.NodeNetworks) != 0 && cfg.NodeNetworks[0].String() != "" {
-		//	v.ShootNetworks = append(v.ShootNetworks, cfg.NodeNetworks...)
-		//}
 	case false:
 		v.Device = constants.TunnelDevice
 		v.HAVPNClients = -1
@@ -78,7 +72,6 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 			v.ShootNetworks = append(v.ShootNetworks, nodeNetwork)
 		}
 	}
-	//}
 
 	// remove possible duplicates. sort, then compact.
 	slices.SortFunc(v.ShootNetworks, func(a, b network.CIDR) int {
