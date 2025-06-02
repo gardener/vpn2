@@ -8,7 +8,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gardener/vpn2/pkg/constants"
 	"net"
 	"os"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/utils"
 )
