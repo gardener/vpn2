@@ -105,12 +105,17 @@ var _ = Describe("BuildValues", func() {
 					Expect(err).ToNot(HaveOccurred())
 				})
 				Context("when networks are set (v4)", func() {
-					var v4Networks []network.CIDR
+					var v4NetworksMapped []network.CIDR
 					BeforeEach(func() {
 						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
 						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
 						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
-						v4Networks = slices.Concat(cfg.ServiceNetworks, cfg.PodNetworks, cfg.NodeNetworks)
+						v4NetworksMapped = []network.CIDR{
+							network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped),
+							network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped),
+							network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped),
+						}
+
 					})
 					It("should configure HA VPN correctly (v4)", func() {
 						v, err := vpn_server.BuildValues(cfg)
@@ -120,7 +125,7 @@ var _ = Describe("BuildValues", func() {
 						Expect(v.Device).To(Equal(constants.TapDevice))
 						Expect(v.HAVPNClients).To(Equal(3))
 						Expect(v.OpenVPNNetwork).To(Equal(network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, 1)))
-						Expect(v.ShootNetworks).To(ConsistOf(v4Networks))
+						Expect(v.ShootNetworks).To(ConsistOf(v4NetworksMapped))
 						Expect(v.ShootNetworksV4).To(Equal(v.ShootNetworks))
 						Expect(v.ShootNetworksV6).To(BeEmpty())
 					})
@@ -151,8 +156,8 @@ var _ = Describe("BuildValues", func() {
 							Expect(v.Device).To(Equal(constants.TapDevice))
 							Expect(v.HAVPNClients).To(Equal(3))
 							Expect(v.OpenVPNNetwork).To(Equal(network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, 1)))
-							Expect(v.ShootNetworks).To(ConsistOf(slices.Concat(v4Networks, v6Networks)))
-							Expect(v.ShootNetworksV4).To(Equal(v4Networks))
+							Expect(v.ShootNetworks).To(ConsistOf(slices.Concat(v4NetworksMapped, v6Networks)))
+							Expect(v.ShootNetworksV4).To(Equal(v4NetworksMapped))
 							Expect(v.ShootNetworksV6).To(Equal(v6Networks))
 						})
 						It("should remove duplicates", func() {

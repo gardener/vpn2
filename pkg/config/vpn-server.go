@@ -14,9 +14,9 @@ import (
 )
 
 type VPNServer struct {
-	ServiceNetworks []network.CIDR `env:"SERVICE_NETWORKS" envDefault:"100.64.0.0/13"`
-	PodNetworks     []network.CIDR `env:"POD_NETWORKS" envDefault:"100.96.0.0/11"`
-	NodeNetworks    []network.CIDR `env:"NODE_NETWORKS"`
+	ServiceNetworks []network.CIDR `env:"SHOOT_SERVICE_NETWORKS" envDefault:"100.64.0.0/13"`
+	PodNetworks     []network.CIDR `env:"SHOOT_POD_NETWORKS" envDefault:"100.96.0.0/11"`
+	NodeNetworks    []network.CIDR `env:"SHOOT_NODE_NETWORKS"`
 	VPNNetwork      network.CIDR   `env:"VPN_NETWORK"`
 	SeedPodNetwork  network.CIDR   `env:"SEED_POD_NETWORK"`
 	PodName         string         `env:"POD_NAME"`

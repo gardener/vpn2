@@ -30,24 +30,24 @@ var _ = Describe("GetVPNServerConfig", func() {
 
 		// Set default environment variables
 		defaultEnvVars = map[string]string{
-			"SERVICE_NETWORKS":    "100.64.0.0/13",
-			"POD_NETWORKS":        "100.96.0.0/11",
-			"NODE_NETWORKS":       "100.128.0.0/10",
-			"VPN_NETWORK":         "fd8f:6d53:b97a:1::/96",
-			"SEED_POD_NETWORK":    "10.0.0.0/8",
-			"POD_NAME":            "test-pod",
-			"OPENVPN_STATUS_PATH": "/status",
-			"IS_HA":               "true",
-			"HA_VPN_CLIENTS":      "3",
-			"LOCAL_NODE_IP":       "192.168.1.1",
+			"SHOOT_SERVICE_NETWORKS": "100.64.0.0/13",
+			"SHOOT_POD_NETWORKS":     "100.96.0.0/11",
+			"SHOOT_NODE_NETWORKS":    "100.128.0.0/10",
+			"VPN_NETWORK":            "fd8f:6d53:b97a:1::/96",
+			"SEED_POD_NETWORK":       "10.0.0.0/8",
+			"POD_NAME":               "test-pod",
+			"OPENVPN_STATUS_PATH":    "/status",
+			"IS_HA":                  "true",
+			"HA_VPN_CLIENTS":         "3",
+			"LOCAL_NODE_IP":          "192.168.1.1",
 		}
 	})
 
 	AfterEach(func() {
 		// Clean up environment variables after each test
-		Expect(os.Unsetenv("SERVICE_NETWORKS")).To(Succeed())
-		Expect(os.Unsetenv("POD_NETWORKS")).To(Succeed())
-		Expect(os.Unsetenv("NODE_NETWORKS")).To(Succeed())
+		Expect(os.Unsetenv("SHOOT_SERVICE_NETWORKS")).To(Succeed())
+		Expect(os.Unsetenv("SHOOT_POD_NETWORKS")).To(Succeed())
+		Expect(os.Unsetenv("SHOOT_NODE_NETWORKS")).To(Succeed())
 		Expect(os.Unsetenv("VPN_NETWORK")).To(Succeed())
 		Expect(os.Unsetenv("SEED_POD_NETWORK")).To(Succeed())
 		Expect(os.Unsetenv("POD_NAME")).To(Succeed())
@@ -155,13 +155,13 @@ var _ = Describe("GetVPNServerConfig", func() {
 		}),
 		Entry("multiple pod networks with spaces should fail", testCase{
 			envVars: map[string]string{
-				"POD_NETWORKS": "100.96.0.0/11, 100.97.0.0/11 , 100.98.0.0/11",
+				"SHOOT_POD_NETWORKS": "100.96.0.0/11, 100.97.0.0/11 , 100.98.0.0/11",
 			},
 			expectedError: true,
 		}),
 		Entry("multiple pod networks", testCase{
 			envVars: map[string]string{
-				"POD_NETWORKS": "100.96.0.0/11,100.97.0.0/11,100.98.0.0/11",
+				"SHOOT_POD_NETWORKS": "100.96.0.0/11,100.97.0.0/11,100.98.0.0/11",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
 				"PodNetworks": ConsistOf(
@@ -172,7 +172,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 		}),
 		Entry("multiple service networks", testCase{
 			envVars: map[string]string{
-				"SERVICE_NETWORKS": "100.64.0.0/13,100.65.0.0/13,100.66.0.0/13",
+				"SHOOT_SERVICE_NETWORKS": "100.64.0.0/13,100.65.0.0/13,100.66.0.0/13",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
 				"ServiceNetworks": ConsistOf(
@@ -183,7 +183,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 		}),
 		Entry("multiple node networks", testCase{
 			envVars: map[string]string{
-				"NODE_NETWORKS": "100.128.0.0/10,101.128.0.0/10,102.128.0.0/10",
+				"SHOOT_NODE_NETWORKS": "100.128.0.0/10,101.128.0.0/10,102.128.0.0/10",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
 				"NodeNetworks": ConsistOf(

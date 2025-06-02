@@ -15,6 +15,7 @@ import (
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
 
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
 )
@@ -49,7 +50,7 @@ func (r *clientRouter) Run(ctx context.Context, clientIPs []net.IP) error {
 			r.pingAllShootClients(clientIPs)
 			err := r.determinePrimaryShootClient()
 			if err != nil {
-				// dont return error here because in creation there will be some time when nothing is
+				// don't return error here because in creation there will be some time when nothing is
 				// available. If we returned the error we would exit the path-controller
 				r.log.Error(err, "")
 			}
@@ -126,16 +127,56 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 		return err
 	}
 
-	nets := [][]network.CIDR{
-		r.serviceNetworks,
-		r.podNetworks,
+	var (
+		serviceNetworks []network.CIDR
+		podNetworks     []network.CIDR
+		nodeNetworks    []network.CIDR
+	)
+
+	ipv4PodNetworks := network.GetByIPFamily(r.podNetworks, network.IPv4Family)
+	if len(ipv4PodNetworks) > 1 {
+		return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
 	}
-	if r.nodeNetworks != nil {
-		nets = append(nets, r.nodeNetworks)
+	ipv4ServiceNetworks := network.GetByIPFamily(r.serviceNetworks, network.IPv4Family)
+	if len(ipv4ServiceNetworks) > 1 {
+		return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
+	}
+	ipv4NodeNetworks := network.GetByIPFamily(r.nodeNetworks, network.IPv4Family)
+	if len(ipv4NodeNetworks) > 1 {
+		return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
 	}
 
-	for _, net := range nets {
-		for _, n := range net {
+	// IPv4 networks are mapped to 240/4, IPv6 networks are kept as is
+	for _, serviceNetwork := range r.serviceNetworks {
+		if serviceNetwork.IP.To4() != nil {
+			serviceNetworks = append(serviceNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))
+		} else {
+			serviceNetworks = append(serviceNetworks, serviceNetwork)
+		}
+	}
+	for _, podNetwork := range r.podNetworks {
+		if podNetwork.IP.To4() != nil {
+			podNetworks = append(podNetworks, network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped))
+		} else {
+			podNetworks = append(podNetworks, podNetwork)
+		}
+	}
+	for _, nodeNetwork := range r.nodeNetworks {
+		if nodeNetwork.IP.To4() != nil {
+			nodeNetworks = append(nodeNetworks, network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped))
+		} else {
+			nodeNetworks = append(nodeNetworks, nodeNetwork)
+		}
+	}
+
+	nets := [][]network.CIDR{
+		serviceNetworks,
+		podNetworks,
+		nodeNetworks,
+	}
+
+	for _, nw := range nets {
+		for _, n := range nw {
 			route := routeForNetwork(n.ToIPNet(), tunnelLink)
 			r.log.Info("replacing route", "route", route, "net", n)
 			err = netlink.RouteReplace(&route)

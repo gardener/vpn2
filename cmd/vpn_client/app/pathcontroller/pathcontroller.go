@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"time"
 
@@ -15,6 +16,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/utils"
 )
@@ -66,6 +68,17 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	if podIP == "" {
 		return fmt.Errorf("POD_IP environment variable not set")
 	}
+
+	// map pod IP to 241/8 range if needed
+	if net.ParseIP(podIP).To4() != nil {
+		mappedIP, err := network.Netmap(podIP, constants.SeedPodNetworkMapped)
+		if err != nil {
+			log.Info("error mapping pod IP to 241/8 range", "podIP", podIP, "error", err)
+			return err
+		}
+		podIP = mappedIP
+	}
+
 	router := &clientRouter{
 		pinger: &icmpPinger{
 			log:     log.WithName("ping"),

@@ -17,9 +17,9 @@ type PathController struct {
 	IPFamilies      string         `env:"IP_FAMILIES" envDefault:"IPv4"`
 	VPNNetwork      network.CIDR   `env:"VPN_NETWORK"`
 	HAVPNClients    int            `env:"HA_VPN_CLIENTS"`
-	ServiceNetworks []network.CIDR `env:"SERVICE_NETWORKS" envDefault:"100.64.0.0/13"`
-	PodNetworks     []network.CIDR `env:"POD_NETWORKS" envDefault:"100.96.0.0/11"`
-	NodeNetworks    []network.CIDR `env:"NODE_NETWORKS"`
+	ServiceNetworks []network.CIDR `env:"SHOOT_SERVICE_NETWORKS" envDefault:"100.64.0.0/13"`
+	PodNetworks     []network.CIDR `env:"SHOOT_POD_NETWORKS" envDefault:"100.96.0.0/11"`
+	NodeNetworks    []network.CIDR `env:"SHOOT_NODE_NETWORKS"`
 }
 
 func (v PathController) PrimaryIPFamily() string {

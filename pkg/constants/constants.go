@@ -23,13 +23,12 @@ const (
 	// VPNNetworkMask is the required prefix size for the VPN network.
 	VPNNetworkMask = 96
 
-	//TODO: use v1beta1constants.ReservedxxxMappedRange after Gardener is updated
-	ShootPodNetworkMapped     = "244.0.0.0/8"
-	ShootServiceNetworkMapped = "243.0.0.0/8"
-	ShootNodeNetworkMapped    = "242.0.0.0/8"
-	SeedPodNetworkMapped      = "241.0.0.0/8"
+	ShootPodNetworkMapped     = constants.ReservedShootPodNetworkMappedRange
+	ShootServiceNetworkMapped = constants.ReservedShootServiceNetworkMappedRange
+	ShootNodeNetworkMapped    = constants.ReservedShootNodeNetworkMappedRange
+	SeedPodNetworkMapped      = constants.ReservedSeedPodNetworkMappedRange
 
-	EnvoyNonRootUserId = "65532"
+	EnvoyVPNGroupId = 31415 //TODO: use constants.EnvoyVPNGroupId from Gardener
 )
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.

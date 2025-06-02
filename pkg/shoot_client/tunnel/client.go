@@ -14,12 +14,12 @@ func Send(tunnelControllerIP net.IP, clientIP string) error {
 	serverAddr := fmt.Sprintf("[%s]:%d", tunnelControllerIP.String(), tunnelControllerPort)
 	conn, err := net.Dial("udp6", serverAddr)
 	if err != nil {
-		return fmt.Errorf("Error dialing UDP for %s: %w", serverAddr, err)
+		return fmt.Errorf("error dialing UDP for %s: %w", serverAddr, err)
 	}
 	defer conn.Close()
 
 	if _, err = conn.Write([]byte(clientIP)); err != nil {
-		return fmt.Errorf("Error sending data to %s: %w", serverAddr, err)
+		return fmt.Errorf("error sending data to %s: %w", serverAddr, err)
 	}
 	return nil
 }
