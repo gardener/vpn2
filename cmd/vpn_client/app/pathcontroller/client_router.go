@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"slices"
 	"sync"
 	"time"
 
@@ -113,9 +114,10 @@ func (r *clientRouter) pingAllShootClients(clients []net.IP) {
 }
 
 type netlinkRouter struct {
-	podNetworks     []network.CIDR
-	serviceNetworks []network.CIDR
-	nodeNetworks    []network.CIDR
+	shootPodNetworks     []network.CIDR
+	shootServiceNetworks []network.CIDR
+	shootNodeNetworks    []network.CIDR
+	seedPodNetwork       network.CIDR
 
 	log logr.Logger
 }
@@ -133,36 +135,39 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 		nodeNetworks    []network.CIDR
 	)
 
-	ipv4PodNetworks := network.GetByIPFamily(r.podNetworks, network.IPv4Family)
+	ipv4PodNetworks := network.GetByIPFamily(r.shootPodNetworks, network.IPv4Family)
 	if len(ipv4PodNetworks) > 1 {
 		return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
 	}
-	ipv4ServiceNetworks := network.GetByIPFamily(r.serviceNetworks, network.IPv4Family)
+	ipv4ServiceNetworks := network.GetByIPFamily(r.shootServiceNetworks, network.IPv4Family)
 	if len(ipv4ServiceNetworks) > 1 {
 		return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
 	}
-	ipv4NodeNetworks := network.GetByIPFamily(r.nodeNetworks, network.IPv4Family)
+	ipv4NodeNetworks := network.GetByIPFamily(r.shootNodeNetworks, network.IPv4Family)
 	if len(ipv4NodeNetworks) > 1 {
 		return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
 	}
 
+	// Check if there is an overlap between the seed pod network and shoot networks.
+	overlap := network.OverLapAny(r.seedPodNetwork, slices.Concat(r.shootPodNetworks, r.shootServiceNetworks, r.shootNodeNetworks)...)
+
 	// IPv4 networks are mapped to 240/4, IPv6 networks are kept as is
-	for _, serviceNetwork := range r.serviceNetworks {
-		if serviceNetwork.IP.To4() != nil {
+	for _, serviceNetwork := range r.shootServiceNetworks {
+		if serviceNetwork.IP.To4() != nil && overlap {
 			serviceNetworks = append(serviceNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))
 		} else {
 			serviceNetworks = append(serviceNetworks, serviceNetwork)
 		}
 	}
-	for _, podNetwork := range r.podNetworks {
-		if podNetwork.IP.To4() != nil {
+	for _, podNetwork := range r.shootPodNetworks {
+		if podNetwork.IP.To4() != nil && overlap {
 			podNetworks = append(podNetworks, network.ParseIPNetIgnoreError(constants.ShootPodNetworkMapped))
 		} else {
 			podNetworks = append(podNetworks, podNetwork)
 		}
 	}
-	for _, nodeNetwork := range r.nodeNetworks {
-		if nodeNetwork.IP.To4() != nil {
+	for _, nodeNetwork := range r.shootNodeNetworks {
+		if nodeNetwork.IP.To4() != nil && overlap {
 			nodeNetworks = append(nodeNetworks, network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped))
 		} else {
 			nodeNetworks = append(nodeNetworks, nodeNetwork)

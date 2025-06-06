@@ -104,12 +104,13 @@ var _ = Describe("BuildValues", func() {
 					_, err := vpn_server.BuildValues(cfg)
 					Expect(err).ToNot(HaveOccurred())
 				})
-				Context("when networks are set (v4)", func() {
+				Context("when networks are set (v4, overlap)", func() {
 					var v4NetworksMapped []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
+						cfg.SeedPodNetwork = network.ParseIPNetIgnoreError("100.81.0.0/16")
+						cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
+						cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
+						cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
 						v4NetworksMapped = []network.CIDR{
 							network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped),
 							network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped),
@@ -130,9 +131,9 @@ var _ = Describe("BuildValues", func() {
 						Expect(v.ShootNetworksV6).To(BeEmpty())
 					})
 					It("should remove duplicates", func() {
-						cfg.ServiceNetworks = append(cfg.ServiceNetworks, cfg.ServiceNetworks...)
-						cfg.PodNetworks = append(cfg.PodNetworks, cfg.PodNetworks...)
-						cfg.NodeNetworks = append(cfg.NodeNetworks, cfg.NodeNetworks...)
+						cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+						cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+						cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
 						v, err := vpn_server.BuildValues(cfg)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(v.ShootNetworks).To(HaveLen(3))
@@ -143,9 +144,9 @@ var _ = Describe("BuildValues", func() {
 							v6Services := network.ParseIPNetIgnoreError("2001:db8:1::/64")
 							v6Pods := network.ParseIPNetIgnoreError("2001:db8:2::/64")
 							v6Nodes := network.ParseIPNetIgnoreError("2001:db8:3::/64")
-							cfg.ServiceNetworks = append(cfg.ServiceNetworks, v6Services)
-							cfg.PodNetworks = append(cfg.PodNetworks, v6Pods)
-							cfg.NodeNetworks = append(cfg.NodeNetworks, v6Nodes)
+							cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, v6Services)
+							cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, v6Pods)
+							cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, v6Nodes)
 							v6Networks = append(v6Networks, v6Services, v6Pods, v6Nodes)
 						})
 						It("should configure HA VPN correctly (v4 + v6)", func() {
@@ -161,9 +162,71 @@ var _ = Describe("BuildValues", func() {
 							Expect(v.ShootNetworksV6).To(Equal(v6Networks))
 						})
 						It("should remove duplicates", func() {
-							cfg.ServiceNetworks = append(cfg.ServiceNetworks, cfg.ServiceNetworks...)
-							cfg.PodNetworks = append(cfg.PodNetworks, cfg.PodNetworks...)
-							cfg.NodeNetworks = append(cfg.NodeNetworks, cfg.NodeNetworks...)
+							cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+							cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+							cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
+							v, err := vpn_server.BuildValues(cfg)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(v.ShootNetworks).To(HaveLen(6))
+						})
+					})
+				})
+				Context("when networks are set (v4, non-overlap)", func() {
+					var v4Networks []network.CIDR
+					BeforeEach(func() {
+						cfg.SeedPodNetwork = network.ParseIPNetIgnoreError("100.99.0.0/16")
+						cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
+						cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
+						cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
+						v4Networks = slices.Concat(cfg.ShootServiceNetworks, cfg.ShootPodNetworks, cfg.ShootNodeNetworks)
+					})
+					It("should configure HA VPN correctly (v4)", func() {
+						v, err := vpn_server.BuildValues(cfg)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(v.IsHA).To(BeTrue())
+						Expect(v.VPNIndex).To(Equal(1))
+						Expect(v.Device).To(Equal(constants.TapDevice))
+						Expect(v.HAVPNClients).To(Equal(3))
+						Expect(v.OpenVPNNetwork).To(Equal(network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, 1)))
+						Expect(v.ShootNetworks).To(ConsistOf(v4Networks))
+						Expect(v.ShootNetworksV4).To(Equal(v.ShootNetworks))
+						Expect(v.ShootNetworksV6).To(BeEmpty())
+					})
+					It("should remove duplicates", func() {
+						cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+						cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+						cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
+						v, err := vpn_server.BuildValues(cfg)
+						Expect(err).ToNot(HaveOccurred())
+						Expect(v.ShootNetworks).To(HaveLen(3))
+					})
+					Context("when networks are set (v4 + v6)", func() {
+						var v6Networks []network.CIDR
+						BeforeEach(func() {
+							v6Services := network.ParseIPNetIgnoreError("2001:db8:1::/64")
+							v6Pods := network.ParseIPNetIgnoreError("2001:db8:2::/64")
+							v6Nodes := network.ParseIPNetIgnoreError("2001:db8:3::/64")
+							cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, v6Services)
+							cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, v6Pods)
+							cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, v6Nodes)
+							v6Networks = append(v6Networks, v6Services, v6Pods, v6Nodes)
+						})
+						It("should configure HA VPN correctly (v4 + v6)", func() {
+							v, err := vpn_server.BuildValues(cfg)
+							Expect(err).ToNot(HaveOccurred())
+							Expect(v.IsHA).To(BeTrue())
+							Expect(v.VPNIndex).To(Equal(1))
+							Expect(v.Device).To(Equal(constants.TapDevice))
+							Expect(v.HAVPNClients).To(Equal(3))
+							Expect(v.OpenVPNNetwork).To(Equal(network.HAVPNTunnelNetwork(cfg.VPNNetwork.IP, 1)))
+							Expect(v.ShootNetworks).To(ConsistOf(slices.Concat(v4Networks, v6Networks)))
+							Expect(v.ShootNetworksV4).To(Equal(v4Networks))
+							Expect(v.ShootNetworksV6).To(Equal(v6Networks))
+						})
+						It("should remove duplicates", func() {
+							cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+							cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+							cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
 							v, err := vpn_server.BuildValues(cfg)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(v.ShootNetworks).To(HaveLen(6))
@@ -173,10 +236,10 @@ var _ = Describe("BuildValues", func() {
 				Context("when networks are set (v6)", func() {
 					var v6Networks []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/64")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/64")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/64")}
-						v6Networks = slices.Concat(cfg.ServiceNetworks, cfg.PodNetworks, cfg.NodeNetworks)
+						cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/64")}
+						cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/64")}
+						cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/64")}
+						v6Networks = slices.Concat(cfg.ShootServiceNetworks, cfg.ShootPodNetworks, cfg.ShootNodeNetworks)
 					})
 					It("should configure HA VPN correctly (v6)", func() {
 						v, err := vpn_server.BuildValues(cfg)
@@ -191,9 +254,9 @@ var _ = Describe("BuildValues", func() {
 						Expect(v.ShootNetworksV4).To(BeEmpty())
 					})
 					It("should remove duplicates", func() {
-						cfg.ServiceNetworks = append(cfg.ServiceNetworks, cfg.ServiceNetworks...)
-						cfg.PodNetworks = append(cfg.PodNetworks, cfg.PodNetworks...)
-						cfg.NodeNetworks = append(cfg.NodeNetworks, cfg.NodeNetworks...)
+						cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+						cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+						cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
 						v, err := vpn_server.BuildValues(cfg)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(v.ShootNetworks).To(HaveLen(3))
@@ -243,9 +306,9 @@ var _ = Describe("BuildValues", func() {
 				Context("when networks are set (v4)", func() {
 					var v4NetworksMapped []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
+						cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.80.0.0/16")}
+						cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.81.0.0/16")}
+						cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("100.82.0.0/16")}
 						v4NetworksMapped = []network.CIDR{
 							network.ParseIPNetIgnoreError(constants.ShootNodeNetworkMapped),
 							network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped),
@@ -265,9 +328,9 @@ var _ = Describe("BuildValues", func() {
 						Expect(v.ShootNetworksV6).To(BeEmpty())
 					})
 					It("should remove duplicates", func() {
-						cfg.ServiceNetworks = append(cfg.ServiceNetworks, cfg.ServiceNetworks...)
-						cfg.PodNetworks = append(cfg.PodNetworks, cfg.PodNetworks...)
-						cfg.NodeNetworks = append(cfg.NodeNetworks, cfg.NodeNetworks...)
+						cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+						cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+						cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
 						v, err := vpn_server.BuildValues(cfg)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(v.ShootNetworks).To(HaveLen(3))
@@ -278,9 +341,9 @@ var _ = Describe("BuildValues", func() {
 							v6Services := network.ParseIPNetIgnoreError("2001:db8:1::/64")
 							v6Pods := network.ParseIPNetIgnoreError("2001:db8:2::/64")
 							v6Nodes := network.ParseIPNetIgnoreError("2001:db8:3::/64")
-							cfg.ServiceNetworks = append(cfg.ServiceNetworks, v6Services)
-							cfg.PodNetworks = append(cfg.PodNetworks, v6Pods)
-							cfg.NodeNetworks = append(cfg.NodeNetworks, v6Nodes)
+							cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, v6Services)
+							cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, v6Pods)
+							cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, v6Nodes)
 							v6Networks = append(v6Networks, v6Services, v6Pods, v6Nodes)
 						})
 						It("should configure HA VPN correctly (v4 + v6)", func() {
@@ -296,9 +359,9 @@ var _ = Describe("BuildValues", func() {
 							Expect(v.ShootNetworksV6).To(Equal(v6Networks))
 						})
 						It("should remove duplicates", func() {
-							cfg.ServiceNetworks = append(cfg.ServiceNetworks, cfg.ServiceNetworks...)
-							cfg.PodNetworks = append(cfg.PodNetworks, cfg.PodNetworks...)
-							cfg.NodeNetworks = append(cfg.NodeNetworks, cfg.NodeNetworks...)
+							cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+							cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+							cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
 							v, err := vpn_server.BuildValues(cfg)
 							Expect(err).ToNot(HaveOccurred())
 							Expect(v.ShootNetworks).To(HaveLen(6))
@@ -308,10 +371,10 @@ var _ = Describe("BuildValues", func() {
 				Context("when networks are set (v6)", func() {
 					var v6Networks []network.CIDR
 					BeforeEach(func() {
-						cfg.ServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/64")}
-						cfg.PodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/64")}
-						cfg.NodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/64")}
-						v6Networks = slices.Concat(cfg.ServiceNetworks, cfg.PodNetworks, cfg.NodeNetworks)
+						cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/64")}
+						cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/64")}
+						cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/64")}
+						v6Networks = slices.Concat(cfg.ShootServiceNetworks, cfg.ShootPodNetworks, cfg.ShootNodeNetworks)
 					})
 					It("should configure HA VPN correctly (v6)", func() {
 						v, err := vpn_server.BuildValues(cfg)
@@ -326,9 +389,9 @@ var _ = Describe("BuildValues", func() {
 						Expect(v.ShootNetworksV4).To(BeEmpty())
 					})
 					It("should remove duplicates", func() {
-						cfg.ServiceNetworks = append(cfg.ServiceNetworks, cfg.ServiceNetworks...)
-						cfg.PodNetworks = append(cfg.PodNetworks, cfg.PodNetworks...)
-						cfg.NodeNetworks = append(cfg.NodeNetworks, cfg.NodeNetworks...)
+						cfg.ShootServiceNetworks = append(cfg.ShootServiceNetworks, cfg.ShootServiceNetworks...)
+						cfg.ShootPodNetworks = append(cfg.ShootPodNetworks, cfg.ShootPodNetworks...)
+						cfg.ShootNodeNetworks = append(cfg.ShootNodeNetworks, cfg.ShootNodeNetworks...)
 						v, err := vpn_server.BuildValues(cfg)
 						Expect(err).ToNot(HaveOccurred())
 						Expect(v.ShootNetworks).To(HaveLen(3))

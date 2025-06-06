@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"slices"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -47,21 +48,22 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		return err
 	}
 
-	checkNetworks := cfg.NodeNetworks
+	checkNetworks := cfg.ShootNodeNetworks
 	if len(checkNetworks) == 0 {
-		checkNetworks = cfg.ServiceNetworks
+		checkNetworks = cfg.ShootServiceNetworks
 	}
 	if len(checkNetworks) == 0 {
 		return errors.New("network to check is undefined")
 	}
 
 	netlinkRouter := &netlinkRouter{
-		podNetworks:     cfg.PodNetworks,
-		serviceNetworks: cfg.ServiceNetworks,
-		log:             log,
+		seedPodNetwork:       cfg.SeedPodNetwork,
+		shootPodNetworks:     cfg.ShootPodNetworks,
+		shootServiceNetworks: cfg.ShootServiceNetworks,
+		log:                  log,
 	}
-	if len(cfg.NodeNetworks) != 0 {
-		netlinkRouter.nodeNetworks = cfg.NodeNetworks
+	if len(cfg.ShootNodeNetworks) != 0 {
+		netlinkRouter.shootNodeNetworks = cfg.ShootNodeNetworks
 	}
 
 	podIP := os.Getenv("POD_IP")
@@ -69,8 +71,11 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		return fmt.Errorf("POD_IP environment variable not set")
 	}
 
+	// Check if there is an overlap between the seed pod network and shoot networks.
+	overlap := network.OverLapAny(cfg.SeedPodNetwork, slices.Concat(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)...)
+
 	// map pod IP to 241/8 range if needed
-	if net.ParseIP(podIP).To4() != nil {
+	if net.ParseIP(podIP).To4() != nil && overlap {
 		mappedIP, err := network.Netmap(podIP, constants.SeedPodNetworkMapped)
 		if err != nil {
 			log.Info("error mapping pod IP to 241/8 range", "podIP", podIP, "error", err)

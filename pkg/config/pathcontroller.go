@@ -14,12 +14,13 @@ import (
 )
 
 type PathController struct {
-	IPFamilies      string         `env:"IP_FAMILIES" envDefault:"IPv4"`
-	VPNNetwork      network.CIDR   `env:"VPN_NETWORK"`
-	HAVPNClients    int            `env:"HA_VPN_CLIENTS"`
-	ServiceNetworks []network.CIDR `env:"SHOOT_SERVICE_NETWORKS" envDefault:"100.64.0.0/13"`
-	PodNetworks     []network.CIDR `env:"SHOOT_POD_NETWORKS" envDefault:"100.96.0.0/11"`
-	NodeNetworks    []network.CIDR `env:"SHOOT_NODE_NETWORKS"`
+	IPFamilies           string         `env:"IP_FAMILIES" envDefault:"IPv4"`
+	VPNNetwork           network.CIDR   `env:"VPN_NETWORK"`
+	HAVPNClients         int            `env:"HA_VPN_CLIENTS"`
+	ShootServiceNetworks []network.CIDR `env:"SHOOT_SERVICE_NETWORKS" envDefault:"100.64.0.0/13"`
+	ShootPodNetworks     []network.CIDR `env:"SHOOT_POD_NETWORKS" envDefault:"100.96.0.0/11"`
+	ShootNodeNetworks    []network.CIDR `env:"SHOOT_NODE_NETWORKS"`
+	SeedPodNetwork       network.CIDR   `env:"SEED_POD_NETWORK"`
 }
 
 func (v PathController) PrimaryIPFamily() string {
