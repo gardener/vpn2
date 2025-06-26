@@ -164,7 +164,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 				"SHOOT_POD_NETWORKS": "100.96.0.0/11,100.97.0.0/11,100.98.0.0/11",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
-				"PodNetworks": ConsistOf(
+				"ShootPodNetworks": ConsistOf(
 					network.ParseIPNetIgnoreError("100.96.0.0/11"),
 					network.ParseIPNetIgnoreError("100.97.0.0/11"),
 					network.ParseIPNetIgnoreError("100.98.0.0/11")),
@@ -175,7 +175,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 				"SHOOT_SERVICE_NETWORKS": "100.64.0.0/13,100.65.0.0/13,100.66.0.0/13",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
-				"ServiceNetworks": ConsistOf(
+				"ShootServiceNetworks": ConsistOf(
 					network.ParseIPNetIgnoreError("100.64.0.0/13"),
 					network.ParseIPNetIgnoreError("100.65.0.0/13"),
 					network.ParseIPNetIgnoreError("100.66.0.0/13")),
@@ -186,7 +186,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 				"SHOOT_NODE_NETWORKS": "100.128.0.0/10,101.128.0.0/10,102.128.0.0/10",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
-				"NodeNetworks": ConsistOf(
+				"ShootNodeNetworks": ConsistOf(
 					network.ParseIPNetIgnoreError("100.128.0.0/10"),
 					network.ParseIPNetIgnoreError("101.128.0.0/10"),
 					network.ParseIPNetIgnoreError("102.128.0.0/10")),

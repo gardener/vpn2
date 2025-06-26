@@ -84,3 +84,18 @@ func GetByIPFamily(cidrs []CIDR, ipFamily string) []CIDR {
 	}
 	return result
 }
+
+// Overlap checks if two IP networks overlap.
+func Overlap(a, b CIDR) bool {
+	return a.ToIPNet().Contains(b.IP) || b.ToIPNet().Contains(a.IP)
+}
+
+// OverLapAny checks if any of the given IP networks otherNws overlap with nw.
+func OverLapAny(nw CIDR, otherNws ...CIDR) bool {
+	for _, otherNw := range otherNws {
+		if Overlap(nw, otherNw) {
+			return true
+		}
+	}
+	return false
+}
