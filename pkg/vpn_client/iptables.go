@@ -45,17 +45,9 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				}
 				if !cfg.IsHA || cfg.IsHA && overlap {
 					log.Info("setting up double NAT IPv4 iptables rules (shoot)")
-					ipv4PodNetworks := network.GetByIPFamily(cfg.ShootPodNetworks, network.IPv4Family)
-					if len(ipv4PodNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
-					}
-					ipv4ServiceNetworks := network.GetByIPFamily(cfg.ShootServiceNetworks, network.IPv4Family)
-					if len(ipv4ServiceNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
-					}
-					ipv4NodeNetworks := network.GetByIPFamily(cfg.ShootNodeNetworks, network.IPv4Family)
-					if len(ipv4NodeNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
+					ipv4PodNetworks, ipv4ServiceNetworks, ipv4NodeNetworks, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
+					if err != nil {
+						return err
 					}
 
 					for _, nw := range ipv4PodNetworks {
@@ -110,17 +102,9 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 						return err
 					}
 
-					ipv4PodNetworks := network.GetByIPFamily(cfg.ShootPodNetworks, network.IPv4Family)
-					if len(ipv4PodNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
-					}
-					ipv4ServiceNetworks := network.GetByIPFamily(cfg.ShootServiceNetworks, network.IPv4Family)
-					if len(ipv4ServiceNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
-					}
-					ipv4NodeNetworks := network.GetByIPFamily(cfg.ShootNodeNetworks, network.IPv4Family)
-					if len(ipv4NodeNetworks) > 1 {
-						return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
+					ipv4PodNetworks, ipv4ServiceNetworks, ipv4NodeNetworks, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
+					if err != nil {
+						return err
 					}
 
 					for _, nw := range ipv4PodNetworks {

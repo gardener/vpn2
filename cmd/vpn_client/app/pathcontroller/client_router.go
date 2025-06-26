@@ -135,17 +135,9 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 		nodeNetworks    []network.CIDR
 	)
 
-	ipv4PodNetworks := network.GetByIPFamily(r.shootPodNetworks, network.IPv4Family)
-	if len(ipv4PodNetworks) > 1 {
-		return fmt.Errorf("exactly one IPv4 pod network is supported. IPv4 pod networks: %s", ipv4PodNetworks)
-	}
-	ipv4ServiceNetworks := network.GetByIPFamily(r.shootServiceNetworks, network.IPv4Family)
-	if len(ipv4ServiceNetworks) > 1 {
-		return fmt.Errorf("exactly one IPv4 service network is supported. IPv4 service networks: %s", ipv4ServiceNetworks)
-	}
-	ipv4NodeNetworks := network.GetByIPFamily(r.shootNodeNetworks, network.IPv4Family)
-	if len(ipv4NodeNetworks) > 1 {
-		return fmt.Errorf("exactly one IPv4 node network is supported. IPv4 node networks: %s", ipv4NodeNetworks)
+	_, _, _, err = network.ShootNetworksForNetmap(r.shootPodNetworks, r.shootServiceNetworks, r.shootNodeNetworks)
+	if err != nil {
+		return err
 	}
 
 	// Check if there is an overlap between the seed pod network and shoot networks.
