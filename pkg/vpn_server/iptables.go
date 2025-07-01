@@ -13,31 +13,31 @@ import (
 
 func SetIPTableRules(log logr.Logger, cfg config.VPNServer) error {
 	if !cfg.IsHA {
-		log.Info("setting up double NAT IPv4 iptables rules")
+		log.Info("setting up double NAT IPv4 iptables rules (seed-server)")
 		ipTable, err := network.NewIPTables(log, iptables.ProtocolIPv4)
 		if err != nil {
 			return err
 		}
 
-		ipv4PodNetworks, ipv4ServiceNetworks, ipv4NodeNetworks, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
+		ipv4PodNetworkMappings, ipv4ServiceNetworkMappings, ipv4NodeNetworkMappings, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
 		if err != nil {
 			return err
 		}
 
-		for _, nw := range ipv4PodNetworks {
-			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+		for src, dst := range ipv4PodNetworkMappings {
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", src.String(), "-j", "NETMAP", "--to", dst.String())
 			if err != nil {
 				return err
 			}
 		}
-		for _, nw := range ipv4ServiceNetworks {
-			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+		for src, dst := range ipv4ServiceNetworkMappings {
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", src.String(), "-j", "NETMAP", "--to", dst.String())
 			if err != nil {
 				return err
 			}
 		}
-		for _, nw := range ipv4NodeNetworks {
-			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+		for src, dst := range ipv4NodeNetworkMappings {
+			err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", src.String(), "-j", "NETMAP", "--to", dst.String())
 			if err != nil {
 				return err
 			}

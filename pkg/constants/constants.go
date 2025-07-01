@@ -29,6 +29,8 @@ const (
 	SeedPodNetworkMapped      = constants.ReservedSeedPodNetworkMappedRange
 
 	EnvoyVPNGroupId = 31415 //TODO: use constants.EnvoyVPNGroupId from Gardener
+	// NetmapCIDRMaskSizeLimit is the maximum prefix length for shoot network mapping. Shoot networks cannot be smaller than this value.
+	NetmapCIDRMaskSizeLimit = 28
 )
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.
