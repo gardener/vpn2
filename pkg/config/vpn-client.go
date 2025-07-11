@@ -18,11 +18,6 @@ import (
 )
 
 type VPNClient struct {
-	TCP struct {
-		KeepAliveTime     uint64 `env:"KEEPALIVE_TIME" envDefault:"7200"`
-		KeepAliveInterval uint64 `env:"KEEPALIVE_INTVL" envDefault:"75"`
-		KeepAliveProbes   uint64 `env:"KEEPALIVE_PROBES" envDefault:"9"`
-	} `envPrefix:"TCP_"`
 	IPFamilies           []string       `env:"IP_FAMILIES" envDefault:"IPv4"`
 	Endpoint             string         `env:"ENDPOINT"`
 	OpenVPNPort          uint           `env:"OPENVPN_PORT" envDefault:"8132"`

@@ -44,20 +44,5 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	if err := sysctl.Enable("net.ipv6.conf.all.forwarding"); err != nil {
 		return err
 	}
-	// Set the keepalive time for TCP connections.
-	// #nosec: G115 -- overflow unlikely (max value 9223372036854775807 before overflow)
-	if err := sysctl.WriteInt("net.ipv4.tcp_keepalive_time", int64(cfg.TCP.KeepAliveTime)); err != nil {
-		return err
-	}
-	// Set the keepalive interval for TCP connections.
-	// #nosec: G115 -- overflow unlikely (max value 9223372036854775807 before overflow)
-	if err := sysctl.WriteInt("net.ipv4.tcp_keepalive_intvl", int64(cfg.TCP.KeepAliveInterval)); err != nil {
-		return err
-	}
-	// Set the number of keepalive probes for TCP connections.
-	// #nosec: G115 -- overflow unlikely (max value 9223372036854775807 before overflow)
-	if err := sysctl.WriteInt("net.ipv4.tcp_keepalive_probes", int64(cfg.TCP.KeepAliveProbes)); err != nil {
-		return err
-	}
 	return nil
 }

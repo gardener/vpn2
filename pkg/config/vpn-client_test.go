@@ -23,9 +23,6 @@ var _ = Describe("GetVPNClientConfig", func() {
 	BeforeEach(func() {
 		// Set default environment variables
 		defaultEnvVars = map[string]string{
-			"TCP_KEEPALIVE_TIME":     "7200",
-			"TCP_KEEPALIVE_INTVL":    "75",
-			"TCP_KEEPALIVE_PROBES":   "9",
 			"IP_FAMILIES":            "IPv4",
 			"ENDPOINT":               "endpoint",
 			"OPENVPN_PORT":           "8132",
@@ -49,9 +46,6 @@ var _ = Describe("GetVPNClientConfig", func() {
 
 	AfterEach(func() {
 		// Clean up environment variables after each test
-		Expect(os.Unsetenv("TCP_KEEPALIVE_TIME")).To(Succeed())
-		Expect(os.Unsetenv("TCP_KEEPALIVE_INTVL")).To(Succeed())
-		Expect(os.Unsetenv("TCP_KEEPALIVE_PROBES")).To(Succeed())
 		Expect(os.Unsetenv("IP_FAMILIES")).To(Succeed())
 		Expect(os.Unsetenv("ENDPOINT")).To(Succeed())
 		Expect(os.Unsetenv("OPENVPN_PORT")).To(Succeed())
@@ -165,36 +159,6 @@ var _ = Describe("GetVPNClientConfig", func() {
 				"POD_NAME": "test-pod-2",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{"VPNClientIndex": Equal(2)}),
-		}),
-		Entry("empty TCP config should yield default values", testCase{
-			envVars: map[string]string{
-				"TCP_KEEPALIVE_TIME":   "",
-				"TCP_KEEPALIVE_INTVL":  "",
-				"TCP_KEEPALIVE_PROBES": "",
-			},
-			expectedMatcher: MatchFields(IgnoreExtras, Fields{
-				"TCP": MatchFields(IgnoreExtras, Fields{
-					"KeepAliveTime":     Equal(uint64(7200)),
-					"KeepAliveInterval": Equal(uint64(75)),
-					"KeepAliveProbes":   Equal(uint64(9)),
-				}),
-			}),
-		}),
-		Entry("bad TCP config should fail", testCase{
-			envVars: map[string]string{
-				"TCP_KEEPALIVE_TIME":   "potato",
-				"TCP_KEEPALIVE_INTVL":  "banana",
-				"TCP_KEEPALIVE_PROBES": "apple",
-			},
-			expectedError: true,
-		}),
-		Entry("negative TCP config values should fail", testCase{
-			envVars: map[string]string{
-				"TCP_KEEPALIVE_TIME":   "-100",
-				"TCP_KEEPALIVE_INTVL":  "-10",
-				"TCP_KEEPALIVE_PROBES": "-30",
-			},
-			expectedError: true,
 		}),
 		Entry("empty IP_FAMILIES should yield IPv4 default", testCase{
 			envVars: map[string]string{
