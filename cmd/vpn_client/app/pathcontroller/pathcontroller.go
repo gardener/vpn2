@@ -76,7 +76,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 
 	// map pod IP to 241/8 range if needed
 	if net.ParseIP(podIP).To4() != nil && overlap {
-		mappedIP, err := network.Netmap(podIP, constants.SeedPodNetworkMapped)
+		mappedIP, err := network.NetmapIP(podIP, constants.SeedPodNetworkMapped)
 		if err != nil {
 			log.Info("error mapping pod IP to 241/8 range", "podIP", podIP, "error", err)
 			return err
