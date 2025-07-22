@@ -66,9 +66,9 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		return err
 	}
 
-	tab0Link, err := netlink.LinkByName("tap0")
+	tap0Link, err := netlink.LinkByName(constants.TapDevice)
 	if err != nil {
-		return fmt.Errorf("failed to get link tap0: %w", err)
+		return fmt.Errorf("failed to get link %s: %w", constants.TapDevice, err)
 	}
 
 	// create bond device
@@ -84,7 +84,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	bond.FailOverMac = netlink.BOND_FAIL_OVER_MAC_ACTIVE
 	bond.Miimon = 100
 	bond.UseCarrier = 1
-	bond.Primary = tab0Link.Attrs().Index
+	bond.Primary = tap0Link.Attrs().Index
 	bond.NumPeerNotif = 5
 
 	if err = netlink.LinkAdd(bond); err != nil {
@@ -117,7 +117,13 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	if !cfg.IsShootClient {
 		for i := range cfg.HAVPNClients {
 			// #nosec: G115 -- overflow unlikely (max value at least 2147483647 before overflow)
-			if err := network.CreateTunnel(network.BondIP6TunnelLinkName(int(i)), addr.IP, network.BondingShootClientIP(cfg.VPNNetwork.ToIPNet(), int(i))); err != nil {
+			ip6tnlName := network.BondIP6TunnelLinkName(int(i))
+			// check if the link already exists and delete it if exists
+			if err := network.DeleteLinkByName(ip6tnlName); err != nil {
+				return fmt.Errorf("failed to delete link %s: %w", ip6tnlName, err)
+			}
+			// #nosec: G115 -- overflow unlikely (max value at least 2147483647 before overflow)
+			if err := network.CreateTunnel(ip6tnlName, addr.IP, network.BondingShootClientIP(cfg.VPNNetwork.ToIPNet(), int(i))); err != nil {
 				return fmt.Errorf("failed to create tunnel ip6-net link: %w", err)
 			}
 		}
