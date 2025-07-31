@@ -99,5 +99,9 @@ func run(_ context.Context, log logr.Logger) error {
 
 	values := vpnConfig(log, cfg)
 
+	if err := vpn_client.Cleanup(log, values); err != nil {
+		return err
+	}
+
 	return openvpn.WriteClientConfigFile(values)
 }
