@@ -33,6 +33,7 @@ type VPNClient struct {
 	VPNClientIndex       int
 	IsHA                 bool          `env:"IS_HA"`
 	ReversedVPNHeader    string        `env:"REVERSED_VPN_HEADER" envDefault:"invalid-host"`
+	ReversedVPNHeaderKey string        `env:"REVERSED_VPN_HEADER_KEY" envDefault:"Reversed-VPN"`
 	HAVPNClients         uint          `env:"HA_VPN_CLIENTS"`
 	HAVPNServers         uint          `env:"HA_VPN_SERVERS"`
 	PodLabelSelector     string        `env:"POD_LABEL_SELECTOR" envDefault:"app=kubernetes,role=apiserver"`

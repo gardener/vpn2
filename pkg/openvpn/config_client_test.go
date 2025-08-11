@@ -10,7 +10,6 @@ import (
 )
 
 var _ = Describe("#ClientConfig", func() {
-
 	Describe("#GenerateClientConfig", func() {
 		Context("ipv4 non HA running in seed config", func() {
 			cfg := ClientValues{
@@ -77,7 +76,6 @@ up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 `))
 				})
 			})
-
 		})
 
 		Context("ipv4 HA config", func() {
@@ -114,7 +112,6 @@ script-security 2
 up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 `))
 				})
-
 			})
 		})
 
