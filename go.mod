@@ -16,6 +16,7 @@ require (
 	github.com/vishvananda/netlink v1.2.1-beta.2.0.20240524165444-4d4ba1473f21
 	go.uber.org/zap v1.27.0
 	golang.org/x/net v0.40.0
+	golang.org/x/sys v0.33.0
 	k8s.io/apimachinery v0.32.5
 	k8s.io/client-go v0.32.5
 	k8s.io/component-base v0.32.5
@@ -62,7 +63,6 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.14.0 // indirect
-	golang.org/x/sys v0.33.0 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
 	golang.org/x/time v0.11.0 // indirect

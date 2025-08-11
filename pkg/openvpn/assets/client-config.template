@@ -37,7 +37,7 @@ ca /srv/secrets/vpn-client-{{.VPNClientIndex}}/ca.crt
 
 {{- if .IsShootClient }}
 http-proxy {{ .Endpoint }} {{.OpenVPNPort}}
-http-proxy-option CUSTOM-HEADER Reversed-VPN {{ .ReversedVPNHeader }}
+http-proxy-option CUSTOM-HEADER {{ .ReversedVPNHeaderKey }} {{ .ReversedVPNHeader }}
 {{- end }}
 
 dev {{ .Device }}
