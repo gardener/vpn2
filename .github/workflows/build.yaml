@@ -86,7 +86,7 @@ jobs:
       - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
       - name: run-test
         run: |
-          set -eu
+          set -euo pipefail
 
           mkdir /tmp/blobs.d
 
