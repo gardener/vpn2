@@ -45,37 +45,37 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				}
 				if !cfg.IsHA || cfg.IsHA && overlap {
 					log.Info("setting up double NAT IPv4 iptables rules (shoot)")
-					ipv4PodNetworks, ipv4ServiceNetworks, ipv4NodeNetworks, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
+					ipv4PodNetworkMappings, ipv4ServiceNetworkMappings, ipv4NodeNetworkMappings, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
 					if err != nil {
 						return err
 					}
 
-					for _, nw := range ipv4PodNetworks {
-						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootPodNetworkMapped, "-j", "NETMAP", "--to", nw.String())
+					for src, dst := range ipv4PodNetworkMappings {
+						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", dst.String(), "-j", "NETMAP", "--to", src.String())
 						if err != nil {
 							return err
 						}
-						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
-						if err != nil {
-							return err
-						}
-					}
-					for _, nw := range ipv4ServiceNetworks {
-						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootServiceNetworkMapped, "-j", "NETMAP", "--to", nw.String())
-						if err != nil {
-							return err
-						}
-						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", src.String(), "-j", "NETMAP", "--to", dst.String())
 						if err != nil {
 							return err
 						}
 					}
-					for _, nw := range ipv4NodeNetworks {
-						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", constants.ShootNodeNetworkMapped, "-j", "NETMAP", "--to", nw.String())
+					for src, dst := range ipv4ServiceNetworkMappings {
+						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", dst.String(), "-j", "NETMAP", "--to", src.String())
 						if err != nil {
 							return err
 						}
-						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", src.String(), "-j", "NETMAP", "--to", dst.String())
+						if err != nil {
+							return err
+						}
+					}
+					for src, dst := range ipv4NodeNetworkMappings {
+						err = ipTable.AppendUnique("nat", "PREROUTING", "--in-interface", forwardDevice, "-d", dst.String(), "-j", "NETMAP", "--to", src.String())
+						if err != nil {
+							return err
+						}
+						err = ipTable.AppendUnique("nat", "POSTROUTING", "--out-interface", forwardDevice, "-s", src.String(), "-j", "NETMAP", "--to", dst.String())
 						if err != nil {
 							return err
 						}
@@ -102,25 +102,25 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 						return err
 					}
 
-					ipv4PodNetworks, ipv4ServiceNetworks, ipv4NodeNetworks, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
+					ipv4PodNetworkMappings, ipv4ServiceNetworkMappings, ipv4NodeNetworkMappings, err := network.ShootNetworksForNetmap(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks)
 					if err != nil {
 						return err
 					}
 
-					for _, nw := range ipv4PodNetworks {
-						err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootPodNetworkMapped)
+					for src, dst := range ipv4PodNetworkMappings {
+						err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", src.String(), "-j", "NETMAP", "--to", dst.String())
 						if err != nil {
 							return err
 						}
 					}
-					for _, nw := range ipv4ServiceNetworks {
-						err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootServiceNetworkMapped)
+					for src, dst := range ipv4ServiceNetworkMappings {
+						err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", src.String(), "-j", "NETMAP", "--to", dst.String())
 						if err != nil {
 							return err
 						}
 					}
-					for _, nw := range ipv4NodeNetworks {
-						err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", nw.String(), "-j", "NETMAP", "--to", constants.ShootNodeNetworkMapped)
+					for src, dst := range ipv4NodeNetworkMappings {
+						err = ipTable.AppendUnique("nat", "OUTPUT", "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId), "-d", src.String(), "-j", "NETMAP", "--to", dst.String())
 						if err != nil {
 							return err
 						}
