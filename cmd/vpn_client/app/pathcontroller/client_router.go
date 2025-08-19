@@ -135,6 +135,7 @@ func (r *netlinkRouter) updateRouting(newIP net.IP) error {
 		nodeNetworks    []network.CIDR
 	)
 
+	// we don't need the specific mappings here because the /8 routes encompass all shoot networks
 	_, _, _, err = network.ShootNetworksForNetmap(r.shootPodNetworks, r.shootServiceNetworks, r.shootNodeNetworks)
 	if err != nil {
 		return err
