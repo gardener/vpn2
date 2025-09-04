@@ -56,15 +56,16 @@ func NewCommand() *cobra.Command {
 
 func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 	v := openvpn.ClientValues{
-		Device:            constants.TunnelDevice,
-		IPFamily:          cfg.PrimaryIPFamily(),
-		ReversedVPNHeader: cfg.ReversedVPNHeader,
-		Endpoint:          cfg.Endpoint,
-		OpenVPNPort:       cfg.OpenVPNPort,
-		VPNClientIndex:    cfg.VPNClientIndex,
-		IsShootClient:     cfg.IsShootClient,
-		IsHA:              cfg.IsHA,
-		SeedPodNetwork:    cfg.SeedPodNetwork.String(),
+		Device:               constants.TunnelDevice,
+		IPFamily:             cfg.PrimaryIPFamily(),
+		ReversedVPNHeader:    cfg.ReversedVPNHeader,
+		ReversedVPNHeaderKey: cfg.ReversedVPNHeaderKey,
+		Endpoint:             cfg.Endpoint,
+		OpenVPNPort:          cfg.OpenVPNPort,
+		VPNClientIndex:       cfg.VPNClientIndex,
+		IsShootClient:        cfg.IsShootClient,
+		IsHA:                 cfg.IsHA,
+		SeedPodNetwork:       cfg.SeedPodNetwork.String(),
 	}
 	vpnSeedServer := "vpn-seed-server"
 
