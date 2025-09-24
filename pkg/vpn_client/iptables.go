@@ -83,7 +83,7 @@ func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 				}
 			}
 
-			err = ipTable.AppendUnique("filter", "FORWARD", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--set-mss", "1380")
+			err = ipTable.AppendUnique("mangle", "POSTROUTING", "-p", "tcp", "--tcp-flags", "SYN,RST", "SYN", "-j", "TCPMSS", "--clamp-mss-to-pmtu")
 			if err != nil {
 				return err
 			}
