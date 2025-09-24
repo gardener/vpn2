@@ -10,7 +10,6 @@ import (
 )
 
 var _ = Describe("#ClientConfig", func() {
-
 	Describe("#GenerateClientConfig", func() {
 		Context("ipv4 non HA running in seed config", func() {
 			cfg := ClientValues{
@@ -40,13 +39,14 @@ ca /srv/secrets/vpn-client/ca.crt`))
 
 		Context("ipv4 non HA running in shoot config", func() {
 			cfg := ClientValues{
-				Endpoint:          "123.123.0.0",
-				VPNClientIndex:    -1,
-				IPFamily:          "IPv4",
-				OpenVPNPort:       1143,
-				ReversedVPNHeader: "invalid-host",
-				IsShootClient:     true,
-				SeedPodNetwork:    "10.123.0.0/19",
+				Endpoint:             "123.123.0.0",
+				VPNClientIndex:       -1,
+				IPFamily:             "IPv4",
+				OpenVPNPort:          1143,
+				ReversedVPNHeader:    "invalid-host",
+				ReversedVPNHeaderKey: "Reversed-VPN",
+				IsShootClient:        true,
+				SeedPodNetwork:       "10.123.0.0/19",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -77,7 +77,6 @@ up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 `))
 				})
 			})
-
 		})
 
 		Context("ipv4 HA config", func() {
@@ -114,7 +113,6 @@ script-security 2
 up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 `))
 				})
-
 			})
 		})
 

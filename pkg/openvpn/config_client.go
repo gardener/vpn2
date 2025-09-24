@@ -15,16 +15,17 @@ import (
 var clientTemplate string
 
 type ClientValues struct {
-	IPFamily          string
-	ReversedVPNHeader string
-	Endpoint          string
-	OpenVPNPort       uint
-	VPNClientIndex    int
-	IsShootClient     bool
-	IsHA              bool
-	Device            string
-	SeedPodNetwork    string
-	IsDualStack       bool
+	IPFamily             string
+	ReversedVPNHeader    string
+	ReversedVPNHeaderKey string
+	Endpoint             string
+	OpenVPNPort          uint
+	VPNClientIndex       int
+	IsShootClient        bool
+	IsHA                 bool
+	Device               string
+	SeedPodNetwork       string
+	IsDualStack          bool
 }
 
 func generateClientConfig(cfg ClientValues) (string, error) {
