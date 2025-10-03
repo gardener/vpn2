@@ -1,0 +1,17 @@
+# See the OWNERS docs at https://go.k8s.io/owners
+
+aliases:
+  vpn2-reviewers:
+  - axel7born
+  - DockToFuture
+  - domdom82
+  - MartinWeindel
+  - marwinski
+  - ScheererJ
+  vpn2-approvers:
+  - axel7born
+  - DockToFuture
+  - domdom82
+  - MartinWeindel
+  - marwinski
+  - ScheererJ
