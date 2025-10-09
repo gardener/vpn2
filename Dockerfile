@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ## base
-FROM alpine:3.22.1 AS base
+FROM alpine:3.22.2 AS base
 
 RUN apk add --update openvpn iptables iptables-legacy && \
     rm -rf /var/cache/apk/*
