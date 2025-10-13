@@ -338,12 +338,28 @@ var _ = Describe("ShootNetworksForNetmap", func() {
 			ParseIPNetIgnoreError("242.0.0.0/24"),
 		))
 	})
-	It("should fail if shoot networks are too small", func() {
-		pods := []CIDR{ParseIPNetIgnoreError("10.1.0.0/16")}
-		services := []CIDR{ParseIPNetIgnoreError("10.2.0.0/16")}
-		nodes := []CIDR{ParseIPNetIgnoreError("10.3.0.0/24"), ParseIPNetIgnoreError("100.1.12.0/29")}
-		_, _, _, err := ShootNetworksForNetmap(pods, services, nodes)
-		Expect(err).To(HaveOccurred())
-		Expect(err.Error()).To(ContainSubstring("prefix length 29 exceeds the maximum allowed length of 28"))
+	It("should not fail even on very small shoot networks", func() {
+		pods := []CIDR{ParseIPNetIgnoreError("10.1.0.1/30")}
+		services := []CIDR{ParseIPNetIgnoreError("10.2.0.2/31")}
+		nodes := []CIDR{ParseIPNetIgnoreError("10.3.0.15/32"), ParseIPNetIgnoreError("100.1.12.3/32")}
+		podMap, svcMap, nodeMap, err := ShootNetworksForNetmap(pods, services, nodes)
+		Expect(err).To(Not(HaveOccurred()))
+		// Verify the correct mapping
+		Expect(podMap).To(HaveKeyWithValue(
+			ptr.To(ParseIPNetIgnoreError("10.1.0.0/30")),
+			ParseIPNetIgnoreError("244.0.0.0/30"),
+		))
+		Expect(svcMap).To(HaveKeyWithValue(
+			ptr.To(ParseIPNetIgnoreError("10.2.0.2/31")),
+			ParseIPNetIgnoreError("243.0.0.0/31"),
+		))
+		Expect(nodeMap).To(HaveKeyWithValue(
+			ptr.To(ParseIPNetIgnoreError("10.3.0.15/32")),
+			ParseIPNetIgnoreError("242.0.0.0/32"),
+		))
+		Expect(nodeMap).To(HaveKeyWithValue(
+			ptr.To(ParseIPNetIgnoreError("100.1.12.3/32")),
+			ParseIPNetIgnoreError("242.0.0.1/32"),
+		))
 	})
 })
