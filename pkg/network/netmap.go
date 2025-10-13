@@ -52,9 +52,6 @@ func subnetSplit(parent *net.IPNet, newPrefixLen int) ([]*net.IPNet, error) {
 	if newPrefixLen < parentPrefixLen || newPrefixLen > bits {
 		return nil, fmt.Errorf("invalid new prefix length %d for parent subnet %s", newPrefixLen, parent.String())
 	}
-	if newPrefixLen > constants.NetmapCIDRMaskSizeLimit {
-		return nil, fmt.Errorf("prefix length %d exceeds the maximum allowed length of %d", newPrefixLen, constants.NetmapCIDRMaskSizeLimit)
-	}
 	var (
 		subnets      []*net.IPNet
 		countSubnets uint32
