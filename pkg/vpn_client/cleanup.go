@@ -28,15 +28,23 @@ func Cleanup(log logr.Logger, values openvpn.ClientValues) error {
 		return fmt.Errorf("failed to get link %s: %w", values.Device, err)
 	}
 
-	if err := netlink.LinkSetDown(tuntap); err != nil {
-		return fmt.Errorf("failed to set link %s down: %w", values.Device, err)
-	}
-
 	addr, err := netlink.AddrList(tuntap, unix.AF_INET6)
 	if err != nil {
 		return fmt.Errorf("failed to list addresses for link %s: %w", values.Device, err)
 	}
+
+	if len(addr) == 0 {
+		log.Info("no IPv6 addresses found on VPN device, nothing to clean up", "device", values.Device)
+		return nil
+	}
+
+	log.Info("setting down VPN device", "device", values.Device)
+	if err := netlink.LinkSetDown(tuntap); err != nil {
+		return fmt.Errorf("failed to set link %s down: %w", values.Device, err)
+	}
+
 	for _, a := range addr {
+		log.Info("deleting address from VPN device", "address", a.String(), "device", values.Device)
 		if err := netlink.AddrDel(tuntap, &a); err != nil {
 			return fmt.Errorf("failed to delete address %s from link %s: %w", a.String(), values.Device, err)
 		}
