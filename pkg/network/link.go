@@ -94,7 +94,7 @@ func GetLinkIPAddrForIP(name string, ip net.IP) (*netlink.Addr, error) {
 			return &addr, nil
 		}
 	}
-	return nil, nil
+	return nil, fmt.Errorf("no address %s found on link %s", ip.String(), name)
 }
 
 // IPAddrFlagsToString converts IP address flags to a human-readable string.
