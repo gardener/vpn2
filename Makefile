@@ -96,6 +96,14 @@ sast-report: adjust-install-gosec.sh $(GOSEC)
 test:
 	go test ./...
 
+.PHONY: test-docker
+test-docker:
+	@docker run --rm \
+		-v $(REPO_ROOT):/src \
+		-w /src \
+		golang:1.25.2 \
+		go test ./...
+
 .PHONY: build
 build: build-vpn-server build-vpn-client
 

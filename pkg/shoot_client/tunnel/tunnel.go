@@ -170,16 +170,30 @@ func (c *Controller) Run(log logr.Logger) error {
 		IP:   localBond,
 		Port: tunnelControllerPort,
 	}
+
+	handleListenError := func() error {
+		var ipFlags string
+		ipAddr, err2 := network.GetLinkIPAddrForIP(constants.BondDevice, localBond)
+		if err2 != nil {
+			ipFlags = fmt.Errorf("getting link IP address failed: %w", err2).Error()
+		} else {
+			ipFlags = network.IPAddrFlagsToString(ipAddr.Flags)
+		}
+		return fmt.Errorf("error listening on UDP: %w (ip: %s %s)", err, localBond.String(), ipFlags)
+	}
+
 	var conn *net.UDPConn
 	for i := 0; i < retriesToListen; i++ {
 		conn, err = net.ListenUDP("udp6", &localAddress)
-		if err == nil {
+		if err != nil {
+			log.Error(handleListenError(), "listening for UDP6 failed, retrying...", "attempt", i+1)
+		} else {
 			break
 		}
 		time.Sleep(retryListenWait)
 	}
 	if err != nil {
-		return fmt.Errorf("error listening on UDP: %w", err)
+		return handleListenError()
 	}
 	defer conn.Close()
 

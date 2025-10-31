@@ -12,6 +12,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
@@ -48,11 +49,13 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 
 	for i := range cfg.HAVPNServers {
 		linkName := fmt.Sprintf("tap%d", i)
+		log.Info("deleting existing tap device if any", "link", linkName)
 		err := network.DeleteLinkByName(linkName)
 		if err != nil {
 			return err
 		}
 
+		log.Info("creating new tap device", "link", linkName)
 		cmd := exec.CommandContext(ctx, "openvpn", "--mktun", "--dev", linkName) // #nosec: G204 -- linkName is fairly static (see above) pointing to tap0/tap1.
 		err = cmd.Run()
 		if err != nil {
@@ -61,6 +64,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	}
 
 	// check if bond device already exists and delete it if exists
+	log.Info("deleting existing bond device if any", "link", constants.BondDevice)
 	err := network.DeleteLinkByName(constants.BondDevice)
 	if err != nil {
 		return err
@@ -87,6 +91,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	bond.Primary = tap0Link.Attrs().Index
 	bond.NumPeerNotif = 5
 
+	log.Info("creating new bond device", "link", constants.BondDevice)
 	if err = netlink.LinkAdd(bond); err != nil {
 		return fmt.Errorf("failed to create %s link device: %w", constants.BondDevice, err)
 	}
@@ -105,11 +110,12 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		}
 	}
 
+	log.Info("setting up bond device", "link", constants.BondDevice, "address", addr.String())
 	err = netlink.LinkSetUp(bond)
 	if err != nil {
 		return fmt.Errorf("failed to up %s link: %w", constants.BondDevice, err)
 	}
-	err = netlink.AddrAdd(bond, &netlink.Addr{IPNet: addr})
+	err = netlink.AddrAdd(bond, &netlink.Addr{IPNet: addr, Flags: unix.IFA_F_NODAD})
 	if err != nil {
 		return fmt.Errorf("failed to add address %s to %s link: %w", addr, constants.BondDevice, err)
 	}
