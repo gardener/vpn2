@@ -8,8 +8,10 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"strings"
 
 	"github.com/vishvananda/netlink"
+	"golang.org/x/sys/unix"
 )
 
 const (
@@ -75,4 +77,50 @@ func getLinkIPAddresses(link netlink.Link, scope int) ([]net.IP, error) {
 		}
 	}
 	return ips, nil
+}
+
+// GetLinkIPAddrForIP gets the netlink.Addr for the given link name and IP address.
+func GetLinkIPAddrForIP(name string, ip net.IP) (*netlink.Addr, error) {
+	link, err := netlink.LinkByName(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get link %s: %w", name, err)
+	}
+	addrs, err := netlink.AddrList(link, familyAll)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list addresses of link %s: %w", link.Attrs().Name, err)
+	}
+	for _, addr := range addrs {
+		if addr.IP.Equal(ip) {
+			return &addr, nil
+		}
+	}
+	return nil, fmt.Errorf("no address %s found on link %s", ip.String(), name)
+}
+
+// IPAddrFlagsToString converts IP address flags to a human-readable string.
+func IPAddrFlagsToString(flags int) string {
+	flagsStr := strings.Builder{}
+
+	flagTypes := map[int]string{
+		unix.IFA_F_SECONDARY:      "Secondary",
+		unix.IFA_F_NODAD:          "Nodad",
+		unix.IFA_F_HOMEADDRESS:    "Home",
+		unix.IFA_F_DEPRECATED:     "Deprecated",
+		unix.IFA_F_OPTIMISTIC:     "Optimistic",
+		unix.IFA_F_DADFAILED:      "Dadfailed",
+		unix.IFA_F_TENTATIVE:      "Tentative",
+		unix.IFA_F_PERMANENT:      "Permanent",
+		unix.IFA_F_MANAGETEMPADDR: "Managetempaddr",
+		unix.IFA_F_NOPREFIXROUTE:  "Noprefixroute",
+		unix.IFA_F_MCAUTOJOIN:     "Mcautojoin",
+		unix.IFA_F_STABLE_PRIVACY: "Stable_privacy",
+	}
+
+	for flag, name := range flagTypes {
+		if flags&flag != 0 {
+			flagsStr.WriteString(name + " ")
+		}
+	}
+
+	return strings.TrimSpace(flagsStr.String())
 }

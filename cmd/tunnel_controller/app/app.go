@@ -5,6 +5,10 @@
 package app
 
 import (
+	"errors"
+	"net/http"
+
+	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
 
 	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
@@ -24,9 +28,20 @@ func NewCommand() *cobra.Command {
 				return err
 			}
 			c := tunnel.NewController()
+			runReadinessServer(c, log)
 			return c.Run(log)
 		},
 	}
 
 	return cmd
+}
+
+func runReadinessServer(c *tunnel.Controller, log logr.Logger) {
+	go func() {
+		log.Info("Starting readiness server", "port", tunnel.ReadinessPort)
+		err := c.NewReadinessServer().ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error(err, "readiness server stopped with error")
+		}
+	}()
 }
