@@ -201,6 +201,7 @@ func (c *Controller) Run(log logr.Logger) error {
 
 	buffer := make([]byte, 1024)
 	for {
+		_ = conn.SetReadDeadline(time.Now().Add(constants.TunnelControllerUpdateTimeout))
 		n, clientAddr, err := conn.ReadFromUDP(buffer)
 		if err != nil {
 			log.Error(err, "reading from UDP failed")

@@ -6,6 +6,7 @@ package constants
 
 import (
 	"net"
+	"time"
 
 	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 )
@@ -27,6 +28,9 @@ const (
 	ShootServiceNetworkMapped = constants.ReservedShootServiceNetworkMappedRange
 	ShootNodeNetworkMapped    = constants.ReservedShootNodeNetworkMappedRange
 	SeedPodNetworkMapped      = constants.ReservedSeedPodNetworkMappedRange
+
+	PathControllerUpdateInterval  = 2 * time.Second
+	TunnelControllerUpdateTimeout = 2 * PathControllerUpdateInterval
 
 	EnvoyVPNGroupId = constants.EnvoyVPNGroupId
 )
