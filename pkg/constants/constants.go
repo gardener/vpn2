@@ -28,21 +28,16 @@ const (
 	ShootNodeNetworkMapped    = constants.ReservedShootNodeNetworkMappedRange
 	SeedPodNetworkMapped      = constants.ReservedSeedPodNetworkMappedRange
 
-	EnvoyVPNGroupId = 31415 //TODO: use constants.EnvoyVPNGroupId from Gardener
+	EnvoyVPNGroupId = constants.EnvoyVPNGroupId
 )
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.
 var DefaultVPNNetwork net.IPNet
 
 func init() {
-	// TODO (Martin Weindel) if Gardener is updated to have /96 prefix size instead of /120, adjust this code accordingly
-	// because of circular dependencies, this is postponed after release of VPN2
-	ip, _, err := net.ParseCIDR(constants.DefaultVPNRangeV6)
+	_, nw, err := net.ParseCIDR(constants.DefaultVPNRangeV6)
 	if err != nil {
 		panic(err)
 	}
-	DefaultVPNNetwork = net.IPNet{
-		IP:   ip,
-		Mask: net.CIDRMask(VPNNetworkMask, 128),
-	}
+	DefaultVPNNetwork = *nw
 }
