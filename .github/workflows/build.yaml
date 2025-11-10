@@ -75,14 +75,15 @@ jobs:
       linter: gosec
       run: .ci/check
 
-  test:
+  test-docker:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
-      - uses: actions/setup-go@v5
+      - uses: gardener/cc-utils/.github/actions/oci-auth@master
         with:
-          go-version: '1.24'
+          oci-image-reference: europe-docker.pkg.dev/gardener-project
       - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
       - name: run-test
         run: |
@@ -90,7 +91,7 @@ jobs:
 
           mkdir /tmp/blobs.d
 
-          make test |& tee /tmp/blobs.d/verify-log.txt
+          make test-docker |& tee /tmp/blobs.d/verify-log.txt
 
           tar czf /tmp/blobs.d/verify-log.tar.gz -C /tmp/blobs.d verify-log.txt
 
