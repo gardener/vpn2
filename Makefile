@@ -98,7 +98,7 @@ test:
 
 .PHONY: test-docker
 test-docker:
-	@docker run --rm \
+	@docker run --rm --cap-add NET_ADMIN --cap-add MKNOD \
 		-v $(REPO_ROOT):/src \
 		-w /src \
 		golang:1.25.2 \
