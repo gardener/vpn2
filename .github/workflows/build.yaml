@@ -75,52 +75,23 @@ jobs:
       linter: gosec
       run: .ci/check
 
-  test:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-    steps:
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.24'
-      - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
-      - name: run-test
-        run: |
-          set -euo pipefail
-
-          mkdir /tmp/blobs.d
-
-          make test |& tee /tmp/blobs.d/verify-log.txt
-
-          tar czf /tmp/blobs.d/verify-log.tar.gz -C /tmp/blobs.d verify-log.txt
-
-      - name: add-test-result-to-component-descriptor
-        uses: gardener/cc-utils/.github/actions/export-ocm-fragments@master
-        with:
-          blobs-directory: /tmp/blobs.d
-          ocm-resources: |
-            - name: test-results
-              relation: local
-              access:
-                type: localBlob
-                localReference: verify-log.tar.gz
-              labels:
-                - name: gardener.cloud/purposes
-                  value:
-                    - test
-
-
   test-docker:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      id-token: write
     steps:
+      - uses: gardener/cc-utils/.github/actions/oci-auth@master
+        with:
+          oci-image-reference: europe-docker.pkg.dev/gardener-project
       - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
       - name: run-test
         run: |
           set -euo pipefail
 
           mkdir /tmp/blobs.d
+
+          cat $HOME/.docker/config.json
 
           make test-docker |& tee /tmp/blobs.d/verify-log.txt
 
