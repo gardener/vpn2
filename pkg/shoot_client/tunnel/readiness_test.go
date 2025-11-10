@@ -4,16 +4,10 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
-	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
-
-func TestReadiness(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Readiness Suite")
-}
 
 var _ = Describe("Controller Readiness", func() {
 	var c *Controller

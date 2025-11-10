@@ -150,6 +150,7 @@ type Controller struct {
 	lock           sync.Mutex
 	kubeApiservers map[string]*kubeApiserverData
 	nextClean      time.Time
+	running        bool
 }
 
 // Run runs the tunnel controller
@@ -198,9 +199,13 @@ func (c *Controller) Run(log logr.Logger) error {
 	defer conn.Close()
 
 	log.Info("server listening for UDP6 packages on IP of bond device", "address", localAddress.String())
-
+	c.setRunning(true)
 	buffer := make([]byte, 1024)
 	for {
+		if !c.isRunning() {
+			log.Info("stopping tunnel controller")
+			return nil
+		}
 		_ = conn.SetReadDeadline(time.Now().Add(constants.TunnelControllerUpdateTimeout))
 		n, clientAddr, err := conn.ReadFromUDP(buffer)
 		if err != nil {
@@ -245,4 +250,21 @@ func (c *Controller) clean() {
 			data.delete()
 		}
 	}
+}
+
+func (c *Controller) setRunning(running bool) {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	c.running = running
+}
+
+func (c *Controller) isRunning() bool {
+	c.lock.Lock()
+	defer c.lock.Unlock()
+	return c.running
+}
+
+// Stop stops the tunnel controller
+func (c *Controller) Stop() {
+	c.setRunning(false)
 }
