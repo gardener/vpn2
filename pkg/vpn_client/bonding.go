@@ -8,7 +8,6 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"os/exec"
 
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
@@ -56,8 +55,14 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		}
 
 		log.Info("creating new tap device", "link", linkName)
-		cmd := exec.CommandContext(ctx, "openvpn", "--mktun", "--dev", linkName) // #nosec: G204 -- linkName is fairly static (see above) pointing to tap0/tap1.
-		err = cmd.Run()
+		linkDev := &netlink.Tuntap{
+			LinkAttrs: netlink.LinkAttrs{
+				Name: linkName,
+			},
+			Mode: netlink.TUNTAP_MODE_TAP,
+		}
+
+		err = netlink.LinkAdd(linkDev)
 		if err != nil {
 			return err
 		}

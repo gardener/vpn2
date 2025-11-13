@@ -90,7 +90,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 			timeout: 2 * time.Second,
 			retries: 1,
 		},
-		ticker:             time.NewTicker(2 * time.Second),
+		ticker:             time.NewTicker(constants.PathControllerUpdateInterval),
 		kubeAPIServerPodIP: podIP,
 		netRouter:          netlinkRouter,
 		checkedNet:         checkNetworks[0].ToIPNet(),
