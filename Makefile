@@ -102,7 +102,7 @@ test-docker:
 		-v $(REPO_ROOT):/src \
 		-w /src \
 		golang:1.25.2 \
-		go test ./...
+		go test -p 1 ./...
 
 .PHONY: build
 build: build-vpn-server build-vpn-client
