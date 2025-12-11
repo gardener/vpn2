@@ -75,26 +75,38 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		return err
 	}
 
-	tap0Link, err := netlink.LinkByName(constants.TapDevice)
-	if err != nil {
-		return fmt.Errorf("failed to get link %s: %w", constants.TapDevice, err)
-	}
-
 	// create bond device
 	linkAttrs := netlink.NewLinkAttrs()
 	bond := netlink.NewLinkBond(linkAttrs)
-	// use bonding
-	// - with active-backup mode
-	// - monitoring with use_carrier=1
-	// - using `primary tap0` to avoid ambiguity of selection if multiple devices are up (primary_reselect=always by default)
-	// - using `num_grat_arp 5` as safeguard on switching device
 	bond.Name = constants.BondDevice
-	bond.Mode = netlink.BOND_MODE_ACTIVE_BACKUP
-	bond.FailOverMac = netlink.BOND_FAIL_OVER_MAC_ACTIVE
-	bond.Miimon = 100
-	bond.UseCarrier = 1
-	bond.Primary = tap0Link.Attrs().Index
-	bond.NumPeerNotif = 5
+
+	// FeatureGate: VpnBondingModeRoundRobin
+	switch cfg.BondingMode {
+	case constants.BondingModeActiveBackup:
+		tap0Link, err := netlink.LinkByName(constants.TapDevice)
+		if err != nil {
+			return fmt.Errorf("failed to get link %s: %w", constants.TapDevice, err)
+		}
+		// use bonding
+		// - with active-backup mode
+		// - monitoring with use_carrier=1
+		// - using `primary tap0` to avoid ambiguity of selection if multiple devices are up (primary_reselect=always by default)
+		// - using `num_grat_arp 5` as safeguard on switching device
+		bond.Mode = netlink.BOND_MODE_ACTIVE_BACKUP
+		bond.FailOverMac = netlink.BOND_FAIL_OVER_MAC_ACTIVE
+		bond.Miimon = 100
+		bond.UseCarrier = 1
+		bond.Primary = tap0Link.Attrs().Index
+		bond.NumPeerNotif = 5
+	case constants.BondingModeBalanceRR:
+		// use bonding
+		// - with round-robin mode
+		// - monitoring with miimon of 100ms
+		bond.Mode = netlink.BOND_MODE_BALANCE_RR
+		bond.Miimon = 100
+	default:
+		return fmt.Errorf("unsupported bonding mode: %s", cfg.BondingMode)
+	}
 
 	log.Info("creating new bond device", "link", constants.BondDevice)
 	if err = netlink.LinkAdd(bond); err != nil {

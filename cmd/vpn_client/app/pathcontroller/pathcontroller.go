@@ -87,8 +87,8 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	router := &clientRouter{
 		pinger: &icmpPinger{
 			log:     log.WithName("ping"),
-			timeout: 2 * time.Second,
-			retries: 1,
+			timeout: 1 * time.Second,
+			retries: 4,
 		},
 		ticker:             time.NewTicker(constants.PathControllerUpdateInterval),
 		kubeAPIServerPodIP: podIP,

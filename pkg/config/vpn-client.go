@@ -38,6 +38,7 @@ type VPNClient struct {
 	HAVPNServers         uint          `env:"HA_VPN_SERVERS"`
 	PodLabelSelector     string        `env:"POD_LABEL_SELECTOR" envDefault:"app=kubernetes,role=apiserver"`
 	WaitTime             time.Duration `env:"WAIT_TIME" envDefault:"2s"`
+	BondingMode          string        `env:"BONDING_MODE" envDefault:"active-backup"`
 }
 
 func (v VPNClient) PrimaryIPFamily() string {
@@ -72,6 +73,9 @@ func GetVPNClientConfig() (VPNClient, error) {
 		}
 		if cfg.HAVPNClients > 0 && cfg.HAVPNServers == 0 {
 			return VPNClient{}, fmt.Errorf("HA_VPN_CLIENTS is set to %d but HA_VPN_SERVERS is set to 0", cfg.HAVPNClients)
+		}
+		if slices.Contains(constants.BondingModes, cfg.BondingMode) == false {
+			return VPNClient{}, fmt.Errorf("BONDING_MODE must be one of %v, but is set to %q", constants.BondingModes, cfg.BondingMode)
 		}
 	}
 

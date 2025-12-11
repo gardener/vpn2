@@ -114,6 +114,7 @@ var _ = Describe("Controller Run", Serial, func() {
 			HAVPNServers:   uint(2),
 			VPNNetwork:     network.ParseIPNetIgnoreError(constants.DefaultVPNNetwork.String()),
 			VPNClientIndex: 0,
+			BondingMode:    constants.BondingModeActiveBackup,
 		}
 		_ = exec.Command("mkdir", "-p", "/dev/net").Run()
 		_ = exec.Command("mknod", "/dev/net/tun", "c", "10", "200").Run()

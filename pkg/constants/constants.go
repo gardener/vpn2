@@ -24,6 +24,9 @@ const (
 	// VPNNetworkMask is the required prefix size for the VPN network.
 	VPNNetworkMask = 96
 
+	BondingModeActiveBackup = "active-backup"
+	BondingModeBalanceRR    = "balance-rr"
+
 	ShootPodNetworkMapped     = constants.ReservedShootPodNetworkMappedRange
 	ShootServiceNetworkMapped = constants.ReservedShootServiceNetworkMappedRange
 	ShootNodeNetworkMapped    = constants.ReservedShootNodeNetworkMappedRange
@@ -34,6 +37,9 @@ const (
 
 	EnvoyVPNGroupId = constants.EnvoyVPNGroupId
 )
+
+// BondingModes are the supported bonding modes for the HA VPN.
+var BondingModes = []string{BondingModeActiveBackup, BondingModeBalanceRR}
 
 // DefaultVPNNetwork is the default IPv6 transfer network used by VPN.
 var DefaultVPNNetwork net.IPNet

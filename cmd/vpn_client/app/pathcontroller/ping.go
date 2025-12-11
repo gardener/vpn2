@@ -33,12 +33,12 @@ const echoPayload = "HELLO-R-U-THERE"
 
 func (p *icmpPinger) Ping(client net.IP) error {
 	var err error
-	for i := 0; i < 1+p.retries; i++ {
-		err = p.pingWithTimer(client)
+	for i := 1; i <= p.retries+1; i++ {
+		err = p.pingWithTimer(client, i)
 		if err == nil {
 			break
 		}
-		if i == 0 {
+		if i == 1 {
 			go func() {
 				// send neighbor solicitation to speed up discovery the link-layer address of a neighbor
 				p.log.Info("sending neighbor solicitation", "ip", client.String())
@@ -54,7 +54,8 @@ func (p *icmpPinger) Ping(client net.IP) error {
 	return err
 }
 
-func (p *icmpPinger) pingWithTimer(client net.IP) error {
+func (p *icmpPinger) pingWithTimer(client net.IP, try int) error {
+	tries := p.retries + 1
 	timer := time.Now()
 	err := p.ping(client)
 
@@ -66,7 +67,7 @@ func (p *icmpPinger) pingWithTimer(client net.IP) error {
 			if errors.As(err, &neterr) && neterr.Timeout() {
 				err = fmt.Errorf("i/o timeout")
 			}
-			p.log.Info("ping failed", "ip", client, "duration", fmt.Sprintf("%dms", d.Milliseconds()), "error", err)
+			p.log.Info("ping failed", "ip", client, "duration", fmt.Sprintf("%dms", d.Milliseconds()), "error", err, "try", fmt.Sprintf("%d/%d", try, tries))
 		}
 	}
 	return err
