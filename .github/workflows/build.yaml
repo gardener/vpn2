@@ -81,7 +81,6 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: gardener/cc-utils/.github/actions/oci-auth@master
       - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
       - name: run-test
         run: |
