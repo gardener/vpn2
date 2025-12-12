@@ -82,8 +82,6 @@ jobs:
       id-token: write
     steps:
       - uses: gardener/cc-utils/.github/actions/oci-auth@master
-        with:
-          oci-image-reference: europe-docker.pkg.dev/gardener-project
       - uses: gardener/cc-utils/.github/actions/trusted-checkout@master
       - name: run-test
         run: |
