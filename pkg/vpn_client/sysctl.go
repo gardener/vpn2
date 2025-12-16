@@ -6,23 +6,28 @@ package vpn_client
 
 import (
 	"fmt"
+	"strconv"
 
-	"github.com/cilium/cilium/pkg/sysctl"
 	"github.com/go-logr/logr"
+	"github.com/lorenzosaino/go-sysctl"
 
 	"github.com/gardener/vpn2/pkg/config"
 )
 
 // EnableIPv6Networking enables IPv6 networking on the system.
 func EnableIPv6Networking(log logr.Logger) error {
-	value, err := sysctl.ReadInt("net.ipv6.conf.all.disable_ipv6")
+	strVal, err := sysctl.Get("net.ipv6.conf.all.disable_ipv6")
 	if err != nil {
 		return fmt.Errorf("failed to read net.ipv6.conf.all.disable_ipv6: %w", err)
+	}
+	value, err := strconv.ParseInt(strVal, 10, 64)
+	if err != nil {
+		return fmt.Errorf("failed to parse net.ipv6.conf.all.disable_ipv6 value %q: %w", strVal, err)
 	}
 	if value == 1 {
 		log.Info("IPv6 networking is disabled in the pod, trying to enable it")
 		// Enable IPv6 networking on the system (needed for GKE clusters)
-		if err := sysctl.Disable("net.ipv6.conf.all.disable_ipv6"); err != nil {
+		if err := sysctl.Set("net.ipv6.conf.all.disable_ipv6", "0"); err != nil {
 			return fmt.Errorf("failed to enable IPv6 networking: %w (hint: container may need to be privileged)", err)
 		}
 		log.Info("IPv6 networking enabled")
@@ -37,11 +42,11 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	}
 
 	// Enable IPv4 forwarding on the system.
-	if err := sysctl.Enable("net.ipv4.ip_forward"); err != nil {
+	if err := sysctl.Set("net.ipv4.ip_forward", "1"); err != nil {
 		return err
 	}
 	// Enable IPv6 forwarding on the system.
-	if err := sysctl.Enable("net.ipv6.conf.all.forwarding"); err != nil {
+	if err := sysctl.Set("net.ipv6.conf.all.forwarding", "1"); err != nil {
 		return err
 	}
 	return nil
