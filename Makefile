@@ -98,10 +98,10 @@ test:
 
 .PHONY: test-docker
 test-docker:
-	@docker run --rm --cap-add NET_ADMIN --cap-add MKNOD \
+	@docker run --rm --cap-add NET_ADMIN --cap-add MKNOD --privileged \
 		-v $(REPO_ROOT):/src \
 		-w /src \
-		golang:1.25.2 \
+		golang:1.25.5 \
 		go test -p 1 ./...
 
 .PHONY: build
