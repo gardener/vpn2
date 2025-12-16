@@ -3,7 +3,6 @@ package vpn_client
 import (
 	"context"
 	"os/exec"
-	"testing"
 
 	"github.com/gardener/gardener/pkg/logger"
 	"github.com/go-logr/logr"
@@ -17,11 +16,6 @@ import (
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 )
-
-func TestBonding(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Bonding Suite")
-}
 
 var _ = Describe("ConfigureBonding", Serial, func() {
 	var (

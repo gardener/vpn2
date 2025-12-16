@@ -1,8 +1,6 @@
 package vpn_client
 
 import (
-	"testing"
-
 	"github.com/go-logr/logr"
 	"github.com/lorenzosaino/go-sysctl"
 	. "github.com/onsi/ginkgo/v2"
@@ -10,11 +8,6 @@ import (
 
 	"github.com/gardener/vpn2/pkg/config"
 )
-
-func TestSysctl(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Sysctl Suite")
-}
 
 var _ = Describe("EnableIPv6Networking", func() {
 	var (
