@@ -57,7 +57,7 @@ RUN    cp -d /lib/ld-musl-* ./lib                                           && e
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo package iptables
 
 RUN if [ "$DEBUG" = "true" ]; then \
-       apk add --update net-tools tcpdump ndisc6 iputils-tracepath curl \
+       apk add --update net-tools tcpdump ndisc6 iputils-tracepath curl iproute2-tc \
        && cp -d /usr/lib/libpcap* ./usr/lib                                 && echo package tcpdump \
        && cp -d /usr/lib/libcurl* ./usr/lib                                 && echo package curl \
        && cp -d /usr/lib/libcares* ./usr/lib                                && echo package curl \
