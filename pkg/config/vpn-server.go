@@ -49,9 +49,10 @@ func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 		if cfg.HAVPNClients <= 0 {
 			return VPNServer{}, fmt.Errorf("IS_HA is set to true but HA_VPN_CLIENTS is not set or invalid")
 		}
-		if cfg.StatusPath == "" {
-			return VPNServer{}, fmt.Errorf("IS_HA is set to true but OPENVPN_STATUS_PATH is not set")
-		}
+	}
+
+	if cfg.StatusPath == "" {
+		return VPNServer{}, fmt.Errorf("OPENVPN_STATUS_PATH is not set")
 	}
 
 	log.Info("config parsed", "config", cfg)

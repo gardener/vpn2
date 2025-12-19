@@ -52,6 +52,7 @@ func NewCommand() *cobra.Command {
 	verflag.AddFlags(flags)
 	cmd.AddCommand(firewallCommand())
 	cmd.AddCommand(exporterCommand())
+	cmd.AddCommand(readinessCommand())
 	cmd.AddCommand(setup.NewCommand())
 	cmd.PersistentFlags().BoolVar(&pprofEnabled, "enable-pprof", false, "enable pprof for profiling")
 	return cmd
