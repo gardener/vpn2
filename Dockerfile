@@ -62,6 +62,7 @@ RUN if [ "$DEBUG" = "true" ]; then \
        && cp -d /usr/lib/libcurl* ./usr/lib                                 && echo package curl \
        && cp -d /usr/lib/libcares* ./usr/lib                                && echo package curl \
        && cp -d /usr/lib/libnghttp2* ./usr/lib                              && echo package curl \
+       && cp -d /usr/lib/libnghttp3* ./usr/lib                              && echo package curl \
        && cp -d /usr/lib/libidn2* ./usr/lib                                 && echo package curl \
        && cp -d /usr/lib/libpsl* ./usr/lib                                  && echo package curl \
        && cp -d /usr/lib/libbrotlidec* ./usr/lib                            && echo package curl \

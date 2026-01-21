@@ -53,8 +53,9 @@ func generateConfigForClientFromServer(cfg SeedServerValues) (string, error) {
 }
 
 const (
-	openvpnClientConfigDir    = "/client-config-dir"
-	openvpnClientConfigPrefix = "vpn-shoot-client"
+	clientConfigDir   = "/client-config-dir"
+	ShootClientPrefix = "vpn-shoot-client"
+	SeedClientPrefix  = "vpn-seed-client"
 )
 
 func WriteServerConfigFiles(v SeedServerValues) error {
@@ -70,17 +71,17 @@ func WriteServerConfigFiles(v SeedServerValues) error {
 	if err != nil {
 		return fmt.Errorf("error %w: Could not generate shoot client config from %v", err, v)
 	}
-	err = os.Mkdir(openvpnClientConfigDir, 0750)
+	err = os.Mkdir(clientConfigDir, 0750)
 	if err != nil && !os.IsExist(err) {
 		return err
 	}
-	if err := os.WriteFile(path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), []byte(vpnShootClientConfig), defaultConfigFilePermissions); err != nil {
+	if err := os.WriteFile(path.Join(clientConfigDir, ShootClientPrefix), []byte(vpnShootClientConfig), defaultConfigFilePermissions); err != nil {
 		return err
 	}
 
 	if v.IsHA {
 		for i := 0; i < v.HAVPNClients; i++ {
-			if err := os.WriteFile(fmt.Sprintf("%s-%d", path.Join(openvpnClientConfigDir, openvpnClientConfigPrefix), i), []byte(""), defaultConfigFilePermissions); err != nil {
+			if err := os.WriteFile(fmt.Sprintf("%s-%d", path.Join(clientConfigDir, ShootClientPrefix), i), []byte(""), defaultConfigFilePermissions); err != nil {
 				return err
 			}
 		}

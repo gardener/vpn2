@@ -137,6 +137,15 @@ var _ = Describe("GetVPNServerConfig", func() {
 			},
 			expectedError: true,
 		}),
+		Entry("Non-HA configuration should fail if OPENVPN_STATUS_PATH is missing", testCase{
+			envVars: map[string]string{
+				"IS_HA":               "false",
+				"HA_VPN_CLIENTS":      "0",
+				"POD_NAME":            "test-pod",
+				"OPENVPN_STATUS_PATH": "",
+			},
+			expectedError: true,
+		}),
 		Entry("missing VPN_NETWORK should yield default", testCase{
 			envVars: map[string]string{
 				"VPN_NETWORK": "",
