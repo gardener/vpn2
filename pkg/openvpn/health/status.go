@@ -12,6 +12,7 @@ import (
 	"net/netip"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -100,11 +101,11 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 				}
 				ipv6 := net.ParseIP(parts[4])
 				if ipv6 == nil {
-					return nil, fmt.Errorf("invalid IPv6 address: %s", parts[4])
+					return nil, fmt.Errorf("CLIENT_LIST: can't parse virtual client address: %s", parts[4])
 				}
-				realAddress, err := netip.ParseAddrPort(parts[2])
+				realAddress, err := parseRealClientAddress(parts[2])
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("CLIENT_LIST: can't parse real client address: %s (%w)", parts[2], err)
 				}
 				bytesReceived, err := strconv.ParseUint(parts[5], 10, 64)
 				if err != nil {
@@ -137,9 +138,9 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 				if err != nil {
 					return nil, err
 				}
-				realAddress, err := netip.ParseAddrPort(parts[3])
+				realAddress, err := parseRealClientAddress(parts[3])
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("ROUTING_TABLE: can't parse real client address: %s (%w)", parts[2], err)
 				}
 
 				status.RoutingTable = append(status.RoutingTable, RoutingEntry{
@@ -217,4 +218,42 @@ func isReady(status *OpenVPNStatus, isHA bool) bool {
 		}
 	}
 	return false
+}
+
+// parseRealClientAddress parses a real client address string in the format "IP:Port".
+func parseRealClientAddress(addrStr string) (netip.AddrPort, error) {
+	// In OpenVPN 2.6 the address can be in two different formats:
+	// - IPv4:Port (e.g., 192.168.0.1:1234
+	// - IPv6 (e.g., 2001:db8::1) (no port)
+	// In OpenVPN 2.7 the format is always IP:Port, even for IPv6 (e.g., [2001:db8::1]:1234) but it may be prefixed by
+	// the protocol (e.g., udp6:[2001:db8::1]:1234)
+	// See https://github.com/OpenVPN/openvpn/issues/963
+
+	// Parse using regexp to handle both formats
+	regex := `^(?:(?:udp|tcp)(?:4|6)?\:)?(\[?[a-fA-F0-9:.]+\]?)?(?::(\d+))?$`
+	re := regexp.MustCompile(regex)
+	matches := re.FindStringSubmatch(addrStr)
+	if len(matches) == 0 {
+		return netip.AddrPort{}, fmt.Errorf("invalid address format: %s", addrStr)
+	}
+
+	ipStr := matches[1]
+	portStr := matches[2]
+
+	// [2001:db8::1]:1234 case
+	if portStr != "" {
+		return netip.ParseAddrPort(fmt.Sprintf("%s:%s", ipStr, portStr))
+	}
+
+	// 192.168.0.1:1234 case
+	addrPort, err := netip.ParseAddrPort(ipStr)
+	if err != nil {
+		// No port case (OpenVPN 2.6 IPv6 without port)
+		ip, err := netip.ParseAddr(ipStr)
+		if err != nil {
+			return netip.AddrPort{}, err
+		}
+		return netip.AddrPortFrom(ip, 0), nil
+	}
+	return addrPort, nil
 }
