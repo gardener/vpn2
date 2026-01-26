@@ -57,8 +57,18 @@ var _ = Describe("OpenVPN Server Status", func() {
 		It("should have three clients", func() {
 			Expect(len(status.Clients)).To(Equal(3))
 		})
+		It("should have parsed clients correctly", func() {
+			Expect(status.Clients[0].RealAddress.Addr().String()).To(Equal("100.64.3.32"))
+			Expect(status.Clients[1].RealAddress.Addr().String()).To(Equal("100.64.6.31"))
+			Expect(status.Clients[2].RealAddress.Addr().String()).To(Equal("100.64.8.48"))
+		})
 		It("should have routing entries", func() {
 			Expect(len(status.RoutingTable)).To(BeNumerically(">", 0))
+		})
+		It("should have parsed routing entries correctly", func() {
+			Expect(status.RoutingTable[0].RealAddress.Addr().String()).To(Equal("100.64.3.32"))
+			Expect(status.RoutingTable[1].RealAddress.Addr().String()).To(Equal("100.64.6.31"))
+			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("100.64.8.48"))
 		})
 		It("should not be ready (non-HA)", func() {
 			Expect(isReady(status, false)).To(BeFalse())
@@ -82,8 +92,92 @@ var _ = Describe("OpenVPN Server Status", func() {
 		It("should have five clients", func() {
 			Expect(len(status.Clients)).To(Equal(5))
 		})
+		It("should have parsed clients correctly", func() {
+			Expect(status.Clients[0].RealAddress.Addr().String()).To(Equal("100.64.3.32"))
+			Expect(status.Clients[1].RealAddress.Addr().String()).To(Equal("100.64.6.31"))
+			Expect(status.Clients[2].RealAddress.Addr().String()).To(Equal("100.64.8.48"))
+			Expect(status.Clients[3].RealAddress.Addr().String()).To(Equal("100.64.2.43"))
+			Expect(status.Clients[4].RealAddress.Addr().String()).To(Equal("100.64.4.4"))
+		})
 		It("should have routing entries", func() {
 			Expect(len(status.RoutingTable)).To(BeNumerically(">", 0))
+		})
+		It("should have parsed routing entries correctly", func() {
+			Expect(status.RoutingTable[0].RealAddress.Addr().String()).To(Equal("100.64.3.32"))
+			Expect(status.RoutingTable[1].RealAddress.Addr().String()).To(Equal("100.64.6.31"))
+			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("100.64.8.48"))
+			Expect(status.RoutingTable[3].RealAddress.Addr().String()).To(Equal("100.64.2.43"))
+			Expect(status.RoutingTable[4].RealAddress.Addr().String()).To(Equal("100.64.4.4"))
+		})
+		It("should be ready (non-HA)", func() {
+			Expect(isReady(status, false)).To(BeTrue())
+		})
+		It("should be ready (HA)", func() {
+			Expect(isReady(status, true)).To(BeTrue())
+		})
+	})
+
+	Context("server with both seed and shoot clients (IPv6)", func() {
+		BeforeEach(func() {
+			status, err = ParseFile(`test/openvpn-ready-ipv6.status`)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).ToNot(BeNil())
+			status.UpdatedAt = time.Now().Add(-2 * time.Second)
+		})
+
+		It("should report vpn-server as up", func() {
+			Expect(isUp(status, 15)).To(BeTrue())
+		})
+		It("should have three clients", func() {
+			Expect(len(status.Clients)).To(Equal(3))
+		})
+		It("should have parsed clients correctly", func() {
+			Expect(status.Clients[0].RealAddress.Addr().String()).To(Equal("fd00:10:1::2"))
+			Expect(status.Clients[1].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::4"))
+			Expect(status.Clients[2].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::5"))
+		})
+		It("should have routing entries", func() {
+			Expect(len(status.RoutingTable)).To(BeNumerically(">", 0))
+		})
+		It("should have parsed routing entries correctly", func() {
+			Expect(status.RoutingTable[0].RealAddress.Addr().String()).To(Equal("fd00:10:1::2"))
+			Expect(status.RoutingTable[1].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::4"))
+			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::5"))
+		})
+		It("should be ready (non-HA)", func() {
+			Expect(isReady(status, false)).To(BeTrue())
+		})
+		It("should be ready (HA)", func() {
+			Expect(isReady(status, true)).To(BeTrue())
+		})
+	})
+
+	Context("2.7 server with both seed and shoot clients (IPv6)", func() {
+		BeforeEach(func() {
+			status, err = ParseFile(`test/openvpn27-ready-ipv6.status`)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).ToNot(BeNil())
+			status.UpdatedAt = time.Now().Add(-2 * time.Second)
+		})
+
+		It("should report vpn-server as up", func() {
+			Expect(isUp(status, 15)).To(BeTrue())
+		})
+		It("should have three clients", func() {
+			Expect(len(status.Clients)).To(Equal(3))
+		})
+		It("should have parsed clients correctly", func() {
+			Expect(status.Clients[0].RealAddress.Addr().String()).To(Equal("fd00:10:1::2"))
+			Expect(status.Clients[1].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::4"))
+			Expect(status.Clients[2].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::5"))
+		})
+		It("should have routing entries", func() {
+			Expect(len(status.RoutingTable)).To(BeNumerically(">", 0))
+		})
+		It("should have parsed routing entries correctly", func() {
+			Expect(status.RoutingTable[0].RealAddress.Addr().String()).To(Equal("fd00:10:1::2"))
+			Expect(status.RoutingTable[1].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::4"))
+			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::5"))
 		})
 		It("should be ready (non-HA)", func() {
 			Expect(isReady(status, false)).To(BeTrue())
@@ -107,8 +201,14 @@ var _ = Describe("OpenVPN Server Status", func() {
 		It("should have one client", func() {
 			Expect(len(status.Clients)).To(Equal(1))
 		})
+		It("should have parsed the client correctly", func() {
+			Expect(status.Clients[0].RealAddress.Addr().String()).To(Equal("100.64.7.6"))
+		})
 		It("should have routing entries", func() {
 			Expect(len(status.RoutingTable)).To(BeNumerically(">", 0))
+		})
+		It("should have parsed routing entries correctly", func() {
+			Expect(status.RoutingTable[0].RealAddress.Addr().String()).To(Equal("100.64.7.6"))
 		})
 		It("should be ready (non-HA)", func() {
 			Expect(isReady(status, false)).To(BeTrue())
