@@ -16,24 +16,24 @@ import (
 	"github.com/gardener/vpn2/pkg/utils"
 )
 
-func readinessCommand() *cobra.Command {
+func livenessCommand() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "readiness",
-		Short: "readiness",
+		Use:   "liveness",
+		Short: "liveness",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, _ []string) error {
-			log, err := utils.InitRun(cmd, Name+"-readiness")
+			log, err := utils.InitRun(cmd, Name+"-liveness")
 			if err != nil {
 				return err
 			}
-			return runReadiness(log)
+			return runLiveness(log)
 		},
 	}
 
 	return cmd
 }
 
-func runReadiness(log logr.Logger) error {
+func runLiveness(log logr.Logger) error {
 	cfg, err := config.GetVPNServerConfig(log)
 	if err != nil {
 		return fmt.Errorf("could not parse environment")
@@ -42,7 +42,7 @@ func runReadiness(log logr.Logger) error {
 	healthCfg.OpenVPNStatusPath = cfg.StatusPath
 	healthCfg.IsHA = cfg.IsHA
 
-	if !health.IsReady(healthCfg, log) {
+	if !health.IsAlive(healthCfg, log) {
 		os.Exit(1)
 	}
 	return nil
