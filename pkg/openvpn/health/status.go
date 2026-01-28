@@ -17,6 +17,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
+
 	"github.com/gardener/vpn2/pkg/openvpn"
 )
 
@@ -140,7 +142,7 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 				}
 				realAddress, err := parseRealClientAddress(parts[3])
 				if err != nil {
-					return nil, fmt.Errorf("ROUTING_TABLE: can't parse real client address: %s (%w)", parts[2], err)
+					return nil, fmt.Errorf("ROUTING_TABLE: can't parse real client address: %s (%w)", parts[3], err)
 				}
 
 				status.RoutingTable = append(status.RoutingTable, RoutingEntry{
@@ -169,17 +171,24 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 }
 
 // isUp checks if the OpenVPN server is considered "up" based on the last update time.
-func isUp(status *OpenVPNStatus, updateInterval int) bool {
+func isUp(log logr.Logger, status *OpenVPNStatus, updateInterval int) bool {
 	if status == nil {
 		return false
 	}
+	lastUpdate := time.Since(status.UpdatedAt)
+	expectedUpdate := time.Duration(updateInterval+2) * time.Second
+	alive := lastUpdate <= expectedUpdate
+	if !alive {
+		log.Info("OpenVPN status is stale", "lastUpdate", lastUpdate.String(), "expectedUpdate", expectedUpdate.String())
+	}
 	// We assume OpenVPN is dead if it hasn't been updated in updateInterval + 2 seconds
-	return time.Since(status.UpdatedAt) <= time.Duration(updateInterval+2)*time.Second
+	return alive
 }
 
 // isReady checks if the OpenVPN server is considered "ready" based on the number of connected clients.
-func isReady(status *OpenVPNStatus, isHA bool) bool {
+func isReady(log logr.Logger, status *OpenVPNStatus, isHA bool) bool {
 	if status == nil {
+		log.Info("OpenVPN status is nil", "isHA", isHA)
 		return false
 	}
 
@@ -187,6 +196,7 @@ func isReady(status *OpenVPNStatus, isHA bool) bool {
 	if isHA {
 		// We need at least 2 connected clients to be considered ready
 		if len(status.Clients) < 2 {
+			log.Info("Not enough connected clients for HA mode", "connectedClients", len(status.Clients), "isHA", isHA)
 			return false
 		}
 		// We need at least 1 client from the seed and one from the shoot side
@@ -203,7 +213,12 @@ func isReady(status *OpenVPNStatus, isHA bool) bool {
 			}
 		}
 
-		return foundSeedClient && foundShootClient
+		ready := foundSeedClient && foundShootClient
+		if !ready {
+			log.Info("Missing required clients for HA mode", "foundSeedClient", foundSeedClient, "foundShootClient", foundShootClient, "isHA", isHA)
+		}
+
+		return ready
 	}
 
 	// In non-HA mode there are two cases:
@@ -217,6 +232,7 @@ func isReady(status *OpenVPNStatus, isHA bool) bool {
 			return true
 		}
 	}
+	log.Info("no shoot client connected yet", "connectedClients", len(status.Clients), "isHA", isHA)
 	return false
 }
 

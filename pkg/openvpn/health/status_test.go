@@ -6,11 +6,13 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
 
 var _ = Describe("OpenVPN Server Status", func() {
+	log := logr.Discard()
 	var status *OpenVPNStatus
 	var err error
 
@@ -23,11 +25,11 @@ var _ = Describe("OpenVPN Server Status", func() {
 
 		It("should report vpn-server as down if timestamp is outdated", func() {
 			status.UpdatedAt = time.Now().Add(-20 * time.Second)
-			Expect(isUp(status, 15)).To(BeFalse())
+			Expect(isUp(log, status, 15)).To(BeFalse())
 		})
 		It("should report vpn-server as up if timestamp is not outdated", func() {
 			status.UpdatedAt = time.Now().Add(-2 * time.Second)
-			Expect(isUp(status, 15)).To(BeTrue())
+			Expect(isUp(log, status, 15)).To(BeTrue())
 		})
 		It("should have zero clients", func() {
 			Expect(len(status.Clients)).To(Equal(0))
@@ -36,10 +38,10 @@ var _ = Describe("OpenVPN Server Status", func() {
 			Expect(len(status.RoutingTable)).To(Equal(0))
 		})
 		It("should be ready in non-HA mode", func() {
-			Expect(isReady(status, false)).To(BeTrue())
+			Expect(isReady(log, status, false)).To(BeTrue())
 		})
 		It("should not be ready in HA mode", func() {
-			Expect(isReady(status, true)).To(BeFalse())
+			Expect(isReady(log, status, true)).To(BeFalse())
 		})
 	})
 
@@ -52,7 +54,7 @@ var _ = Describe("OpenVPN Server Status", func() {
 		})
 
 		It("should report vpn-server as up", func() {
-			Expect(isUp(status, 15)).To(BeTrue())
+			Expect(isUp(log, status, 15)).To(BeTrue())
 		})
 		It("should have three clients", func() {
 			Expect(len(status.Clients)).To(Equal(3))
@@ -71,10 +73,10 @@ var _ = Describe("OpenVPN Server Status", func() {
 			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("100.64.8.48"))
 		})
 		It("should not be ready (non-HA)", func() {
-			Expect(isReady(status, false)).To(BeFalse())
+			Expect(isReady(log, status, false)).To(BeFalse())
 		})
 		It("should not be ready (HA)", func() {
-			Expect(isReady(status, true)).To(BeFalse())
+			Expect(isReady(log, status, true)).To(BeFalse())
 		})
 	})
 
@@ -87,7 +89,7 @@ var _ = Describe("OpenVPN Server Status", func() {
 		})
 
 		It("should report vpn-server as up", func() {
-			Expect(isUp(status, 15)).To(BeTrue())
+			Expect(isUp(log, status, 15)).To(BeTrue())
 		})
 		It("should have five clients", func() {
 			Expect(len(status.Clients)).To(Equal(5))
@@ -110,10 +112,10 @@ var _ = Describe("OpenVPN Server Status", func() {
 			Expect(status.RoutingTable[4].RealAddress.Addr().String()).To(Equal("100.64.4.4"))
 		})
 		It("should be ready (non-HA)", func() {
-			Expect(isReady(status, false)).To(BeTrue())
+			Expect(isReady(log, status, false)).To(BeTrue())
 		})
 		It("should be ready (HA)", func() {
-			Expect(isReady(status, true)).To(BeTrue())
+			Expect(isReady(log, status, true)).To(BeTrue())
 		})
 	})
 
@@ -126,7 +128,7 @@ var _ = Describe("OpenVPN Server Status", func() {
 		})
 
 		It("should report vpn-server as up", func() {
-			Expect(isUp(status, 15)).To(BeTrue())
+			Expect(isUp(log, status, 15)).To(BeTrue())
 		})
 		It("should have three clients", func() {
 			Expect(len(status.Clients)).To(Equal(3))
@@ -145,10 +147,10 @@ var _ = Describe("OpenVPN Server Status", func() {
 			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::5"))
 		})
 		It("should be ready (non-HA)", func() {
-			Expect(isReady(status, false)).To(BeTrue())
+			Expect(isReady(log, status, false)).To(BeTrue())
 		})
 		It("should be ready (HA)", func() {
-			Expect(isReady(status, true)).To(BeTrue())
+			Expect(isReady(log, status, true)).To(BeTrue())
 		})
 	})
 
@@ -161,7 +163,7 @@ var _ = Describe("OpenVPN Server Status", func() {
 		})
 
 		It("should report vpn-server as up", func() {
-			Expect(isUp(status, 15)).To(BeTrue())
+			Expect(isUp(log, status, 15)).To(BeTrue())
 		})
 		It("should have three clients", func() {
 			Expect(len(status.Clients)).To(Equal(3))
@@ -180,10 +182,10 @@ var _ = Describe("OpenVPN Server Status", func() {
 			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("fd43:7ff4:965a::5"))
 		})
 		It("should be ready (non-HA)", func() {
-			Expect(isReady(status, false)).To(BeTrue())
+			Expect(isReady(log, status, false)).To(BeTrue())
 		})
 		It("should be ready (HA)", func() {
-			Expect(isReady(status, true)).To(BeTrue())
+			Expect(isReady(log, status, true)).To(BeTrue())
 		})
 	})
 
@@ -196,7 +198,7 @@ var _ = Describe("OpenVPN Server Status", func() {
 		})
 
 		It("should report vpn-server as up", func() {
-			Expect(isUp(status, 15)).To(BeTrue())
+			Expect(isUp(log, status, 15)).To(BeTrue())
 		})
 		It("should have one client", func() {
 			Expect(len(status.Clients)).To(Equal(1))
@@ -211,10 +213,10 @@ var _ = Describe("OpenVPN Server Status", func() {
 			Expect(status.RoutingTable[0].RealAddress.Addr().String()).To(Equal("100.64.7.6"))
 		})
 		It("should be ready (non-HA)", func() {
-			Expect(isReady(status, false)).To(BeTrue())
+			Expect(isReady(log, status, false)).To(BeTrue())
 		})
 		It("should not be ready (HA)", func() {
-			Expect(isReady(status, true)).To(BeFalse())
+			Expect(isReady(log, status, true)).To(BeFalse())
 		})
 	})
 
