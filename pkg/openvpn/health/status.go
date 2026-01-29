@@ -12,9 +12,12 @@ import (
 	"net/netip"
 	"os"
 	"path"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/go-logr/logr"
 
 	"github.com/gardener/vpn2/pkg/openvpn"
 )
@@ -100,11 +103,11 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 				}
 				ipv6 := net.ParseIP(parts[4])
 				if ipv6 == nil {
-					return nil, fmt.Errorf("invalid IPv6 address: %s", parts[4])
+					return nil, fmt.Errorf("CLIENT_LIST: can't parse virtual client address: %s", parts[4])
 				}
-				realAddress, err := netip.ParseAddrPort(parts[2])
+				realAddress, err := parseRealClientAddress(parts[2])
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("CLIENT_LIST: can't parse real client address: %s (%w)", parts[2], err)
 				}
 				bytesReceived, err := strconv.ParseUint(parts[5], 10, 64)
 				if err != nil {
@@ -137,9 +140,9 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 				if err != nil {
 					return nil, err
 				}
-				realAddress, err := netip.ParseAddrPort(parts[3])
+				realAddress, err := parseRealClientAddress(parts[3])
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("ROUTING_TABLE: can't parse real client address: %s (%w)", parts[3], err)
 				}
 
 				status.RoutingTable = append(status.RoutingTable, RoutingEntry{
@@ -168,17 +171,24 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 }
 
 // isUp checks if the OpenVPN server is considered "up" based on the last update time.
-func isUp(status *OpenVPNStatus, updateInterval int) bool {
+func isUp(log logr.Logger, status *OpenVPNStatus, updateInterval int) bool {
 	if status == nil {
 		return false
 	}
+	lastUpdate := time.Since(status.UpdatedAt)
+	expectedUpdate := time.Duration(updateInterval+2) * time.Second
+	alive := lastUpdate <= expectedUpdate
+	if !alive {
+		log.Info("OpenVPN status is stale", "lastUpdate", lastUpdate.String(), "expectedUpdate", expectedUpdate.String())
+	}
 	// We assume OpenVPN is dead if it hasn't been updated in updateInterval + 2 seconds
-	return time.Since(status.UpdatedAt) <= time.Duration(updateInterval+2)*time.Second
+	return alive
 }
 
 // isReady checks if the OpenVPN server is considered "ready" based on the number of connected clients.
-func isReady(status *OpenVPNStatus, isHA bool) bool {
+func isReady(log logr.Logger, status *OpenVPNStatus, isHA bool) bool {
 	if status == nil {
+		log.Info("OpenVPN status is nil", "isHA", isHA)
 		return false
 	}
 
@@ -186,6 +196,7 @@ func isReady(status *OpenVPNStatus, isHA bool) bool {
 	if isHA {
 		// We need at least 2 connected clients to be considered ready
 		if len(status.Clients) < 2 {
+			log.Info("Not enough connected clients for HA mode", "connectedClients", len(status.Clients), "isHA", isHA)
 			return false
 		}
 		// We need at least 1 client from the seed and one from the shoot side
@@ -202,7 +213,12 @@ func isReady(status *OpenVPNStatus, isHA bool) bool {
 			}
 		}
 
-		return foundSeedClient && foundShootClient
+		ready := foundSeedClient && foundShootClient
+		if !ready {
+			log.Info("Missing required clients for HA mode", "foundSeedClient", foundSeedClient, "foundShootClient", foundShootClient, "isHA", isHA)
+		}
+
+		return ready
 	}
 
 	// In non-HA mode there are two cases:
@@ -216,5 +232,44 @@ func isReady(status *OpenVPNStatus, isHA bool) bool {
 			return true
 		}
 	}
+	log.Info("no shoot client connected yet", "connectedClients", len(status.Clients), "isHA", isHA)
 	return false
+}
+
+// parseRealClientAddress parses a real client address string in the format "IP:Port".
+func parseRealClientAddress(addrStr string) (netip.AddrPort, error) {
+	// In OpenVPN 2.6 the address can be in two different formats:
+	// - IPv4:Port (e.g., 192.168.0.1:1234
+	// - IPv6 (e.g., 2001:db8::1) (no port)
+	// In OpenVPN 2.7 the format is always IP:Port, even for IPv6 (e.g., [2001:db8::1]:1234) but it may be prefixed by
+	// the protocol (e.g., udp6:[2001:db8::1]:1234)
+	// See https://github.com/OpenVPN/openvpn/issues/963
+
+	// Parse using regexp to handle both formats
+	regex := `^(?:(?:udp|tcp)(?:4|6)?\:)?(\[?[a-fA-F0-9:.]+\]?)?(?::(\d+))?$`
+	re := regexp.MustCompile(regex)
+	matches := re.FindStringSubmatch(addrStr)
+	if len(matches) == 0 {
+		return netip.AddrPort{}, fmt.Errorf("invalid address format: %s", addrStr)
+	}
+
+	ipStr := matches[1]
+	portStr := matches[2]
+
+	// [2001:db8::1]:1234 case
+	if portStr != "" {
+		return netip.ParseAddrPort(fmt.Sprintf("%s:%s", ipStr, portStr))
+	}
+
+	// 192.168.0.1:1234 case
+	addrPort, err := netip.ParseAddrPort(ipStr)
+	if err != nil {
+		// No port case (OpenVPN 2.6 IPv6 without port)
+		ip, err := netip.ParseAddr(ipStr)
+		if err != nil {
+			return netip.AddrPort{}, err
+		}
+		return netip.AddrPortFrom(ip, 0), nil
+	}
+	return addrPort, nil
 }
