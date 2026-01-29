@@ -13,7 +13,8 @@ import (
 	"github.com/gardener/vpn2/pkg/network"
 )
 
-const defaultOpenVPNConfigFile = "/openvpn.config"
+const defaultOpenVPNServerConfigFile = "/openvpn-server.config"
+const defaultOpenVPNClientConfigFile = "/openvpn-client.config"
 const defaultConfigFilePermissions = 0o600
 
 func executeTemplate(name string, w io.Writer, templt string, data any) error {

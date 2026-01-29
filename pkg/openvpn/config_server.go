@@ -63,7 +63,7 @@ func WriteServerConfigFiles(v SeedServerValues) error {
 	if err != nil {
 		return fmt.Errorf("error %w: Could not generate openvpn config from %v", err, v)
 	}
-	if err := os.WriteFile(defaultOpenVPNConfigFile, []byte(openvpnConfig), defaultConfigFilePermissions); err != nil {
+	if err := os.WriteFile(defaultOpenVPNServerConfigFile, []byte(openvpnConfig), defaultConfigFilePermissions); err != nil {
 		return err
 	}
 

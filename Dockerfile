@@ -96,7 +96,7 @@ FROM scratch AS vpn-client
 COPY --from=base /volume /
 COPY --from=gobuilder-vpn-client /build/bin/vpn-client /bin/vpn-client
 COPY --from=gobuilder-vpn-client /build/bin/tunnel-controller /bin/tunnel-controller
-ENTRYPOINT /bin/vpn-client && openvpn --config /openvpn.config
+ENTRYPOINT /bin/vpn-client && openvpn --config /openvpn-client.config
 
 ## gobuilder-vpn-server
 FROM gobuilder AS gobuilder-vpn-server
@@ -107,4 +107,4 @@ RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-server ARCH
 FROM scratch AS vpn-server
 COPY --from=base /volume /
 COPY --from=gobuilder-vpn-server /build/bin/vpn-server /bin/vpn-server
-ENTRYPOINT /bin/vpn-server && openvpn --config /openvpn.config
+ENTRYPOINT /bin/vpn-server && openvpn --config /openvpn-server.config
