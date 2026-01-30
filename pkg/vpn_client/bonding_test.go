@@ -34,16 +34,20 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 			VPNNetwork:     network.CIDR(constants.DefaultVPNNetwork),
 			VPNClientIndex: 0,
 			HAVPNServers:   uint(2),
+			HAVPNClients:   uint(2),
 			BondingMode:    constants.BondingModeActiveBackup,
 		}
 
+		err := EnableIPv6Networking(log)
+		Expect(err).NotTo(HaveOccurred())
 		_ = exec.Command("mkdir", "-p", "/dev/net").Run()
 		_ = exec.Command("mknod", "/dev/net/tun", "c", "10", "200").Run()
 	})
 
 	Context("when configuring bonding with active-backup mode for shoot client", func() {
 		It("should successfully create bond with tap devices", func() {
-			Eventually(ConfigureBonding(ctx, log, cfg)).Should(Succeed())
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
 
 			// Verify bond device was created
 			bond, err := netlink.LinkByName(constants.BondDevice)
@@ -60,7 +64,8 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 		})
 
 		It("should set correct bond mode attributes", func() {
-			Eventually(ConfigureBonding(ctx, log, cfg)).Should(Succeed())
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
 
 			bond, err := netlink.LinkByName(constants.BondDevice)
 			Expect(err).NotTo(HaveOccurred())
@@ -71,7 +76,8 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 		})
 
 		It("should assign ip address to bond device", func() {
-			Eventually(ConfigureBonding(ctx, log, cfg)).Should(Succeed())
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
 
 			bond, err := netlink.LinkByName(constants.BondDevice)
 			Expect(err).NotTo(HaveOccurred())
@@ -88,7 +94,8 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 		})
 
 		It("should successfully create bond in balance-rr mode", func() {
-			Eventually(ConfigureBonding(ctx, log, cfg)).Should(Succeed())
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
 
 			bond, err := netlink.LinkByName(constants.BondDevice)
 			Expect(err).NotTo(HaveOccurred())
@@ -121,7 +128,8 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 		})
 
 		It("should delete and recreate bond device", func() {
-			Eventually(ConfigureBonding(ctx, log, cfg)).Should(Succeed())
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
 
 			bond, err := netlink.LinkByName(constants.BondDevice)
 			Expect(err).NotTo(HaveOccurred())
