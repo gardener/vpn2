@@ -6,17 +6,11 @@ package network
 
 import (
 	"net"
-	"testing"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"k8s.io/utils/ptr"
 )
-
-func TestNetwork(t *testing.T) {
-	RegisterFailHandler(Fail)
-	RunSpecs(t, "Netmap Suite")
-}
 
 var _ = Describe("NetmapIP", func() {
 	type testCase struct {
