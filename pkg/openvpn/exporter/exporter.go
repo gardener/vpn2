@@ -53,6 +53,14 @@ func Start(log logr.Logger, cfg Config) error {
 		return err
 	}
 
+	netstatCollector, err := NewNetStatCollector(log)
+	if err != nil {
+		return err
+	}
+	if err := prometheus.Register(netstatCollector); err != nil {
+		return err
+	}
+
 	// Use non-default mux to avoid profiling being automatically enabled
 	handler := http.NewServeMux()
 	handler.Handle(cfg.MetricsPath, promhttp.Handler())
