@@ -19,7 +19,7 @@ import (
 const (
 	// AnnotationReservedIP is the annotation key used to reserve an IP
 	AnnotationReservedIP = "ipv4.bonding.vpn.gardener.cloud/reserved"
-	// AnnotationReservedIP is the annotation key used to store an IP as used
+	// AnnotationUsedIP is the annotation key used to store an IP as used
 	AnnotationUsedIP = "ipv4.bonding.vpn.gardener.cloud/used"
 )
 
@@ -113,7 +113,7 @@ func (m *podIPPoolManager) SetIPAddress(ctx context.Context, podName, ip string,
 	if used {
 		key = AnnotationUsedIP
 	}
-	patchData := map[string]interface{}{"metadata": map[string]map[string]string{"annotations": {key: ip}}}
+	patchData := map[string]any{"metadata": map[string]map[string]string{"annotations": {key: ip}}}
 	patchBytes, err := json.Marshal(patchData)
 	if err != nil {
 		return err

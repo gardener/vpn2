@@ -61,7 +61,7 @@ func (b *ipAddressBroker) getExistingIPAddresses(ctx context.Context) (*IPPoolUs
 	return b.manager.UsageLookup(ctx, b.ownName)
 }
 
-func (b *ipAddressBroker) log(fmtstr string, args ...interface{}) {
+func (b *ipAddressBroker) log(fmtstr string, args ...any) {
 	if logName {
 		fmtstr = b.ownName + ": " + fmtstr
 	}
@@ -94,7 +94,7 @@ func (b *ipAddressBroker) announceIPAddress(ctx context.Context, used bool, look
 }
 
 func (b *ipAddressBroker) findFreeIPAddress(lookupResult *IPPoolUsageLookupResult) string {
-	for i := 0; i < 1000; i++ {
+	for range 1000 {
 		index := rand.N(b.endIndex-b.startIndex+1) + b.startIndex // #nosec: G404 -- No cryptographic context.
 		ip := make(net.IP, len(b.base))
 		copy(ip, b.base)
@@ -123,7 +123,7 @@ func (b *ipAddressBroker) hasConflict(lookupResult *IPPoolUsageLookupResult) boo
 func (b *ipAddressBroker) AcquireIP(ctx context.Context) (string, error) {
 	var err error
 	var result *IPPoolUsageLookupResult
-	for i := 0; i < 30; i++ {
+	for range 30 {
 		result, err = b.getExistingIPAddresses(ctx)
 		if err != nil {
 			return "", fmt.Errorf("existing IP address lookup failed: %w", err)

@@ -65,8 +65,7 @@ func (p *icmpPinger) pingWithTimer(client net.IP) error {
 		if err == nil {
 			p.log.Info("ping to client took more than 100ms", "ip", client, "duration", fmt.Sprintf("%dms", d.Milliseconds()))
 		} else {
-			var neterr net.Error
-			if errors.As(err, &neterr) && neterr.Timeout() {
+			if neterr, ok := errors.AsType[net.Error](err); ok && neterr.Timeout() {
 				err = fmt.Errorf("i/o timeout after %dms", d.Milliseconds())
 			}
 		}
@@ -200,8 +199,7 @@ func (p *icmpPinger) neighborSolicitation(client net.IP) error {
 	reply := make([]byte, 1500)
 	n, _, _, err := pc.ReadFrom(reply)
 	if err != nil {
-		var neterr net.Error
-		if errors.As(err, &neterr) && neterr.Timeout() {
+		if neterr, ok := errors.AsType[net.Error](err); ok && neterr.Timeout() {
 			return fmt.Errorf("i/o timeout")
 		}
 		return fmt.Errorf("error reading from socket: %w", err)

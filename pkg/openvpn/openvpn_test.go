@@ -32,14 +32,14 @@ type noLineLongerThanMatcher struct {
 	maxLength int
 }
 
-func (matcher *noLineLongerThanMatcher) Match(actual interface{}) (success bool, err error) {
+func (matcher *noLineLongerThanMatcher) Match(actual any) (success bool, err error) {
 	content, ok := actual.(string)
 	if !ok {
 		return false, fmt.Errorf("HaveNoLineLongerThan matcher expects a string")
 	}
 
-	lines := strings.Split(content, "\n")
-	for _, line := range lines {
+	lines := strings.SplitSeq(content, "\n")
+	for line := range lines {
 		if len(line) > matcher.maxLength {
 			return false, nil
 		}
@@ -47,10 +47,10 @@ func (matcher *noLineLongerThanMatcher) Match(actual interface{}) (success bool,
 	return true, nil
 }
 
-func (matcher *noLineLongerThanMatcher) FailureMessage(actual interface{}) (message string) {
+func (matcher *noLineLongerThanMatcher) FailureMessage(actual any) (message string) {
 	return fmt.Sprintf("Expected\n\t%s\nto have no line longer than %d characters", actual, matcher.maxLength)
 }
 
-func (matcher *noLineLongerThanMatcher) NegatedFailureMessage(actual interface{}) (message string) {
+func (matcher *noLineLongerThanMatcher) NegatedFailureMessage(actual any) (message string) {
 	return fmt.Sprintf("Expected\n\t%s\nto have at least one line longer than %d characters", actual, matcher.maxLength)
 }

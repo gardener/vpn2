@@ -26,8 +26,7 @@ const (
 func DeleteLinkByName(name string) error {
 	link, err := netlink.LinkByName(name)
 	if err != nil {
-		var linkNotFoundError netlink.LinkNotFoundError
-		if errors.As(err, &linkNotFoundError) {
+		if _, ok := errors.AsType[netlink.LinkNotFoundError](err); ok {
 			return nil
 		}
 		return fmt.Errorf("failed to get link %s for deletion: %w", name, err)

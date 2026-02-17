@@ -63,15 +63,13 @@ func (m *mockManager) UsageLookup(ctx context.Context, podName string) (*IPPoolU
 }
 
 func (m *mockManager) SetIPAddress(ctx context.Context, podName, ip string, used bool) error {
-	m.setWaitGroup.Add(1)
-	go func() {
+	m.setWaitGroup.Go(func() {
 		time.Sleep(baseWait / 3)
 		m.Lock()
 		defer m.Unlock()
 
 		m.data[podName] = ipdata{ip: ip, used: used}
-		m.setWaitGroup.Done()
-	}()
+	})
 
 	return nil
 }
@@ -122,7 +120,7 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 			Mask: net.CIDRMask(104, 128),
 		})
 	}
-	for i := 0; i < count; i++ {
+	for i := range count {
 		cfg := config.VPNClient{
 			VPNNetwork: vpnNetwork,
 			PodName:    podName(i),
@@ -140,7 +138,7 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 	}
 
 	var waitGroup sync.WaitGroup
-	for i := 0; i < count; i++ {
+	for i := range count {
 		waitGroup.Add(1)
 		go func(broker IPAddressBroker) {
 			ctx := context.TODO()
