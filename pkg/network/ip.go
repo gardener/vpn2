@@ -46,7 +46,7 @@ func BondingAddressForClient(ip net.IP) *net.IPNet {
 
 func AllBondingShootClientIPs(vpnNetwork *net.IPNet, haVPNClients int) []net.IP {
 	ips := make([]net.IP, haVPNClients)
-	for i := 0; i < haVPNClients; i++ {
+	for i := range haVPNClients {
 		ips[i] = BondingShootClientIP(vpnNetwork, i)
 	}
 	return ips

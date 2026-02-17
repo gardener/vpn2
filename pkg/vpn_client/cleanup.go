@@ -21,7 +21,7 @@ func Cleanup(log logr.Logger, values openvpn.ClientValues) error {
 	// Remove any IPv6 address assigned to the VPN device. It will be reassigned by openvpn on the next connection.
 	tuntap, err := netlink.LinkByName(values.Device)
 	if err != nil {
-		if errors.As(err, &netlink.LinkNotFoundError{}) {
+		if _, ok := errors.AsType[netlink.LinkNotFoundError](err); ok {
 			log.Info("VPN device not found, nothing to clean up", "device", values.Device)
 			return nil
 		}

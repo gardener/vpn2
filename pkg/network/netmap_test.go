@@ -9,7 +9,6 @@ import (
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
-	"k8s.io/utils/ptr"
 )
 
 var _ = Describe("NetmapIP", func() {
@@ -252,31 +251,31 @@ var _ = Describe("ShootNetworksForNetmap", func() {
 		Expect(len(nodeMap)).To(Equal(4))
 		// Verify the correct mapping
 		Expect(podMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.1.0.0/16")),
+			new(ParseIPNetIgnoreError("10.1.0.0/16")),
 			ParseIPNetIgnoreError("244.0.0.0/16"),
 		))
 		Expect(podMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.2.0.0/24")),
+			new(ParseIPNetIgnoreError("10.2.0.0/24")),
 			ParseIPNetIgnoreError("244.1.0.0/24"),
 		))
 		Expect(svcMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.3.0.0/16")),
+			new(ParseIPNetIgnoreError("10.3.0.0/16")),
 			ParseIPNetIgnoreError("243.0.0.0/16"),
 		))
 		Expect(nodeMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.96.0.0/11")),
+			new(ParseIPNetIgnoreError("10.96.0.0/11")),
 			ParseIPNetIgnoreError("242.0.0.0/11"),
 		))
 		Expect(nodeMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.128.0.0/12")),
+			new(ParseIPNetIgnoreError("10.128.0.0/12")),
 			ParseIPNetIgnoreError("242.32.0.0/12"),
 		))
 		Expect(nodeMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.219.45.0/26")),
+			new(ParseIPNetIgnoreError("10.219.45.0/26")),
 			ParseIPNetIgnoreError("242.48.0.0/26"),
 		))
 		Expect(nodeMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.219.45.64/26")),
+			new(ParseIPNetIgnoreError("10.219.45.64/26")),
 			ParseIPNetIgnoreError("242.48.0.64/26"),
 		))
 		// Verify none of the mapped networks overlap
@@ -320,15 +319,15 @@ var _ = Describe("ShootNetworksForNetmap", func() {
 		Expect(len(nodeMap)).To(Equal(1))
 		// Verify the correct mapping
 		Expect(podMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.10.0.0/16")),
+			new(ParseIPNetIgnoreError("10.10.0.0/16")),
 			ParseIPNetIgnoreError("244.0.0.0/16"),
 		))
 		Expect(svcMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.20.0.0/16")),
+			new(ParseIPNetIgnoreError("10.20.0.0/16")),
 			ParseIPNetIgnoreError("243.0.0.0/16"),
 		))
 		Expect(nodeMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.30.0.0/24")),
+			new(ParseIPNetIgnoreError("10.30.0.0/24")),
 			ParseIPNetIgnoreError("242.0.0.0/24"),
 		))
 	})
@@ -340,19 +339,19 @@ var _ = Describe("ShootNetworksForNetmap", func() {
 		Expect(err).To(Not(HaveOccurred()))
 		// Verify the correct mapping
 		Expect(podMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.1.0.0/30")),
+			new(ParseIPNetIgnoreError("10.1.0.0/30")),
 			ParseIPNetIgnoreError("244.0.0.0/30"),
 		))
 		Expect(svcMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.2.0.2/31")),
+			new(ParseIPNetIgnoreError("10.2.0.2/31")),
 			ParseIPNetIgnoreError("243.0.0.0/31"),
 		))
 		Expect(nodeMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("10.3.0.15/32")),
+			new(ParseIPNetIgnoreError("10.3.0.15/32")),
 			ParseIPNetIgnoreError("242.0.0.0/32"),
 		))
 		Expect(nodeMap).To(HaveKeyWithValue(
-			ptr.To(ParseIPNetIgnoreError("100.1.12.3/32")),
+			new(ParseIPNetIgnoreError("100.1.12.3/32")),
 			ParseIPNetIgnoreError("242.0.0.1/32"),
 		))
 	})
