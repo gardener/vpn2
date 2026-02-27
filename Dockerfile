@@ -57,7 +57,7 @@ RUN    cp -d /lib/ld-musl-* ./lib                                           && e
     && cp -d /usr/lib/xtables/* ./usr/lib/xtables                           && echo package iptables
 
 RUN if [ "$DEBUG" = "true" ]; then \
-       apk add --update net-tools tcpdump ndisc6 iputils-tracepath curl iproute2-tc \
+       apk add --update net-tools tcpdump ndisc6 iputils-tracepath curl iproute2-tc iperf3 \
        && cp -d /usr/lib/libpcap* ./usr/lib                                 && echo package tcpdump \
        && cp -d /usr/lib/libcurl* ./usr/lib                                 && echo package curl \
        && cp -d /usr/lib/libcares* ./usr/lib                                && echo package curl \
@@ -68,6 +68,7 @@ RUN if [ "$DEBUG" = "true" ]; then \
        && cp -d /usr/lib/libbrotlidec* ./usr/lib                            && echo package curl \
        && cp -d /usr/lib/libbrotlicommon* ./usr/lib                         && echo package curl \
        && cp -d /usr/lib/libunistring* ./usr/lib                            && echo package curl \
+       && cp -d /usr/lib/libiperf* ./usr/lib                                && echo package iperf3 \
        && cp -d /bin/* ./bin && \
        cp -d /usr/bin/* ./usr/bin && \
        cp -d /usr/sbin/* ./usr/sbin && \
