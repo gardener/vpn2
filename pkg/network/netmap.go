@@ -73,10 +73,10 @@ func subnetSplit(parent *net.IPNet, newPrefixLen int) ([]*net.IPNet, error) {
 	for countSubnets = 0; countSubnets < numSubnets; countSubnets++ {
 		ipInt := baseInt + countSubnets*incr
 		ip := net.IPv4(
-			byte(ipInt>>24),
-			byte(ipInt>>16),
-			byte(ipInt>>8),
-			byte(ipInt),
+			byte((ipInt>>24)&0xFF),
+			byte((ipInt>>16)&0xFF),
+			byte((ipInt>>8)&0xFF),
+			byte(ipInt&0xFF),
 		)
 		mask := net.CIDRMask(newPrefixLen, bits)
 		subnets[countSubnets] = &net.IPNet{IP: ip.Mask(mask), Mask: mask}

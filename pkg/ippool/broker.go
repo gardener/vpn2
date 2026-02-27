@@ -98,9 +98,9 @@ func (b *ipAddressBroker) findFreeIPAddress(lookupResult *IPPoolUsageLookupResul
 		index := rand.N(b.endIndex-b.startIndex+1) + b.startIndex // #nosec: G404 -- No cryptographic context.
 		ip := make(net.IP, len(b.base))
 		copy(ip, b.base)
-		ip[len(ip)-1] = byte(index)
+		ip[len(ip)-1] = byte(index & 0xFF)
 		if b.endIndex > 0xff {
-			ip[len(ip)-2] = byte(index >> 8)
+			ip[len(ip)-2] = byte((index >> 8) & 0xFF)
 		}
 		s := ip.String()
 		if _, ok := lookupResult.ForeignUsed[s]; ok {

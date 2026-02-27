@@ -54,7 +54,7 @@ func AllBondingShootClientIPs(vpnNetwork *net.IPNet, haVPNClients int) []net.IP 
 
 func BondingShootClientIP(vpnNetwork *net.IPNet, index int) net.IP {
 	ip := slices.Clone(vpnNetwork.IP.To16())
-	ip[15] = byte(index)
+	ip[15] = byte(index & 0xFF)
 	ip[14] = 0
 	ip[13] = byte(bondStartShoot)
 	return ip
@@ -82,7 +82,7 @@ func HAVPNTunnelNetwork(vpnNetworkIP net.IP, vpnIndex int) CIDR {
 	base := slices.Clone(vpnNetworkIP.To16())
 	base[15] = 0
 	base[14] = 0
-	base[13] = byte(vpnIndex)
+	base[13] = byte(vpnIndex & 0xFF)
 	base[12] = 1
 
 	return CIDR{

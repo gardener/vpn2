@@ -109,6 +109,14 @@ var _ = Describe("subnetSplit", func() {
 		Expect(subnets[0].String()).To(Equal("242.0.0.0/16"))
 		Expect(subnets[255].String()).To(Equal("242.255.0.0/16"))
 	})
+	It("should split /24 into 256 /32s", func() {
+		_, parent, _ := net.ParseCIDR("192.168.1.0/24")
+		subnets, err := subnetSplit(parent, 32)
+		Expect(err).NotTo(HaveOccurred())
+		Expect(len(subnets)).To(Equal(256))
+		Expect(subnets[0].String()).To(Equal("192.168.1.0/32"))
+		Expect(subnets[255].String()).To(Equal("192.168.1.255/32"))
+	})
 	It("should fail for invalid prefix", func() {
 		_, parent, _ := net.ParseCIDR("10.0.0.0/8")
 		_, err := subnetSplit(parent, 4)
