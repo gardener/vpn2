@@ -81,6 +81,10 @@ var _ = Describe("KernelSettings", func() {
 			cfg.IsShootClient = false
 			err := sysctl.Set("net.ipv6.conf.all.disable_ipv6", "1")
 			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.conf.all.log_martians", "1")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.conf.default.log_martians", "1")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should enable IPv6 networking", func() {
@@ -88,6 +92,19 @@ var _ = Describe("KernelSettings", func() {
 			Expect(err).NotTo(HaveOccurred())
 
 			value, err := sysctl.Get("net.ipv6.conf.all.disable_ipv6")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
+		})
+
+		It("should disable logging of martian packets", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.conf.all.log_martians")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
+
+			value, err = sysctl.Get("net.ipv4.conf.default.log_martians")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("0"))
 		})
@@ -126,6 +143,19 @@ var _ = Describe("KernelSettings", func() {
 			value, err := sysctl.Get("net.ipv6.conf.all.disable_ipv6")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("1"))
+		})
+
+		It("should disable logging of martian packets", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.conf.all.log_martians")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
+
+			value, err = sysctl.Get("net.ipv4.conf.default.log_martians")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
 		})
 	})
 })
