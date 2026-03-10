@@ -44,8 +44,10 @@ func CreateTunnel(linkName string, local, remote net.IP) error {
 		LinkAttrs: netlink.LinkAttrs{
 			Name: linkName,
 		},
-		Local:  local,
-		Remote: remote,
+		Local:      local,
+		Remote:     remote,
+		EncapLimit: 0,
+		Flags:      uint32(netlink.IP6_TNL_F_IGN_ENCAP_LIMIT),
 	}
 	if err := netlink.LinkAdd(tunnel); err != nil {
 		return fmt.Errorf("failed to add link %s: %w", linkName, err)
