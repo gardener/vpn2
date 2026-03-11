@@ -44,8 +44,23 @@ func CreateTunnel(linkName string, local, remote net.IP) error {
 		LinkAttrs: netlink.LinkAttrs{
 			Name: linkName,
 		},
-		Local:      local,
-		Remote:     remote,
+		Local:  local,
+		Remote: remote,
+		// Explicitly set EncapLimit to 0 and the IP6_TNL_F_IGN_ENCAP_LIMIT flag to disable
+		// the IPv6 encapsulation limit check on this tunnel. This is equivalent to
+		// "ip -6 tunnel add ... encaplimit none".
+		//
+		// While the Go zero-value of EncapLimit is already 0, setting it explicitly along
+		// with the flag makes the intent clear: without the flag, the kernel checks the
+		// Tunnel Encapsulation Limit destination option on inner packets and drops them if
+		// the limit is exceeded (default 4). In VPN scenarios with multiple encapsulation
+		// layers this can cause silent packet drops.
+		//
+		// For context, a kernel regression in net/ipv6/ip6_tunnel.c (kernels 6.12.67–6.12.72)
+		// caused 100% RX drops on ip6tnl tunnels due to an inverted return-value check in
+		// __ip6_tnl_rcv() — see Debian bugs #1127597, #1127670. That bug was in a different
+		// code path and is fixed in 6.12.73, but it underscored the value of being explicit
+		// about tunnel configuration rather than relying on implicit defaults.
 		EncapLimit: 0,
 		Flags:      uint32(netlink.IP6_TNL_F_IGN_ENCAP_LIMIT),
 	}
