@@ -5,8 +5,8 @@ go 1.26.0
 require (
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/coreos/go-iptables v0.8.0
-	github.com/gardener/gardener v1.137.0
-	github.com/gardener/gardener/pkg/apis v1.137.1
+	github.com/gardener/gardener v1.138.0
+	github.com/gardener/gardener/pkg/apis v1.138.0
 	github.com/go-logr/logr v1.4.3
 	github.com/kumina/openvpn_exporter v0.3.0
 	github.com/lorenzosaino/go-sysctl v0.3.1
@@ -23,7 +23,7 @@ require (
 	k8s.io/component-base v0.35.2
 	k8s.io/klog/v2 v2.130.1
 	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
-	sigs.k8s.io/controller-runtime v0.23.1
+	sigs.k8s.io/controller-runtime v0.23.3
 )
 
 require (
@@ -75,7 +75,7 @@ require (
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/term v0.40.0 // indirect
 	golang.org/x/text v0.34.0 // indirect
-	golang.org/x/time v0.14.0 // indirect
+	golang.org/x/time v0.15.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect
 	golang.org/x/tools/go/expect v0.1.1-deprecated // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
