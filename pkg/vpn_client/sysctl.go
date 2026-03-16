@@ -48,6 +48,19 @@ func DisableMartianLogging() error {
 	return nil
 }
 
+// DisableRpFilter disables reverse path filtering globally and for new interfaces.
+func DisableRpFilter() error {
+	// Disable reverse path filtering globally.
+	if err := sysctl.Set("net.ipv4.conf.all.rp_filter", "0"); err != nil {
+		return err
+	}
+	// Disable reverse path filtering for new interfaces.
+	if err := sysctl.Set("net.ipv4.conf.default.rp_filter", "0"); err != nil {
+		return err
+	}
+	return nil
+}
+
 // EnableIPForwarding enables IP forwarding for both IPv4 and IPv6 on the system.
 func EnableIPForwarding() error {
 	// Enable IPv4 forwarding on the system.
@@ -67,9 +80,12 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	if err := DisableMartianLogging(); err != nil {
 		return err
 	}
-
+	// Disable reverse path filtering on both sides.
+	if err := DisableRpFilter(); err != nil {
+		return err
+	}
+	// For seed clients, we need to enable IPv6 networking to be able to use IPv6 addresses for the tunnel.
 	if !cfg.IsShootClient {
-		// For seed clients, we need to enable IPv6 networking to be able to use IPv6 addresses for the tunnel.
 		return EnableIPv6Networking(log)
 	}
 	// For shoot clients, we need to enable IP forwarding to be able to route traffic from the tunnel to the shoot cluster and back.

@@ -85,6 +85,10 @@ var _ = Describe("KernelSettings", func() {
 			Expect(err).NotTo(HaveOccurred())
 			err = sysctl.Set("net.ipv4.conf.default.log_martians", "1")
 			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.conf.all.rp_filter", "1")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.conf.default.rp_filter", "1")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should enable IPv6 networking", func() {
@@ -113,6 +117,14 @@ var _ = Describe("KernelSettings", func() {
 	Context("when called for shoot client", func() {
 		BeforeEach(func() {
 			cfg.IsShootClient = true
+			err := sysctl.Set("net.ipv4.conf.all.log_martians", "1")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.conf.default.log_martians", "1")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.conf.all.rp_filter", "1")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.conf.default.rp_filter", "1")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should enable IPv4 and IPv6 forwarding", func() {
@@ -154,6 +166,19 @@ var _ = Describe("KernelSettings", func() {
 			Expect(value).To(Equal("0"))
 
 			value, err = sysctl.Get("net.ipv4.conf.default.log_martians")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
+		})
+
+		It("should disable reverse path filtering", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.conf.all.rp_filter")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
+
+			value, err = sysctl.Get("net.ipv4.conf.default.rp_filter")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("0"))
 		})
