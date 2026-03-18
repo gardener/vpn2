@@ -35,12 +35,34 @@ func EnableIPv6Networking(log logr.Logger) error {
 	return nil
 }
 
-// KernelSettings sets the kernel parameters required for the VPN tunnel to function properly.
-func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
-	if !cfg.IsShootClient {
-		return EnableIPv6Networking(log)
+// DisableMartianLogging disables logging of packets with un-routable source addresses (martians) globally and for new interfaces.
+func DisableMartianLogging() error {
+	// Disable logging of packets with un-routable source addresses (martians) globally.
+	if err := sysctl.Set("net.ipv4.conf.all.log_martians", "0"); err != nil {
+		return err
 	}
+	// Disable logging of packets with un-routable source addresses (martians) for new interfaces.
+	if err := sysctl.Set("net.ipv4.conf.default.log_martians", "0"); err != nil {
+		return err
+	}
+	return nil
+}
 
+// DisableRpFilter disables reverse path filtering globally and for new interfaces.
+func DisableRpFilter() error {
+	// Disable reverse path filtering globally.
+	if err := sysctl.Set("net.ipv4.conf.all.rp_filter", "0"); err != nil {
+		return err
+	}
+	// Disable reverse path filtering for new interfaces.
+	if err := sysctl.Set("net.ipv4.conf.default.rp_filter", "0"); err != nil {
+		return err
+	}
+	return nil
+}
+
+// EnableIPForwarding enables IP forwarding for both IPv4 and IPv6 on the system.
+func EnableIPForwarding() error {
 	// Enable IPv4 forwarding on the system.
 	if err := sysctl.Set("net.ipv4.ip_forward", "1"); err != nil {
 		return err
@@ -50,4 +72,22 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 		return err
 	}
 	return nil
+}
+
+// KernelSettings sets the kernel parameters required for the VPN tunnel to function properly.
+func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
+	// Disable martian logging on both sides.
+	if err := DisableMartianLogging(); err != nil {
+		return err
+	}
+	// Disable reverse path filtering on both sides.
+	if err := DisableRpFilter(); err != nil {
+		return err
+	}
+	// For seed clients, we need to enable IPv6 networking to be able to use IPv6 addresses for the tunnel.
+	if !cfg.IsShootClient {
+		return EnableIPv6Networking(log)
+	}
+	// For shoot clients, we need to enable IP forwarding to be able to route traffic from the tunnel to the shoot cluster and back.
+	return EnableIPForwarding()
 }
