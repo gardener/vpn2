@@ -10,16 +10,12 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/logr"
 	"golang.org/x/net/icmp"
 	"golang.org/x/net/ipv6"
-
-	"github.com/gardener/vpn2/pkg/constants"
-	"github.com/gardener/vpn2/pkg/network"
 )
 
 type icmpPinger struct {
@@ -40,19 +36,6 @@ func (p *icmpPinger) Ping(client net.IP) error {
 			break
 		}
 		p.log.Info("ping failed", "ip", client, "error", err, "try", fmt.Sprintf("%d/%d", try, tries))
-
-		if try == 1 {
-			go func() {
-				// send neighbor solicitation to speed up discovery the link-layer address of a neighbor
-				p.log.Info("sending neighbor solicitation", "ip", client.String())
-				err := p.neighborSolicitation(client)
-				if err != nil {
-					p.log.Info("neighbor solicitation failed", "error", err.Error())
-				} else {
-					p.log.Info("received neighbor advertisement")
-				}
-			}()
-		}
 	}
 	return err
 }
@@ -86,12 +69,12 @@ func (p *icmpPinger) ping(client net.IP) error {
 		return fmt.Errorf("error setting deadline: %w", err)
 	}
 
-	seq := p.lastSeq.Add(1) & 0xffff // is marshalled as uint16 so we need to mask it
+	seq := p.lastSeq.Add(1) & 0xffff // is marshaled as uint16 so we need to mask it
 	msg := icmp.Message{
 		Type: ipv6.ICMPTypeEchoRequest,
 		Code: 0,
 		Body: &icmp.Echo{
-			ID:   os.Getpid() & 0xffff, // is marshalled as uint16 so we need to mask it
+			ID:   os.Getpid() & 0xffff, // is marshaled as uint16 so we need to mask it
 			Seq:  int(seq),
 			Data: []byte(echoPayload),
 		},
@@ -131,131 +114,4 @@ func (p *icmpPinger) ping(client net.IP) error {
 	default:
 		return err
 	}
-}
-
-func (p *icmpPinger) neighborSolicitation(client net.IP) error {
-	if len(client) != net.IPv6len {
-		return fmt.Errorf("only usable with ipv6")
-	}
-	device, err := net.InterfaceByName(constants.BondDevice)
-	if err != nil {
-		return fmt.Errorf("bonding device %q not found: %w", constants.BondDevice, err)
-	}
-	ips, err := network.GetLinkIPAddressesByName(constants.BondDevice, network.ScopeLink)
-	if err != nil {
-		return fmt.Errorf("getting link IP addresses failed: %w", err)
-	}
-	if len(ips) == 0 {
-		return fmt.Errorf("no link IP address for device %s", constants.BondDevice)
-	} else if len(ips) > 1 {
-		return fmt.Errorf("link IP address not unique for device %s: [%s]", constants.BondDevice, strings.Join(toStringArray(ips), ","))
-	}
-
-	ns := icmp.Message{
-		Type: ipv6.ICMPTypeNeighborSolicitation,
-		Code: 0,
-		Body: &icmp.RawBody{
-			Data: buildNSBody(client, device.HardwareAddr),
-		},
-	}
-
-	data, err := ns.Marshal(nil)
-	if err != nil {
-		return fmt.Errorf("error marshalling ICMP message: %w", err)
-	}
-
-	conn, err := icmp.ListenPacket("ip6:ipv6-icmp", fmt.Sprintf("%s%%%s", ips[0], constants.BondDevice))
-	if err != nil {
-		return fmt.Errorf("error opening raw socket: %w", err)
-	}
-	defer conn.Close()
-
-	deadline := time.Now().Add(p.timeout / 2)
-	pc := conn.IPv6PacketConn()
-	if err := pc.SetReadDeadline(deadline); err != nil {
-		return fmt.Errorf("error setting deadline: %w", err)
-	}
-
-	// The multicast hop limit of 255 ensures that the Neighbor Solicitation message
-	// remains within the local link. If the hop limit is set to any value less than 255,
-	// the message might have been relayed or forwarded by a router, which is not desirable.
-	// A hop limit of 255 guarantees that the packet is dropped if it has been routed.
-	// The packet is dropped silently if not set.
-	// see https://datatracker.ietf.org/doc/html/rfc4861#section-7.1.1
-	if err := pc.SetMulticastHopLimit(255); err != nil {
-		return fmt.Errorf("error setting multicast hop limit: %w", err)
-	}
-
-	// calculate solicited-node multicast address
-	destIP := net.ParseIP("ff02::1:ff00:0")
-	copy(destIP[13:], client[13:]) // copy last 24 bits
-	dst := &net.IPAddr{IP: destIP}
-	_, err = pc.WriteTo(data, nil, dst)
-	if err != nil {
-		return fmt.Errorf("error sending ICMP message to %s: %w", dst, err)
-	}
-
-	// Listen for Neighbor Advertisement response
-	reply := make([]byte, 1500)
-	n, _, _, err := pc.ReadFrom(reply)
-	if err != nil {
-		if neterr, ok := errors.AsType[net.Error](err); ok && neterr.Timeout() {
-			return fmt.Errorf("i/o timeout")
-		}
-		return fmt.Errorf("error reading from socket: %w", err)
-	}
-
-	rm, err := icmp.ParseMessage(ipv6.ICMPTypeNeighborAdvertisement.Protocol(), reply[:n])
-	if err != nil {
-		return fmt.Errorf("error parsing ICMP message: %w", err)
-	}
-
-	switch rm.Type {
-	case ipv6.ICMPTypeNeighborAdvertisement:
-		return nil
-	default:
-		return fmt.Errorf("received unexpected ICMP message: %#v", rm)
-	}
-}
-
-func buildNSBody(target net.IP, hwAddr net.HardwareAddr) []byte {
-	// ICMPv6 Neighbor Solicitation message body format:
-	// :    Octet 0    :    Octet 1    :    Octet 2    :    Octet 3    :
-	// :0              :    1          :        2      :            3  :
-	// :0 1 2 3 4 5 6 7:8 9 0 1 2 3 4 5:6 7 8 9 0 1 2 3:4 5 6 7 8 9 0 1:
-	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	// |                           Reserved (4 bytes)                  |
-	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	// |                                                               |
-	// +                                                               +
-	// |                                                               |
-	// +                       Target Address                          +
-	// |                                                               |
-	// +                                                               +
-	// |                                                               |
-	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-	// |   Type (1)    |    Length     |             Data...
-	// +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-
-
-	buf := make([]byte, 22+len(hwAddr))
-	// Target Address (16 bytes)
-	copy(buf[4:20], target)
-
-	// Option: Source Link-Layer Address
-	buf[20] = 1 // Type (Source Link-Layer Address)
-	buf[21] = 1 // Length (in units of 8 octets)
-	copy(buf[22:], hwAddr)
-
-	return buf
-}
-
-func toStringArray(ips []net.IP) []string {
-	if len(ips) == 0 {
-		return nil
-	}
-	out := make([]string, len(ips))
-	for i, ip := range ips {
-		out[i] = ip.String()
-	}
-	return out
 }
