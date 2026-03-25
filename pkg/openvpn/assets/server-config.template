@@ -1,3 +1,4 @@
+verb 3
 mode server
 tls-server
 topology subnet
@@ -12,7 +13,9 @@ data-ciphers AES-256-GCM:AES-256-CBC
 # manifest
 port 1194
 
-keepalive 10 60
+# send ping every 10 seconds, assume peer is down after 30 seconds without traffic
+# this value is pushed to the client, timeout is doubled on the server side, so the client is considered down after 60 seconds without traffic
+keepalive 10 30
 
 # client-config-dir to push client specific configuration
 client-config-dir /client-config-dir
