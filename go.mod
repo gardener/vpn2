@@ -5,8 +5,8 @@ go 1.26.0
 require (
 	github.com/caarlos0/env/v10 v10.0.0
 	github.com/coreos/go-iptables v0.8.0
-	github.com/gardener/gardener v1.140.0
-	github.com/gardener/gardener/pkg/apis v1.140.0
+	github.com/gardener/gardener v1.140.1
+	github.com/gardener/gardener/pkg/apis v1.140.1
 	github.com/go-logr/logr v1.4.3
 	github.com/kumina/openvpn_exporter v0.3.0
 	github.com/lorenzosaino/go-sysctl v0.3.1
