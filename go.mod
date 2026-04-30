@@ -11,7 +11,7 @@ require (
 	github.com/kumina/openvpn_exporter v0.3.0
 	github.com/lorenzosaino/go-sysctl v0.3.1
 	github.com/onsi/ginkgo/v2 v2.28.2
-	github.com/onsi/gomega v1.39.1
+	github.com/onsi/gomega v1.40.0
 	github.com/prometheus/client_golang v1.23.2
 	github.com/spf13/cobra v1.10.2
 	github.com/vishvananda/netlink v1.3.1
