@@ -5,9 +5,14 @@ auth-nocache
 
 # Additional optimizations
 txqueuelen 1000
+tcp-nodelay
+sndbuf 134217728
+rcvbuf 134217728
+
 {{- if .TunMTU }}
 tun-mtu {{ .TunMTU }}
 {{- end }}
+
 # get all routing information from server
 pull
 data-ciphers AES-256-GCM
