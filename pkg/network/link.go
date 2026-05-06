@@ -22,6 +22,30 @@ const (
 	ScopeLink     = 253
 )
 
+// DetectTunnelMTU returns the MTU for the VPN tunnel device by finding the
+// highest-MTU UP non-loopback link (i.e. eth0 in a container) and subtracting
+// the given overhead for VPN encapsulation.
+func DetectTunnelMTU(overhead int) (int, error) {
+	links, err := netlink.LinkList()
+	if err != nil {
+		return 0, fmt.Errorf("failed to list links: %w", err)
+	}
+	best := 0
+	for _, l := range links {
+		attrs := l.Attrs()
+		if attrs.Flags&net.FlagLoopback != 0 || attrs.Flags&net.FlagUp == 0 {
+			continue
+		}
+		if attrs.MTU > best {
+			best = attrs.MTU
+		}
+	}
+	if best == 0 {
+		return 0, fmt.Errorf("no usable network interface found")
+	}
+	return best - overhead, nil
+}
+
 // DeleteLinkByName delete a link by name.
 func DeleteLinkByName(name string) error {
 	link, err := netlink.LinkByName(name)

@@ -16,6 +16,7 @@ import (
 	"github.com/gardener/vpn2/cmd/vpn_client/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
@@ -54,7 +55,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
+func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU int) openvpn.ClientValues {
 	v := openvpn.ClientValues{
 		Device:               constants.TunnelDevice,
 		IPFamily:             cfg.PrimaryIPFamily(),
@@ -66,6 +67,7 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient) openvpn.ClientValues {
 		IsShootClient:        cfg.IsShootClient,
 		IsHA:                 cfg.IsHA,
 		SeedPodNetwork:       cfg.SeedPodNetwork.String(),
+		TunMTU:               tunMTU,
 	}
 	vpnSeedServer := "vpn-seed-server"
 
@@ -93,12 +95,20 @@ func run(_ context.Context, log logr.Logger) error {
 	}
 	log.Info("config parsed", "config", cfg)
 
+	tunMTU := 0
+	if cfg.AutoMTU {
+		tunMTU, err = network.DetectTunnelMTU(constants.TunnelMTUOverhead)
+		if err != nil {
+			return fmt.Errorf("failed to detect tunnel MTU: %w", err)
+		}
+	}
+
 	err = vpn_client.SetIPTableRules(log, cfg)
 	if err != nil {
 		return err
 	}
 
-	values := vpnConfig(log, cfg)
+	values := vpnConfig(log, cfg, tunMTU)
 
 	if err := vpn_client.Cleanup(log, values); err != nil {
 		return err

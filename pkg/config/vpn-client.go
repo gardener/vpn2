@@ -39,6 +39,7 @@ type VPNClient struct {
 	PodLabelSelector     string        `env:"POD_LABEL_SELECTOR" envDefault:"app=kubernetes,role=apiserver"`
 	WaitTime             time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 	BondingMode          string        `env:"BONDING_MODE" envDefault:"active-backup"`
+	AutoMTU              bool          `env:"OPENVPN_AUTO_MTU"`
 }
 
 func (v VPNClient) PrimaryIPFamily() string {

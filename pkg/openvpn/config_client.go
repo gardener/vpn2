@@ -26,6 +26,7 @@ type ClientValues struct {
 	Device               string
 	SeedPodNetwork       string
 	IsDualStack          bool
+	TunMTU               int
 }
 
 func generateClientConfig(cfg ClientValues) (string, error) {

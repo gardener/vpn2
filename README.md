@@ -155,3 +155,22 @@ Check if your kernel supports bond devices. You can check on nodes running docke
 `CONFIGURE_BONDING` must be set to either "m" or "y".
 
 For more information, see <https://www.kernelconfig.io/config_bonding?q=&kernelversion=6.1.90&arch=x86>
+
+## MTU tuning
+
+By default the OpenVPN tunnel uses the OpenVPN default MTU (1500 bytes). In environments where the underlying
+network supports a larger MTU (e.g. clusters connected via a high-speed backbone with jumbo frames), configuring
+a larger tunnel MTU can significantly improve throughput and reduce latency — in particular for geographically
+distant seed/shoot pairs.
+
+Set `OPENVPN_AUTO_MTU=true` on both **vpn-seed-server** and **vpn-client** to enable automatic MTU detection:
+
+```
+OPENVPN_AUTO_MTU=true
+```
+
+At startup each component scans its network interfaces, takes the MTU of the highest-MTU UP non-loopback
+interface (typically `eth0`), and derives the tunnel MTU by subtracting a fixed overhead of 130 bytes
+(IPv6 header 40 B + TCP header 40 B + OpenVPN AES-256-GCM/tls framing ≈ 50 B). With a typical container
+network MTU of `8930` this yields a tunnel MTU of `8800`. Leave the variable unset (default `false`) to keep
+the OpenVPN default and avoid any change in behaviour for standard environments.

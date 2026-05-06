@@ -5,6 +5,9 @@ auth-nocache
 
 # Additional optimizations
 txqueuelen 1000
+{{- if .TunMTU }}
+tun-mtu {{ .TunMTU }}
+{{- end }}
 # get all routing information from server
 pull
 data-ciphers AES-256-GCM
@@ -45,7 +48,12 @@ http-proxy-option CUSTOM-HEADER {{ .ReversedVPNHeaderKey }} {{ .ReversedVPNHeade
 dev {{ .Device }}
 remote {{ .Endpoint }}
 
-{{- if and .IsShootClient (not .IsHA) }}
+{{- if .IsShootClient }}
 script-security 2
+{{- if .IsHA }}
+up "/bin/sh -c '/sbin/ip link set dev bond0 mtu $2' -- "
+up-restart
+{{- else }}
 up "/bin/sh -c '/sbin/ip route replace {{ .SeedPodNetwork }} dev $1' -- "
+{{- end }}
 {{- end }}

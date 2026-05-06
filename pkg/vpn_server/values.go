@@ -22,6 +22,14 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		StatusPath: cfg.StatusPath,
 	}
 
+	if cfg.AutoMTU {
+		tunMTU, err := network.DetectTunnelMTU(constants.TunnelMTUOverhead)
+		if err != nil {
+			return v, fmt.Errorf("failed to detect tunnel MTU: %w", err)
+		}
+		v.TunMTU = tunMTU
+	}
+
 	if cfg.VPNNetwork.IP == nil {
 		return v, fmt.Errorf("VPN_NETWORK must be set")
 	}
