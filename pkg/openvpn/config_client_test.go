@@ -144,13 +144,6 @@ cert /srv/secrets/vpn-client-0/tls.crt
 ca /srv/secrets/vpn-client-0/ca.crt
 `))
 				})
-				It("syncs bond MTU on tunnel up", func() {
-					Expect(content).To(ContainSubstring(`
-script-security 2
-up "/bin/sh -c '/sbin/ip link set dev bond0 mtu $2' -- "
-up-restart
-`))
-				})
 			})
 		})
 

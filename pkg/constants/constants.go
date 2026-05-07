@@ -18,7 +18,8 @@ const (
 	// TunnelMTUOverhead is the number of bytes subtracted from the underlying interface MTU
 	// to derive the OpenVPN tun-mtu value (IPv6 header + TCP header + OpenVPN framing).
 	TunnelMTUOverhead = 130
-
+	// MinimumMTU is the smallest possible MTU that can still transport IPv6 packets
+	MinimumMTU = 1280
 	// BondDevice is the name of the bond device used for the HA deployment.
 	BondDevice = "bond0"
 	// TapDevice is the name of the tap device used for the HA VPN.

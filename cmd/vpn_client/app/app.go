@@ -101,6 +101,7 @@ func run(_ context.Context, log logr.Logger) error {
 		if err != nil {
 			return fmt.Errorf("failed to detect tunnel MTU: %w", err)
 		}
+		log.Info("detected tunnel MTU", "MTU", tunMTU)
 	}
 
 	err = vpn_client.SetIPTableRules(log, cfg)

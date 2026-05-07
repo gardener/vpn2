@@ -53,12 +53,7 @@ http-proxy-option CUSTOM-HEADER {{ .ReversedVPNHeaderKey }} {{ .ReversedVPNHeade
 dev {{ .Device }}
 remote {{ .Endpoint }}
 
-{{- if .IsShootClient }}
+{{- if and .IsShootClient (not .IsHA) }}
 script-security 2
-{{- if .IsHA }}
-up "/bin/sh -c '/sbin/ip link set dev bond0 mtu $2' -- "
-up-restart
-{{- else }}
 up "/bin/sh -c '/sbin/ip route replace {{ .SeedPodNetwork }} dev $1' -- "
-{{- end }}
 {{- end }}

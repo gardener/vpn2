@@ -22,30 +22,6 @@ const (
 	ScopeLink     = 253
 )
 
-// DetectTunnelMTU returns the MTU for the VPN tunnel device by finding the
-// highest-MTU UP non-loopback link (i.e. eth0 in a container) and subtracting
-// the given overhead for VPN encapsulation.
-func DetectTunnelMTU(overhead int) (int, error) {
-	links, err := netlink.LinkList()
-	if err != nil {
-		return 0, fmt.Errorf("failed to list links: %w", err)
-	}
-	best := 0
-	for _, l := range links {
-		attrs := l.Attrs()
-		if attrs.Flags&net.FlagLoopback != 0 || attrs.Flags&net.FlagUp == 0 {
-			continue
-		}
-		if attrs.MTU > best {
-			best = attrs.MTU
-		}
-	}
-	if best == 0 {
-		return 0, fmt.Errorf("no usable network interface found")
-	}
-	return best - overhead, nil
-}
-
 // DeleteLinkByName delete a link by name.
 func DeleteLinkByName(name string) error {
 	link, err := netlink.LinkByName(name)
@@ -79,12 +55,6 @@ func CreateTunnel(linkName string, local, remote net.IP) error {
 		// Tunnel Encapsulation Limit destination option on inner packets and drops them if
 		// the limit is exceeded (default 4). In VPN scenarios with multiple encapsulation
 		// layers this can cause silent packet drops.
-		//
-		// For context, a kernel regression in net/ipv6/ip6_tunnel.c (kernels 6.12.67–6.12.72)
-		// caused 100% RX drops on ip6tnl tunnels due to an inverted return-value check in
-		// __ip6_tnl_rcv() — see Debian bugs #1127597, #1127670. That bug was in a different
-		// code path and is fixed in 6.12.73, but it underscored the value of being explicit
-		// about tunnel configuration rather than relying on implicit defaults.
 		EncapLimit: 0,
 		Flags:      uint32(netlink.IP6_TNL_F_IGN_ENCAP_LIMIT),
 	}
