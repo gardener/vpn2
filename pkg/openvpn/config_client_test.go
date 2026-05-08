@@ -79,7 +79,7 @@ up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 			})
 		})
 
-		Context("ipv4 HA config", func() {
+		Context("ipv4 non-HA shoot client config", func() {
 			cfg := ClientValues{
 				Endpoint:          "123.123.0.0",
 				VPNClientIndex:    0,
@@ -111,6 +111,37 @@ ca /srv/secrets/vpn-client-0/ca.crt
 					Expect(content).To(ContainSubstring(`
 script-security 2
 up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
+`))
+				})
+			})
+		})
+
+		Context("ipv4 HA shoot client config", func() {
+			cfg := ClientValues{
+				Endpoint:          "123.123.0.0",
+				VPNClientIndex:    0,
+				IPFamily:          "IPv4",
+				OpenVPNPort:       1143,
+				ReversedVPNHeader: "invalid-host",
+				IsShootClient:     true,
+				IsHA:              true,
+				SeedPodNetwork:    "10.123.0.0/19",
+			}
+
+			content, err := generateClientConfig(cfg)
+			It("does not error creating the template", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("generated config contain check", func() {
+				It("proto tcp4-client", func() {
+					Expect(content).To(ContainSubstring(`proto tcp4-client`))
+				})
+				It("tls config", func() {
+					Expect(content).To(ContainSubstring(`
+key /srv/secrets/vpn-client-0/tls.key
+cert /srv/secrets/vpn-client-0/tls.crt
+ca /srv/secrets/vpn-client-0/ca.crt
 `))
 				})
 			})

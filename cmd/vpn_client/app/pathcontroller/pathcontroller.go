@@ -88,7 +88,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		pinger: &icmpPinger{
 			log:     log.WithName("ping"),
 			timeout: 1 * time.Second,
-			retries: 4,
+			retries: 9,
 		},
 		ticker:             time.NewTicker(constants.PathControllerUpdateInterval),
 		kubeAPIServerPodIP: podIP,

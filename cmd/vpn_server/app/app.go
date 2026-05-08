@@ -14,6 +14,8 @@ import (
 
 	"github.com/gardener/vpn2/cmd/vpn_server/app/setup"
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/openvpn"
 	"github.com/gardener/vpn2/pkg/pprof"
 	"github.com/gardener/vpn2/pkg/utils"
@@ -74,6 +76,16 @@ func run(_ context.Context, log logr.Logger) error {
 	if err != nil {
 		return err
 	}
+
+	tunMTU := 0
+	if cfg.AutoMTU {
+		tunMTU, err = network.DetectTunnelMTU(constants.TunnelMTUOverhead)
+		if err != nil {
+			return fmt.Errorf("failed to detect tunnel MTU: %w", err)
+		}
+		log.Info("detected tunnel MTU", "MTU", tunMTU)
+	}
+	v.TunMTU = tunMTU
 
 	log.Info("writing openvpn config file", "values", v)
 	return openvpn.WriteServerConfigFiles(v)

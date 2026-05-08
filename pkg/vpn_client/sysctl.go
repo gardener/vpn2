@@ -74,6 +74,52 @@ func EnableIPForwarding() error {
 	return nil
 }
 
+// ConntrackSettings adjusts vpn-shoot for optimized performance with high connection churn and NAT.
+func ConntrackSettings() error {
+	// Increase local port range
+	if err := sysctl.Set("net.ipv4.ip_local_port_range", "1024 65535"); err != nil {
+		return err
+	}
+	// Reuse time_wait connections
+	if err := sysctl.Set("net.ipv4.tcp_tw_reuse", "1"); err != nil {
+		return err
+	}
+	// Reduce tcp fin timeout (from 60s)
+	if err := sysctl.Set("net.ipv4.tcp_fin_timeout", "30"); err != nil {
+		return err
+	}
+	// Reduce tcp_timeout_established to 10m (from 5 days)
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_established", "600"); err != nil {
+		return err
+	}
+	// Reduce syn timeouts (from 120s)
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_syn_sent", "30"); err != nil {
+		return err
+	}
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_syn_recv", "30"); err != nil {
+		return err
+	}
+	// Reduce time_wait etc. cleanup time (from 120s/60s)
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_fin_wait", "30"); err != nil {
+		return err
+	}
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_time_wait", "30"); err != nil {
+		return err
+	}
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_close_wait", "30"); err != nil {
+		return err
+	}
+	// Reduce retransmission timeouts (from 300s)
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_unacknowledged", "60"); err != nil {
+		return err
+	}
+	if err := sysctl.Set("net.netfilter.nf_conntrack_tcp_timeout_max_retrans", "120"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // KernelSettings sets the kernel parameters required for the VPN tunnel to function properly.
 func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	// Disable martian logging on both sides.
@@ -88,6 +134,12 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	if !cfg.IsShootClient {
 		return EnableIPv6Networking(log)
 	}
+
+	// Configure conntrack for nat on the shoot clients
+	if err := ConntrackSettings(); err != nil {
+		return err
+	}
+
 	// For shoot clients, we need to enable IP forwarding to be able to route traffic from the tunnel to the shoot cluster and back.
 	return EnableIPForwarding()
 }

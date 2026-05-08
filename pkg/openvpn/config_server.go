@@ -33,6 +33,7 @@ type SeedServerValues struct {
 	IsHA            bool
 	VPNIndex        int
 	LocalNodeIP     string
+	TunMTU          int
 }
 
 func generateSeedServerConfig(cfg SeedServerValues) (string, error) {

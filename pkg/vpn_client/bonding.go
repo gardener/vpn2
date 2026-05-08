@@ -20,6 +20,16 @@ import (
 )
 
 func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClient) error {
+	tunnelMTU := 0
+	if cfg.AutoMTU {
+		var mtuErr error
+		tunnelMTU, mtuErr = network.DetectTunnelMTU(constants.TunnelMTUOverhead)
+		if mtuErr != nil {
+			return fmt.Errorf("failed to detect tunnel MTU: %w", mtuErr)
+		}
+	}
+
+	var err error
 	var addr *net.IPNet
 
 	if cfg.IsShootClient {
@@ -66,11 +76,17 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		if err != nil {
 			return err
 		}
+
+		if tunnelMTU > 0 {
+			if err = netlink.LinkSetMTU(linkDev, tunnelMTU); err != nil {
+				return fmt.Errorf("failed to set MTU on %s: %w", linkName, err)
+			}
+		}
 	}
 
 	// check if bond device already exists and delete it if exists
 	log.Info("deleting existing bond device if any", "link", constants.BondDevice)
-	err := network.DeleteLinkByName(constants.BondDevice)
+	err = network.DeleteLinkByName(constants.BondDevice)
 	if err != nil {
 		return err
 	}
@@ -124,6 +140,14 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 		err = netlink.LinkSetMaster(link, bond)
 		if err != nil {
 			return fmt.Errorf("failed to set %s as master for link %s: %w", constants.BondDevice, linkName, err)
+		}
+	}
+
+	// Set bond MTU after all slaves are added; the first enslave can reset the bond MTU
+	// to the slave's default if the kernel bonding driver inherits it from the first slave.
+	if tunnelMTU > 0 {
+		if err = netlink.LinkSetMTU(bond, tunnelMTU); err != nil {
+			return fmt.Errorf("failed to set MTU on %s: %w", constants.BondDevice, err)
 		}
 	}
 

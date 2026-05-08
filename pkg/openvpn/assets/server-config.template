@@ -5,6 +5,12 @@ topology subnet
 
 # Additional optimizations
 txqueuelen 1000
+tcp-nodelay
+
+{{- if .TunMTU }}
+tun-mtu {{ .TunMTU }}
+push "tun-mtu {{ .TunMTU }}"
+{{- end }}
 
 data-ciphers AES-256-GCM:AES-256-CBC
 

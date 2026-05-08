@@ -24,6 +24,7 @@ type VPNServer struct {
 	IsHA                 bool           `env:"IS_HA"`
 	HAVPNClients         int            `env:"HA_VPN_CLIENTS"`
 	LocalNodeIP          string         `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
+	AutoMTU              bool           `env:"OPENVPN_AUTO_MTU"`
 }
 
 func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {

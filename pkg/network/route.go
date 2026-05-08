@@ -11,6 +11,33 @@ import (
 	"github.com/vishvananda/netlink"
 )
 
+func getDefaultRoute() (*netlink.Route, error) {
+	_, defaultIPv4, _ := net.ParseCIDR("0.0.0.0/0")
+	_, defaultIPv6, _ := net.ParseCIDR("::/0")
+
+	routes, err := netlink.RouteList(nil, netlink.FAMILY_ALL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list network routes: %w", err)
+	}
+
+	var defaultRoute *netlink.Route
+	for _, route := range routes {
+		if route.Dst != nil {
+			if route.Dst.String() == defaultIPv4.String() || route.Dst.String() == defaultIPv6.String() {
+				defaultRoute = &route
+				break
+			}
+		}
+	}
+
+	if defaultRoute == nil {
+		return nil, fmt.Errorf("failed to find default route")
+	}
+
+	return defaultRoute, nil
+}
+
+
 func routeForNetwork(net *net.IPNet, device netlink.Link) netlink.Route {
 	// ip route replace $net dev $device
 	route := netlink.Route{
