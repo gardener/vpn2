@@ -182,5 +182,54 @@ var _ = Describe("KernelSettings", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("0"))
 		})
+
+		It("should apply conntrack optimizations", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.ip_local_port_range")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("1024\t65535"))
+
+			value, err = sysctl.Get("net.ipv4.tcp_tw_reuse")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("1"))
+
+			value, err = sysctl.Get("net.ipv4.tcp_fin_timeout")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("30"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_established")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("600"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_syn_sent")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("30"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_syn_recv")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("30"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_fin_wait")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("30"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_time_wait")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("30"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_close_wait")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("30"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_unacknowledged")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("60"))
+
+			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_max_retrans")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("120"))
+		})
 	})
 })
