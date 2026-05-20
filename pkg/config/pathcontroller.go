@@ -7,7 +7,7 @@ package config
 import (
 	"strings"
 
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 	"github.com/go-logr/logr"
 
 	"github.com/gardener/vpn2/pkg/network"
