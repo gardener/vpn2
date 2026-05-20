@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/caarlos0/env/v10"
+	"github.com/caarlos0/env/v11"
 
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
