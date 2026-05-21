@@ -9,16 +9,16 @@ import (
 	"time"
 
 	"github.com/gardener/gardener/pkg/logger"
-	"github.com/gardener/vpn2/pkg/config"
-	"github.com/gardener/vpn2/pkg/network"
-	"github.com/gardener/vpn2/pkg/vpn_client"
 	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	"go.uber.org/zap/zapcore"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
+	"github.com/gardener/vpn2/pkg/network"
+	"github.com/gardener/vpn2/pkg/vpn_client"
 )
 
 var _ = Describe("Tunnel controller helpers", func() {

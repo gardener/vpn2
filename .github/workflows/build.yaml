@@ -74,7 +74,7 @@ jobs:
       linter: gosec
       run: .ci/check
 
-  test-docker:
+  verify:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -85,8 +85,9 @@ jobs:
           set -euo pipefail
 
           mkdir /tmp/blobs.d
-
-          make test-docker |& tee /tmp/blobs.d/verify-log.txt
+          git config --global user.email "gardener@sap.com"
+          git config --global user.name "Gardener CI/CD"
+          make check-generate format test-docker |& tee /tmp/blobs.d/verify-log.txt
 
           tar czf /tmp/blobs.d/verify-log.tar.gz -C /tmp/blobs.d verify-log.txt
 
