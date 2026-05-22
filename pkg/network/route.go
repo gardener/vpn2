@@ -37,7 +37,6 @@ func getDefaultRoute() (*netlink.Route, error) {
 	return defaultRoute, nil
 }
 
-
 func routeForNetwork(net *net.IPNet, device netlink.Link) netlink.Route {
 	// ip route replace $net dev $device
 	route := netlink.Route{
