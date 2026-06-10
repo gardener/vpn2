@@ -7,6 +7,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -63,6 +64,7 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU int) openvpn.Client
 		ReversedVPNHeaderKey: cfg.ReversedVPNHeaderKey,
 		Endpoint:             cfg.Endpoint,
 		OpenVPNPort:          cfg.OpenVPNPort,
+		ManagementPort:       constants.ManagementPort,
 		VPNClientIndex:       cfg.VPNClientIndex,
 		IsShootClient:        cfg.IsShootClient,
 		IsHA:                 cfg.IsHA,
@@ -82,6 +84,8 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU int) openvpn.Client
 	if cfg.VPNServerIndex != "" {
 		vpnSeedServer = fmt.Sprintf("vpn-seed-server-%s", cfg.VPNServerIndex)
 		v.Device = fmt.Sprintf("tap%s", cfg.VPNServerIndex)
+		vpnServerIndex, _ := strconv.Atoi(cfg.VPNServerIndex)
+		v.ManagementPort += uint(vpnServerIndex)
 	}
 
 	log.Info("Built config values", "vpn-seed-sever", vpnSeedServer, "values", v)

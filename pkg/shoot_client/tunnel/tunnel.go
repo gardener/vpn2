@@ -172,6 +172,30 @@ func (c *Controller) Run(log logr.Logger) error {
 		Port: tunnelControllerPort,
 	}
 
+	log.Info("watchdog initialized", "windowSize", constants.WatchdogWindowSize, "threshold", constants.WatchdogThreshold, "cooldown", constants.WatchdogCooldown)
+	wd, err := NewWatchdog(constants.WatchdogWindowSize, constants.WatchdogThreshold, constants.WatchdogCooldown, func() error {
+		for clientIndex := range 2 {
+			log.Info("watchdog triggered: restarting vpn-shoot-client", "clientIndex", clientIndex)
+
+			conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", constants.ManagementPort+clientIndex))
+			if err != nil {
+				return err
+			}
+
+			_, err = conn.Write([]byte("signal SIGHUP\n"))
+			if err != nil {
+				_ = conn.Close()
+				return err
+			}
+			_ = conn.Close()
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
+	}
+
 	handleListenError := func() error {
 		var ipFlags string
 		ipAddr, err2 := network.GetLinkIPAddrForIP(constants.BondDevice, localBond)
@@ -210,8 +234,15 @@ func (c *Controller) Run(log logr.Logger) error {
 		n, clientAddr, err := conn.ReadFromUDP(buffer)
 		if err != nil {
 			log.Error(err, "reading from UDP failed")
+			if err := wd.Fail(); err != nil {
+				log.Error(err, "watchdog failure (fail)")
+			}
 			continue
 		}
+		if err := wd.Succeed(); err != nil {
+			log.Error(err, "watchdog failure (succeed)")
+		}
+
 		podIP := string(buffer[:n])
 
 		key := clientAddr.IP.String()
