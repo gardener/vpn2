@@ -34,6 +34,7 @@ type SeedServerValues struct {
 	VPNIndex        int
 	LocalNodeIP     string
 	TunMTU          int
+	MaxRoutesPerClient int
 }
 
 func generateSeedServerConfig(cfg SeedServerValues) (string, error) {

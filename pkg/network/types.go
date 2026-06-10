@@ -52,6 +52,15 @@ func (c *CIDR) IsIPv4() bool {
 	return c.IP.To4() != nil
 }
 
+func (c *CIDR) CountHosts() int {
+	ones, bits := c.Mask.Size()
+	hostBits := bits - ones
+	if hostBits <= 0 {
+		return 0
+	}
+	return (1 << hostBits) - 2 // Subtract network and broadcast addresses
+}
+
 // ParseIPNet parses a CIDR string and returns a network.CIDR (for user-provided values)
 func ParseIPNet(cidr string) (CIDR, error) {
 	_, prefix, err := net.ParseCIDR(cidr)
