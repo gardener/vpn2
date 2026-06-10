@@ -46,6 +46,9 @@ RUN    cp -d /lib/ld-musl-* ./lib                                           && e
     && cp -d /usr/sbin/openvpn ./usr/sbin                                   && echo package openvpn \
     && cp -d /etc/openvpn/* ./etc/openvpn                                   && echo package openvpn \
     && cp -d /usr/lib/openvpn/plugins/openvpn* ./usr/lib/openvpn/plugins    && echo package openvpn \
+    && cp -d /usr/lib/libnl-3.so.* ./usr/lib                                && echo package openvpn \
+    && cp -d /usr/lib/libnl-genl-3.so.* ./usr/lib                           && echo package openvpn \
+    && cp -d /usr/lib/libpkcs11-helper.so.* ./usr/lib                       && echo package openvpn \
     && cp -d /usr/lib/libnftnl* ./usr/lib                                   && echo package libnftnl \
     && cp -d /etc/ethertypes ./etc                                          && echo package iptables \
     && cp -d /usr/sbin/iptables* ./usr/sbin                                 && echo package iptables \
@@ -61,8 +64,7 @@ RUN if [ "$DEBUG" = "true" ]; then \
        && cp -d /usr/lib/libpcap* ./usr/lib                                 && echo package tcpdump \
        && cp -d /usr/lib/libcurl* ./usr/lib                                 && echo package curl \
        && cp -d /usr/lib/libcares* ./usr/lib                                && echo package curl \
-       && cp -d /usr/lib/libnghttp2* ./usr/lib                              && echo package curl \
-       && cp -d /usr/lib/libnghttp3* ./usr/lib                              && echo package curl \
+       && cp -d /usr/lib/libnghttp* ./usr/lib                               && echo package curl \
        && cp -d /usr/lib/libidn2* ./usr/lib                                 && echo package curl \
        && cp -d /usr/lib/libpsl* ./usr/lib                                  && echo package curl \
        && cp -d /usr/lib/libbrotlidec* ./usr/lib                            && echo package curl \
@@ -99,6 +101,7 @@ FROM scratch AS vpn-client
 COPY --from=base /volume /
 COPY --from=gobuilder-vpn-client /build/bin/vpn-client /bin/vpn-client
 COPY --from=gobuilder-vpn-client /build/bin/tunnel-controller /bin/tunnel-controller
+RUN openvpn --version
 ENTRYPOINT /bin/vpn-client && openvpn --config /openvpn-client.config
 
 ## gobuilder-vpn-server
@@ -110,4 +113,5 @@ RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-server ARCH
 FROM scratch AS vpn-server
 COPY --from=base /volume /
 COPY --from=gobuilder-vpn-server /build/bin/vpn-server /bin/vpn-server
+RUN openvpn --version
 ENTRYPOINT /bin/vpn-server && openvpn --config /openvpn-server.config
