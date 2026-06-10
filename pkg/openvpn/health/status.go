@@ -243,10 +243,11 @@ func parseRealClientAddress(addrStr string) (netip.AddrPort, error) {
 	// - IPv6 (e.g., 2001:db8::1) (no port)
 	// In OpenVPN 2.7 the format is always IP:Port, even for IPv6 (e.g., [2001:db8::1]:1234) but it may be prefixed by
 	// the protocol (e.g., udp6:[2001:db8::1]:1234)
+	// or the protocol type (e.g., tcp4-server:100.64.5.13:47764
 	// See https://github.com/OpenVPN/openvpn/issues/963
 
 	// Parse using regexp to handle both formats
-	regex := `^(?:(?:udp|tcp)(?:4|6)?\:)?(\[?[a-fA-F0-9:.]+\]?)?(?::(\d+))?$`
+	regex := `^(?:(?:udp|tcp)(?:4|6)?(?:-(?:client|server))?\:)?(\[?[a-fA-F0-9:.]+\]?)?(?::(\d+))?$`
 	re := regexp.MustCompile(regex)
 	matches := re.FindStringSubmatch(addrStr)
 	if len(matches) == 0 {

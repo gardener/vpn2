@@ -189,6 +189,42 @@ var _ = Describe("OpenVPN Server Status", func() {
 		})
 	})
 
+	Context("2.7 server with shoot client (non-HA)", func() {
+		BeforeEach(func() {
+			status, err = ParseFile(`test/openvpn27-nonha-ready.status`)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).ToNot(BeNil())
+			status.UpdatedAt = time.Now().Add(-2 * time.Second)
+		})
+
+		It("should report vpn-server as up", func() {
+			Expect(isUp(log, status, 15)).To(BeTrue())
+		})
+		It("should have one client", func() {
+			Expect(len(status.Clients)).To(Equal(1))
+		})
+		It("should have parsed clients correctly", func() {
+			Expect(status.Clients[0].RealAddress.Addr().String()).To(Equal("100.64.5.13"))
+		})
+		It("should have routing entries", func() {
+			Expect(len(status.RoutingTable)).To(BeNumerically(">", 0))
+		})
+		It("should have parsed routing entries correctly", func() {
+			Expect(status.RoutingTable[0].RealAddress.Addr().String()).To(Equal("100.64.5.13"))
+			Expect(status.RoutingTable[0].VirtualAddress).To(Equal("243.0.0.0/8"))
+			Expect(status.RoutingTable[1].RealAddress.Addr().String()).To(Equal("100.64.5.13"))
+			Expect(status.RoutingTable[1].VirtualAddress).To(Equal("242.0.140.197C"))
+			Expect(status.RoutingTable[2].RealAddress.Addr().String()).To(Equal("100.64.5.13"))
+			Expect(status.RoutingTable[2].VirtualAddress).To(Equal("242.0.0.0/8"))
+		})
+		It("should be ready (non-HA)", func() {
+			Expect(isReady(log, status, false)).To(BeTrue())
+		})
+		It("should not be ready (HA)", func() {
+			Expect(isReady(log, status, true)).To(BeFalse())
+		})
+	})
+
 	Context("server with only shoot clients", func() {
 		BeforeEach(func() {
 			status, err = ParseFile(`test/openvpn-nonha-ready.status`)

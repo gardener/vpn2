@@ -1,0 +1,20 @@
+TITLE,OpenVPN 2.7.3 x86_64-alpine-linux-musl [SSL (OpenSSL)] [LZO] [LZ4] [EPOLL] [PKCS11] [MH/PKTINFO] [AEAD] [DCO]
+TIME,2026-06-10 09:45:02,1781084702
+HEADER,CLIENT_LIST,Common Name,Real Address,Virtual Address,Virtual IPv6 Address,Bytes Received,Bytes Sent,Connected Since,Connected Since (time_t),Username,Client ID,Peer ID,Data Channel Cipher
+CLIENT_LIST,vpn-shoot-client,tcp6-server:100.64.5.13:47764,,fd8f:6d53:b97a:1::1000,225040,28752,2026-06-10 09:44:49,1781084689,UNDEF,0,0,AES-256-GCM
+HEADER,ROUTING_TABLE,Virtual Address,Common Name,Real Address,Last Ref,Last Ref (time_t)
+ROUTING_TABLE,243.0.0.0/8,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:51,1781084691
+ROUTING_TABLE,242.0.140.197C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:59,1781084699
+ROUTING_TABLE,242.0.0.0/8,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:51,1781084691
+ROUTING_TABLE,244.0.1.3C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:52,1781084692
+ROUTING_TABLE,242.0.153.44C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:58,1781084698
+ROUTING_TABLE,244.0.1.6C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:45:00,1781084700
+ROUTING_TABLE,fd8f:6d53:b97a:1::1000,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:51,1781084691
+ROUTING_TABLE,244.0.0.0/8,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:51,1781084691
+ROUTING_TABLE,242.0.131.32C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:59,1781084699
+ROUTING_TABLE,242.0.129.206C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:45:01,1781084701
+ROUTING_TABLE,244.0.1.8C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:59,1781084699
+ROUTING_TABLE,244.0.2.2C,vpn-shoot-client,tcp6-server:100.64.5.13:47764,2026-06-10 09:44:52,1781084692
+GLOBAL_STATS,Max bcast/mcast queue length,1
+GLOBAL_STATS,dco_enabled,0
+END
