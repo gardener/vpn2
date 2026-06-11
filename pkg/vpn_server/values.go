@@ -32,7 +32,7 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
 	}
 
-	// Set MaxRoutesPerClient to the size of the larget shoot network with an upper bound of MaxRoutesPerClientLimit
+	// Set MaxRoutesPerClient to the size of the largest shoot network within RoutesPerClientMax and RoutesPerClientMin
 	maxRoutes := 0
 	for _, shootNetwork := range slices.Concat(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks) {
 		routes := shootNetwork.CountHosts()

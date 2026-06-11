@@ -52,6 +52,7 @@ func (c *CIDR) IsIPv4() bool {
 	return c.IP.To4() != nil
 }
 
+// CountHosts returns the number of addressable host IPs in a CIDR
 func (c *CIDR) CountHosts() int {
 	ones, bits := c.Mask.Size()
 	hostBits := bits - ones

@@ -408,7 +408,7 @@ var _ = Describe("BuildValues", func() {
 		})
 
 		It("should use the largest shoot network size", func() {
-			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.10.0.0/25")}    // 126 hosts
+			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.10.0.0/25")}     // 126 hosts
 			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.20.0.0/23")} // 510 hosts
 			cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.30.0.0/24")}    // 254 hosts
 
@@ -440,7 +440,7 @@ var _ = Describe("BuildValues", func() {
 		})
 
 		It("should calculate MaxRoutesPerClient from IPv6 network sizes", func() {
-			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/120")}   // 254 hosts
+			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/120")}     // 254 hosts
 			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/119")} // 510 hosts
 			cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/126")}    // 2 hosts
 
