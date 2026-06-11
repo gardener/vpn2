@@ -33,17 +33,20 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
 	}
 
-	// Set MaxRoutesPerClient to the size of the largest shoot network within RoutesPerClientMax and RoutesPerClientMin
-	maxRoutes := int64(0)
+	// Set MaxRoutesPerClient to the sum of all shoot networks within RoutesPerClientMax and RoutesPerClientMin
+	maxRoutes := big.NewInt(0)
 	for _, shootNetwork := range slices.Concat(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks) {
-		routes := shootNetwork.CountHosts()
-		if routes != nil && routes.Cmp(big.NewInt(maxRoutes)) >= 0 {
-			maxRoutes = routes.Int64()
-		}
+		maxRoutes.Add(maxRoutes, shootNetwork.CountHosts())
 	}
-
-	maxRoutes = max(min(maxRoutes, constants.RoutesPerClientMax), constants.RoutesPerClientMin)
-	v.MaxRoutesPerClient = int(maxRoutes)
+	maxRoutesUint64 := uint64(0)
+	if maxRoutes.IsUint64() {
+		maxRoutesUint64 = maxRoutes.Uint64()
+	} else {
+		// if we are beyond uin64 we top out at max value
+		maxRoutesUint64 = constants.RoutesPerClientMax
+	}
+	maxRoutesUint64 = max(min(maxRoutesUint64, constants.RoutesPerClientMax), constants.RoutesPerClientMin)
+	v.MaxRoutesPerClient = int(maxRoutesUint64)
 
 	v.IsHA, v.VPNIndex = getHAInfo(cfg)
 
