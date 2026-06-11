@@ -441,12 +441,12 @@ var _ = Describe("BuildValues", func() {
 
 		It("should calculate MaxRoutesPerClient from IPv6 network sizes", func() {
 			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/120")}     // 254 hosts
-			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/119")} // 510 hosts
+			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/119")} // 512 hosts
 			cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/126")}    // 2 hosts
 
 			v, err := vpn_server.BuildValues(cfg)
 			Expect(err).ToNot(HaveOccurred())
-			Expect(v.MaxRoutesPerClient).To(Equal(510))
+			Expect(v.MaxRoutesPerClient).To(Equal(512))
 		})
 	})
 })

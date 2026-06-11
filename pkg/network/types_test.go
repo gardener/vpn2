@@ -5,6 +5,7 @@
 package network
 
 import (
+	"math/big"
 	"net"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -87,21 +88,35 @@ var _ = Describe("types", func() {
 		})
 
 		Describe("CountHosts", func() {
-			It("returns host count for subnet", func() {
+			It("returns 254 for a /24 IPv4 subnet", func() {
 				cidr := ParseIPNetIgnoreError("10.0.0.0/24")
-				Expect(cidr.CountHosts()).To(Equal(254))
+				Expect(cidr.CountHosts()).To(Equal(big.NewInt(254)))
 			})
 
-			It("returns host count for IPv6 subnet", func() {
+			It("returns 4 for a /126 IPv6 subnet (no broadcast or network subtraction)", func() {
 				cidr := ParseIPNetIgnoreError("2001:db8::/126")
-				Expect(cidr.CountHosts()).To(Equal(2))
+				Expect(cidr.CountHosts()).To(Equal(big.NewInt(4)))
 			})
 
-			It("returns zero for prefixes without host addresses", func() {
+			It("returns 1 for a /128 IPv6 subnet (single host)", func() {
+				cidr := ParseIPNetIgnoreError("2001:db8::/128")
+				Expect(cidr.CountHosts()).To(Equal(big.NewInt(1)))
+			})
+
+			It("returns 1 for a /32 subnet (single host)", func() {
 				cidr := ParseIPNetIgnoreError("10.0.0.1/32")
-				Expect(cidr.CountHosts()).To(Equal(0))
+				Expect(cidr.CountHosts()).To(Equal(big.NewInt(1)))
 			})
 
+			It("returns 2 for a /31 subnet (point-to-point)", func() {
+				cidr := ParseIPNetIgnoreError("10.0.0.0/31")
+				Expect(cidr.CountHosts()).To(Equal(big.NewInt(2)))
+			})
+
+			It("returns 2 for a /30 subnet (subtract broadcast and network)", func() {
+				cidr := ParseIPNetIgnoreError("10.0.0.0/31")
+				Expect(cidr.CountHosts()).To(Equal(big.NewInt(2)))
+			})
 		})
 	})
 
