@@ -40,8 +40,11 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 			maxRoutes = routes
 		}
 	}
-	if maxRoutes > constants.MaxRoutesPerClientLimit {
-		maxRoutes = constants.MaxRoutesPerClientLimit
+	if maxRoutes > constants.RoutesPerClientMax {
+		maxRoutes = constants.RoutesPerClientMax
+	}
+	if maxRoutes < constants.RoutesPerClientMin {
+		maxRoutes = constants.RoutesPerClientMin
 	}
 	v.MaxRoutesPerClient = maxRoutes
 

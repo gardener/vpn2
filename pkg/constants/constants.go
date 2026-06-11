@@ -37,8 +37,8 @@ const (
 	ShootNodeNetworkMapped    = constants.ReservedShootNodeNetworkMappedRange
 	SeedPodNetworkMapped      = constants.ReservedSeedPodNetworkMappedRange
 
-	// MaxRoutesPerClientLimit is the maximum number of route table entries for a vpn client
-	MaxRoutesPerClientLimit = 1 << 16
+	RoutesPerClientMax = 1 << 16
+	RoutesPerClientMin = 256
 
 	PathControllerUpdateInterval  = 2 * time.Second
 	TunnelControllerUpdateTimeout = 2 * PathControllerUpdateInterval
