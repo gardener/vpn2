@@ -22,18 +22,19 @@ var (
 )
 
 type SeedServerValues struct {
-	Device          string
-	StatusPath      string
-	OpenVPNNetwork  network.CIDR
-	ShootNetworks   []network.CIDR
-	ShootNetworksV4 []network.CIDR
-	ShootNetworksV6 []network.CIDR
-	SeedPodNetwork  network.CIDR
-	HAVPNClients    int
-	IsHA            bool
-	VPNIndex        int
-	LocalNodeIP     string
-	TunMTU          int
+	Device             string
+	StatusPath         string
+	OpenVPNNetwork     network.CIDR
+	ShootNetworks      []network.CIDR
+	ShootNetworksV4    []network.CIDR
+	ShootNetworksV6    []network.CIDR
+	SeedPodNetwork     network.CIDR
+	HAVPNClients       int
+	IsHA               bool
+	VPNIndex           int
+	LocalNodeIP        string
+	TunMTU             int
+	MaxRoutesPerClient int
 }
 
 func generateSeedServerConfig(cfg SeedServerValues) (string, error) {

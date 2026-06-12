@@ -37,6 +37,10 @@ const (
 	ShootNodeNetworkMapped    = constants.ReservedShootNodeNetworkMappedRange
 	SeedPodNetworkMapped      = constants.ReservedSeedPodNetworkMappedRange
 
+	// RoutesPerClientMax is the upper limit for route table entries. One entry estimated at ~50 bytes of memory.
+	RoutesPerClientMax = 1 << 20 // 1 million routes (~50MB) per client.
+	RoutesPerClientMin = 256     // OpenVPN default
+
 	PathControllerUpdateInterval  = 2 * time.Second
 	TunnelControllerUpdateTimeout = 2 * PathControllerUpdateInterval
 

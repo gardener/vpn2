@@ -6,6 +6,7 @@ package vpn_server
 
 import (
 	"fmt"
+	"math/big"
 	"regexp"
 	"slices"
 	"strconv"
@@ -31,6 +32,21 @@ func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	if ones, _ := cfg.VPNNetwork.Mask.Size(); ones != constants.VPNNetworkMask {
 		return v, fmt.Errorf("invalid prefix length for VPN_NETWORK, must be /%d, vpn network: %s", constants.VPNNetworkMask, cfg.VPNNetwork)
 	}
+
+	// Set MaxRoutesPerClient to the sum of all shoot networks within RoutesPerClientMax and RoutesPerClientMin
+	maxRoutes := big.NewInt(0)
+	for _, shootNetwork := range slices.Concat(cfg.ShootPodNetworks, cfg.ShootServiceNetworks, cfg.ShootNodeNetworks) {
+		maxRoutes.Add(maxRoutes, shootNetwork.CountHosts())
+	}
+	maxRoutesUint64 := uint64(0)
+	if maxRoutes.IsUint64() {
+		maxRoutesUint64 = maxRoutes.Uint64()
+	} else {
+		// if we are beyond uin64 we top out at max value
+		maxRoutesUint64 = constants.RoutesPerClientMax
+	}
+	maxRoutesUint64 = max(min(maxRoutesUint64, constants.RoutesPerClientMax), constants.RoutesPerClientMin)
+	v.MaxRoutesPerClient = int(maxRoutesUint64)
 
 	v.IsHA, v.VPNIndex = getHAInfo(cfg)
 

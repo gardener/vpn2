@@ -400,4 +400,64 @@ var _ = Describe("BuildValues", func() {
 			})
 		})
 	})
+
+	Describe("MaxRoutesPerClient", func() {
+		BeforeEach(func() {
+			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
+			cfg.PodName = "vpn-seed-server-5d99b56fcb-2h58x"
+		})
+
+		It("should use the sum of all shoot network sizes", func() {
+			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.10.0.0/25")}     // 126 hosts
+			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.20.0.0/23")} // 510 hosts
+			cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.30.0.0/24")}    // 254 hosts
+
+			v, err := vpn_server.BuildValues(cfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(v.MaxRoutesPerClient).To(Equal(890))
+		})
+
+		It("should cap MaxRoutesPerClient at RoutesPerClientMax", func() {
+			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/64")}      // 2^64 hosts
+			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/119")} // 512 hosts
+
+			v, err := vpn_server.BuildValues(cfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(v.MaxRoutesPerClient).To(Equal(constants.RoutesPerClientMax))
+		})
+
+		It("should cap MaxRoutesPerClient at RoutesPerClientMax with networks beyond /64 size", func() {
+			// special case as it does not fit into uin64
+			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/50")}      // 2^78 hosts
+			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/119")} // 512 hosts
+
+			v, err := vpn_server.BuildValues(cfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(v.MaxRoutesPerClient).To(Equal(constants.RoutesPerClientMax))
+		})
+
+		It("should enforce RoutesPerClientMin when computed value is below minimum", func() {
+			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("10.10.0.0/30")} // 2 hosts
+
+			v, err := vpn_server.BuildValues(cfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(v.MaxRoutesPerClient).To(Equal(constants.RoutesPerClientMin))
+		})
+
+		It("should never fall below minimum even without any networks", func() {
+			v, err := vpn_server.BuildValues(cfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(v.MaxRoutesPerClient).To(Equal(constants.RoutesPerClientMin))
+		})
+
+		It("should calculate MaxRoutesPerClient from IPv6 network sizes", func() {
+			cfg.ShootPodNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:1::/120")}     // 256 hosts
+			cfg.ShootServiceNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:2::/119")} // 512 hosts
+			cfg.ShootNodeNetworks = []network.CIDR{network.ParseIPNetIgnoreError("2001:db8:3::/126")}    // 4 hosts
+
+			v, err := vpn_server.BuildValues(cfg)
+			Expect(err).ToNot(HaveOccurred())
+			Expect(v.MaxRoutesPerClient).To(Equal(772))
+		})
+	})
 })

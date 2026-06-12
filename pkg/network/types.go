@@ -6,6 +6,7 @@ package network
 
 import (
 	"fmt"
+	"math/big"
 	"net"
 )
 
@@ -50,6 +51,29 @@ func (c CIDR) ToIPNet() *net.IPNet {
 
 func (c *CIDR) IsIPv4() bool {
 	return c.IP.To4() != nil
+}
+
+// CountHosts returns the number of addressable host IPs in a CIDR
+func (c *CIDR) CountHosts() *big.Int {
+	ones, bits := c.Mask.Size()
+	if ones < 0 || bits <= 0 || ones > bits {
+		return big.NewInt(0)
+	}
+
+	// total = 2^(hostBits)
+	hostBits := bits - ones
+	total := new(big.Int).Lsh(big.NewInt(1), uint(hostBits))
+
+	// IPv4: subtract network and broadcast for traditional subnets.
+	// /31 and /32 are special cases where no subtraction is applied.
+	if bits == 32 && ones <= 30 {
+		if total.Cmp(big.NewInt(2)) >= 0 {
+			return new(big.Int).Sub(total, big.NewInt(2))
+		}
+		return big.NewInt(0)
+	}
+
+	return total
 }
 
 // ParseIPNet parses a CIDR string and returns a network.CIDR (for user-provided values)
