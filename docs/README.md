@@ -20,7 +20,7 @@ Reference: [GEP-0014: Reversed Cluster VPN](https://github.com/gardener/enhancem
 
 ## Contents
 
-- [Communcation Flow](./communication-flow.md)
+- [Communication Flow](./communication-flow.md)
 - [Tunnel controller](./tunnel-controller.md)
 - [IPAM](./ipam.md)
 - [Double NAT](./double-nat.md)
