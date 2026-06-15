@@ -11,12 +11,11 @@ Reference: [GEP-0014: Reversed Cluster VPN](https://github.com/gardener/enhancem
 
 | Component | Location | Purpose |
 |-----------|----------|---------|
-| VPN Client (OpenVPN) | Shoot cluster | Outbound VPN tunnel to Seed |
+| Standalone VPN Client (OpenVPN) | Shoot cluster | Outbound VPN tunnel to Seed |
+| VPN Client as kube-apiserver sidecar (OpenVPN) | Seed cluster | Enables kube-apiserver to access nodes/services/pods running in the Shoot   |
 | VPN Server (OpenVPN) | Seed cluster (standalone Pod) | Accepts inbound VPN tunnels |
 | Tunnel Controller | Shoot cluster | Receives UDP from seed clients, creates ip6tnl tunnels |
-| Tunnel Client | Seed cluster (kube-apiserver side-car) | Sends its IP to the tunnel controller |
 | Path Controller | Seed cluster (kube-apiserver side-car/only in HA case) | Configure routes for service/node/pod CIDR in kube-apiserver pod based on healthy shoot VPN clients |
-| IP Pool Manager | Seed cluster (kube-apiserver side-car/only in HA case) | Distributed IP address allocation for VPN Clients in kube-apiserver |
 
 ## Contents
 

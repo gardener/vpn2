@@ -6,20 +6,14 @@ The Tunnel Controller is a core component that bridges the OpenVPN tunnel and th
 
 ### Message Format
 
-**Client -> Tunnel Controller (UDP6 port 5400):**
+**Client (Path-controller) -> Tunnel Controller (UDP6 port 5400):**
 
 | Field | Value |
 |-------|-------|
-| Direction | Client -> Server |
 | Protocol | UDP6 |
 | Content | Plain text IPv4 or IPv6 address string (e.g., `10.0.0.1`) |
-| Max length | ~46 bytes (maximum IPv6 address length) |
-| Buffer size | 1024 bytes |
-| Read deadline | 4 seconds (`TunnelControllerUpdateTimeout` = 2 x `PathControllerUpdateInterval`) |
 
-**Tunnel Controller -> Client:**
-
-- No explicit response. The controller processes the message and creates a Linux `ip6tnl` tunnel device.
+The controller processes the message and creates a Linux `ip6tnl` tunnel device.
 
 ### Tunnel Lifecycle
 

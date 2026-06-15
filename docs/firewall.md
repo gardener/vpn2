@@ -77,7 +77,7 @@ iptables -A INPUT -i bond0+ -m state --state RELATED,ESTABLISHED -j ACCEPT
 iptables -A INPUT -i bond0+ -j DROP
 ```
 
-The Seed client also applies reverse NETMAP via IPSET with owner match so that Envoy pods generate traffic that gets automatically mapped before it enters the VPN tunnel. This is done via the `OUTPUT` table with `-m owner --gid-owner <envoy-vpn-group-id>` selector.
+The Seed client also applies reverse NETMAP via IPSET with owner match so that Envoy pods generate traffic that gets automatically mapped before it enters the VPN tunnel. This is done via the `OUTPUT` chain in the NAT table with `-m owner --gid-owner <envoy-vpn-group-id>` selector.
 
 ## Reverse Path Routing (non-HA)
 
