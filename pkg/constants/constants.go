@@ -15,6 +15,8 @@ const (
 	IPv4Family = "IPv4"
 	IPv6Family = "IPv6"
 
+	// ManagementPort is the default port for the OpenVPN management interface.
+	ManagementPort = 7505
 	// TunnelMTUOverhead is the number of bytes subtracted from the underlying interface MTU
 	// to derive the OpenVPN tun-mtu value (IPv6 header + TCP header + OpenVPN framing).
 	TunnelMTUOverhead = 130
@@ -43,6 +45,10 @@ const (
 
 	PathControllerUpdateInterval  = 2 * time.Second
 	TunnelControllerUpdateTimeout = 2 * PathControllerUpdateInterval
+
+	WatchdogWindowSize = 20
+	WatchdogThreshold  = 10
+	WatchdogCooldown   = 20
 
 	EnvoyVPNGroupId = constants.EnvoyVPNGroupId
 )

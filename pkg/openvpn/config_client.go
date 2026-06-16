@@ -20,6 +20,7 @@ type ClientValues struct {
 	ReversedVPNHeaderKey string
 	Endpoint             string
 	OpenVPNPort          uint
+	ManagementPort       uint
 	VPNClientIndex       int
 	IsShootClient        bool
 	IsHA                 bool

@@ -14,6 +14,7 @@ import (
 	"github.com/vishvananda/netlink"
 	"k8s.io/utils/ptr"
 
+	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 )
@@ -28,8 +29,9 @@ const (
 )
 
 // NewController creates a new tunnel controller server.
-func NewController() *Controller {
+func NewController(cfg *config.TunnelController) *Controller {
 	return &Controller{
+		config:         cfg,
 		kubeApiservers: map[string]*kubeApiserverData{},
 		nextClean:      time.Now().Add(cleanUpPeriod),
 	}
@@ -147,6 +149,7 @@ func (d *kubeApiserverData) isOutdated() bool {
 
 // Controller is a server receiving UDP requests to create ipv6tnl devices.
 type Controller struct {
+	config         *config.TunnelController
 	lock           sync.Mutex
 	kubeApiservers map[string]*kubeApiserverData
 	nextClean      time.Time
@@ -170,6 +173,29 @@ func (c *Controller) Run(log logr.Logger) error {
 	localAddress := net.UDPAddr{
 		IP:   localBond,
 		Port: tunnelControllerPort,
+	}
+
+	wd, err := NewWatchdog(log, c.config.WatchdogWindowSize, c.config.WatchdogThreshold, c.config.WatchdogCooldown, func() error {
+		for clientIndex := range c.config.HAVPNClients {
+			endpoint := fmt.Sprintf("127.0.0.1:%d", constants.ManagementPort+clientIndex)
+			log.Info("watchdog triggered: restarting vpn-shoot-client", "clientIndex", clientIndex, "endpoint", endpoint)
+			conn, err := net.Dial("tcp", endpoint)
+			if err != nil {
+				return err
+			}
+
+			_, err = conn.Write([]byte("signal SIGHUP\n"))
+			if err != nil {
+				_ = conn.Close()
+				return err
+			}
+			_ = conn.Close()
+		}
+		return nil
+	})
+
+	if err != nil {
+		return err
 	}
 
 	handleListenError := func() error {
@@ -210,8 +236,15 @@ func (c *Controller) Run(log logr.Logger) error {
 		n, clientAddr, err := conn.ReadFromUDP(buffer)
 		if err != nil {
 			log.Error(err, "reading from UDP failed")
+			if err := wd.Fail(); err != nil {
+				log.Error(err, "watchdog failure (fail)")
+			}
 			continue
 		}
+		if err := wd.Succeed(); err != nil {
+			log.Error(err, "watchdog failure (succeed)")
+		}
+
 		podIP := string(buffer[:n])
 
 		key := clientAddr.IP.String()

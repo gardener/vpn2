@@ -7,6 +7,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/go-logr/logr"
 	"github.com/spf13/cobra"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/gardener/vpn2/cmd/vpn_client/app/pathcontroller"
 	"github.com/gardener/vpn2/cmd/vpn_client/app/setup"
+	"github.com/gardener/vpn2/cmd/vpn_client/app/tunnelcontroller"
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
@@ -51,6 +53,7 @@ func NewCommand() *cobra.Command {
 	verflag.AddFlags(flags)
 	cmd.PersistentFlags().BoolVar(&pprofEnabled, "enable-pprof", false, "enable pprof for profiling")
 	cmd.AddCommand(pathcontroller.NewCommand())
+	cmd.AddCommand(tunnelcontroller.NewCommand())
 	cmd.AddCommand(setup.NewCommand())
 	return cmd
 }
@@ -63,6 +66,7 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU int) openvpn.Client
 		ReversedVPNHeaderKey: cfg.ReversedVPNHeaderKey,
 		Endpoint:             cfg.Endpoint,
 		OpenVPNPort:          cfg.OpenVPNPort,
+		ManagementPort:       constants.ManagementPort,
 		VPNClientIndex:       cfg.VPNClientIndex,
 		IsShootClient:        cfg.IsShootClient,
 		IsHA:                 cfg.IsHA,
@@ -82,6 +86,8 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU int) openvpn.Client
 	if cfg.VPNServerIndex != "" {
 		vpnSeedServer = fmt.Sprintf("vpn-seed-server-%s", cfg.VPNServerIndex)
 		v.Device = fmt.Sprintf("tap%s", cfg.VPNServerIndex)
+		vpnServerIndex, _ := strconv.Atoi(cfg.VPNServerIndex)
+		v.ManagementPort += uint(vpnServerIndex)
 	}
 
 	log.Info("Built config values", "vpn-seed-sever", vpnSeedServer, "values", v)

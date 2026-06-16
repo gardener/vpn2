@@ -94,13 +94,12 @@ ENV GOCACHE=/root/.cache/go-build
 ## gobuilder-vpn-client
 FROM gobuilder AS gobuilder-vpn-client
 ARG TARGETARCH
-RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-client build-tunnel-controller ARCH=${TARGETARCH}
+RUN --mount=type=cache,target="/root/.cache/go-build" make build-vpn-client ARCH=${TARGETARCH}
 
 ## vpn-client
 FROM scratch AS vpn-client
 COPY --from=base /volume /
 COPY --from=gobuilder-vpn-client /build/bin/vpn-client /bin/vpn-client
-COPY --from=gobuilder-vpn-client /build/bin/tunnel-controller /bin/tunnel-controller
 RUN openvpn --version
 ENTRYPOINT /bin/vpn-client && openvpn --config /openvpn-client.config
 
