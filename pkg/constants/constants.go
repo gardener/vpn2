@@ -47,7 +47,7 @@ const (
 	TunnelControllerUpdateTimeout = 2 * PathControllerUpdateInterval
 
 	WatchdogWindowSize = 20
-	WatchdogThreshold  = 8
+	WatchdogThreshold  = 10
 	WatchdogCooldown   = 20
 
 	EnvoyVPNGroupId = constants.EnvoyVPNGroupId

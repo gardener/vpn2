@@ -15,6 +15,7 @@ import (
 
 	"github.com/gardener/vpn2/cmd/vpn_client/app/pathcontroller"
 	"github.com/gardener/vpn2/cmd/vpn_client/app/setup"
+	"github.com/gardener/vpn2/cmd/vpn_client/app/tunnelcontroller"
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
@@ -52,6 +53,7 @@ func NewCommand() *cobra.Command {
 	verflag.AddFlags(flags)
 	cmd.PersistentFlags().BoolVar(&pprofEnabled, "enable-pprof", false, "enable pprof for profiling")
 	cmd.AddCommand(pathcontroller.NewCommand())
+	cmd.AddCommand(tunnelcontroller.NewCommand())
 	cmd.AddCommand(setup.NewCommand())
 	return cmd
 }

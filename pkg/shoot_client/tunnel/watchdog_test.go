@@ -7,6 +7,7 @@ package tunnel
 import (
 	"fmt"
 
+	"github.com/go-logr/logr"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 )
@@ -14,7 +15,7 @@ import (
 var _ = Describe("Watchdog", func() {
 	Describe("NewWatchdog", func() {
 		It("returns a valid watchdog with correct parameters", func() {
-			wd, err := NewWatchdog(5, 3, 2, func() error { return nil })
+			wd, err := NewWatchdog(logr.Discard(), 5, 3, 2, func() error { return nil })
 			Expect(err).NotTo(HaveOccurred())
 			Expect(wd).NotTo(BeNil())
 			Expect(wd.window).To(HaveLen(5))
@@ -24,42 +25,42 @@ var _ = Describe("Watchdog", func() {
 		})
 
 		It("returns an error when windowsize is zero", func() {
-			_, err := NewWatchdog(0, 1, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 0, 1, 1, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid windowsize")))
 		})
 
 		It("returns an error when windowsize is negative", func() {
-			_, err := NewWatchdog(-1, 1, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), -1, 1, 1, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid windowsize")))
 		})
 
 		It("returns an error when threshold is zero", func() {
-			_, err := NewWatchdog(5, 0, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, 0, 1, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid threshold")))
 		})
 
 		It("returns an error when threshold is negative", func() {
-			_, err := NewWatchdog(5, -1, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, -1, 1, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid threshold")))
 		})
 
 		It("returns an error when threshold exceeds windowsize", func() {
-			_, err := NewWatchdog(3, 5, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 3, 5, 1, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("must be <= windowsize")))
 		})
 
 		It("returns an error when cooldown is zero", func() {
-			_, err := NewWatchdog(5, 3, 0, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, 3, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid cooldown")))
 		})
 
 		It("returns an error when cooldown is negative", func() {
-			_, err := NewWatchdog(5, 3, -1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, 3, -1, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid cooldown")))
 		})
 
 		It("allows threshold equal to windowsize", func() {
-			wd, err := NewWatchdog(5, 5, 1, func() error { return nil })
+			wd, err := NewWatchdog(logr.Discard(), 5, 5, 1, func() error { return nil })
 			Expect(err).NotTo(HaveOccurred())
 			Expect(wd).NotTo(BeNil())
 		})
@@ -80,7 +81,7 @@ var _ = Describe("Watchdog", func() {
 		JustBeforeEach(func() {
 			var err error
 			// windowsize=5, threshold=3, cooldown=3
-			wd, err = NewWatchdog(5, 3, 3, func() error {
+			wd, err = NewWatchdog(logr.Discard(), 5, 3, 3, func() error {
 				actionCount++
 				return actionErr
 			})
@@ -114,9 +115,10 @@ var _ = Describe("Watchdog", func() {
 			Expect(wd.Fail()).To(Succeed())
 			Expect(actionCount).To(Equal(1))
 
-			// Additional failures during cooldown should not trigger again
+			// Events during cooldown are ignored and must not trigger again.
 			Expect(wd.Fail()).To(Succeed())
 			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Succeed()).To(Succeed())
 			Expect(actionCount).To(Equal(1))
 		})
 
@@ -127,30 +129,41 @@ var _ = Describe("Watchdog", func() {
 			Expect(wd.Fail()).To(Succeed())
 			Expect(actionCount).To(Equal(1))
 
-			// Drain cooldown with 3 more records (each decrements cooldownCount)
-			Expect(wd.Fail()).To(Succeed()) // cooldownCount: 3->2
-			Expect(wd.Fail()).To(Succeed()) // cooldownCount: 2->1
-			Expect(wd.Fail()).To(Succeed()) // cooldownCount: 1->0
+			// Drain cooldown with 3 records (all ignored).
+			Expect(wd.Fail()).To(Succeed())    // cooldownCount: 3->2
+			Expect(wd.Succeed()).To(Succeed()) // cooldownCount: 2->1
+			Expect(wd.Fail()).To(Succeed())    // cooldownCount: 1->0
+			Expect(actionCount).To(Equal(1))
 
-			// Now cooldown is expired; next failing record should trigger again
+			// After cooldown the window is still empty (events were ignored), so threshold
+			// must be reached again with fresh failures.
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
 			Expect(wd.Fail()).To(Succeed())
 			Expect(actionCount).To(Equal(2))
 		})
 
-		It("resets failures after enough successes slide out the window", func() {
-			// Fill window with failures to trigger action
+		It("resets the window when action fires", func() {
+			// Trigger action once.
 			Expect(wd.Fail()).To(Succeed())
 			Expect(wd.Fail()).To(Succeed())
 			Expect(wd.Fail()).To(Succeed())
 			Expect(actionCount).To(Equal(1))
 
-			// Slide out old failures with successes (windowsize=5, need 5 successes)
-			for i := 0; i < 5; i++ {
-				Expect(wd.Succeed()).To(Succeed())
-			}
-
-			// Action count stays the same (all successes now)
+			// Drain cooldown (ignored events).
+			Expect(wd.Succeed()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Succeed()).To(Succeed())
 			Expect(actionCount).To(Equal(1))
+
+			// Window was reset on first action, therefore 2 failures are not enough.
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
+			Expect(actionCount).To(Equal(1))
+
+			// A third fresh failure reaches threshold and triggers again.
+			Expect(wd.Fail()).To(Succeed())
+			Expect(actionCount).To(Equal(2))
 		})
 
 		It("returns the action error when the action fails", func() {
@@ -179,6 +192,16 @@ var _ = Describe("Watchdog", func() {
 			Expect(wd.Fail()).To(Succeed())
 			Expect(wd.Fail()).To(Succeed())
 			Expect(actionCount).To(Equal(1))
+
+			// Cooldown blocks recording; after cooldown expires a full new threshold is needed.
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
+			Expect(actionCount).To(Equal(1))
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
+			Expect(actionCount).To(Equal(2))
 		})
 	})
 })

@@ -4,12 +4,17 @@
 
 package tunnel
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/go-logr/logr"
+)
 
 // Watchdog records failure and success events over a sliding window.
 // Based on a configured threshold it can call an action if the failure threshold is breached.
-// After the action has been called it won't be called again until cooldown has expired.
+// After the action has been called, the window is reset and no events are recorded until a cooldown has expired.
 type Watchdog struct {
+	log           logr.Logger
 	window        []bool
 	windowPos     int
 	threshold     int
@@ -18,7 +23,8 @@ type Watchdog struct {
 	action        func() error
 }
 
-func NewWatchdog(windowsize, threshold, cooldown int, action func() error) (*Watchdog, error) {
+func NewWatchdog(log logr.Logger, windowsize, threshold, cooldown int, action func() error) (*Watchdog, error) {
+	log.Info("watchdog initialized", "windowSize", windowsize, "threshold", threshold, "cooldown", cooldown)
 	if windowsize <= 0 {
 		return nil, fmt.Errorf("invalid windowsize %d, must be > 0", windowsize)
 	}
@@ -36,6 +42,7 @@ func NewWatchdog(windowsize, threshold, cooldown int, action func() error) (*Wat
 	}
 
 	wd := &Watchdog{
+		log:           log,
 		window:        make([]bool, windowsize),
 		windowPos:     0,
 		threshold:     threshold,
@@ -56,14 +63,18 @@ func (wd *Watchdog) Succeed() error {
 }
 
 func (wd *Watchdog) record(failure bool) error {
-	// Record failure in window
-	wd.window[wd.windowPos] = failure
-	wd.windowPos = (wd.windowPos + 1) % len(wd.window)
-
 	// Reduce cooldown if still active
 	if wd.cooldownCount > 0 {
 		wd.cooldownCount--
+		if failure {
+			wd.log.Info("watchdog", "cooldown", wd.cooldownCount)
+		}
+		return nil
 	}
+
+	// Record failure in window
+	wd.window[wd.windowPos] = failure
+	wd.windowPos = (wd.windowPos + 1) % len(wd.window)
 
 	// Count the number of failures in the window.
 	failures := 0
@@ -73,13 +84,21 @@ func (wd *Watchdog) record(failure bool) error {
 		}
 	}
 
-	// If the number of failures exceeds the threshold, call the action, reset cooldown
+	if failure {
+		wd.log.Info("watchdog", "failures", failures, "threshold", wd.threshold)
+	}
+
+	// If the number of failures exceeds the threshold, call the action, reset the window and start the cooldown.
 	if failures >= wd.threshold {
-		if wd.cooldownCount == 0 {
-			wd.cooldownCount = wd.cooldown
-			return wd.action()
-		}
+		wd.cooldownCount = wd.cooldown
+		wd.reset()
+		return wd.action()
 	}
 
 	return nil
+}
+
+func (wd *Watchdog) reset() {
+	wd.window = make([]bool, len(wd.window))
+	wd.windowPos = 0
 }

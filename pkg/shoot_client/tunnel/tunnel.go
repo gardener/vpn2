@@ -14,6 +14,7 @@ import (
 	"github.com/vishvananda/netlink"
 	"k8s.io/utils/ptr"
 
+	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 )
@@ -28,8 +29,9 @@ const (
 )
 
 // NewController creates a new tunnel controller server.
-func NewController() *Controller {
+func NewController(cfg *config.TunnelController) *Controller {
 	return &Controller{
+		config:         cfg,
 		kubeApiservers: map[string]*kubeApiserverData{},
 		nextClean:      time.Now().Add(cleanUpPeriod),
 	}
@@ -147,6 +149,7 @@ func (d *kubeApiserverData) isOutdated() bool {
 
 // Controller is a server receiving UDP requests to create ipv6tnl devices.
 type Controller struct {
+	config         *config.TunnelController
 	lock           sync.Mutex
 	kubeApiservers map[string]*kubeApiserverData
 	nextClean      time.Time
@@ -172,12 +175,11 @@ func (c *Controller) Run(log logr.Logger) error {
 		Port: tunnelControllerPort,
 	}
 
-	log.Info("watchdog initialized", "windowSize", constants.WatchdogWindowSize, "threshold", constants.WatchdogThreshold, "cooldown", constants.WatchdogCooldown)
-	wd, err := NewWatchdog(constants.WatchdogWindowSize, constants.WatchdogThreshold, constants.WatchdogCooldown, func() error {
-		for clientIndex := range 2 {
-			log.Info("watchdog triggered: restarting vpn-shoot-client", "clientIndex", clientIndex)
-
-			conn, err := net.Dial("tcp", fmt.Sprintf("127.0.0.1:%d", constants.ManagementPort+clientIndex))
+	wd, err := NewWatchdog(log, c.config.WatchdogWindowSize, c.config.WatchdogThreshold, c.config.WatchdogCooldown, func() error {
+		for clientIndex := range c.config.HAVPNClients {
+			endpoint := fmt.Sprintf("127.0.0.1:%d", constants.ManagementPort+clientIndex)
+			log.Info("watchdog triggered: restarting vpn-shoot-client", "clientIndex", clientIndex, "endpoint", endpoint)
+			conn, err := net.Dial("tcp", endpoint)
 			if err != nil {
 				return err
 			}

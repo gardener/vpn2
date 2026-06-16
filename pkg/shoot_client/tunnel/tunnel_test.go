@@ -24,7 +24,7 @@ import (
 var _ = Describe("Tunnel controller helpers", func() {
 	Describe("NewController", func() {
 		It("initializes the controller map and nextClean", func() {
-			c := NewController()
+			c := NewController(config.DefaultTunnelControllerConfig)
 			Expect(c).NotTo(BeNil())
 			Expect(c.kubeApiservers).NotTo(BeNil())
 			Expect(c.nextClean.After(time.Now())).To(BeTrue())
@@ -122,7 +122,7 @@ var _ = Describe("Controller Run", Serial, func() {
 		Expect(err).NotTo(HaveOccurred())
 
 		// Launch controller
-		c = NewController()
+		c = NewController(config.DefaultTunnelControllerConfig)
 		// run controller in background
 		go func() {
 			// Run may block; we ignore returned error for the test run
