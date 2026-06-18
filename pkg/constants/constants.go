@@ -29,7 +29,7 @@ const (
 	// TunnelDevice is the name of the tunnel device used for non-HA VPN.
 	TunnelDevice = "tun0"
 	// VPNNetworkMask is the required prefix size for the VPN network.
-	VPNNetworkMask = 96
+	VPNNetworkMask = 64
 
 	BondingModeActiveBackup = "active-backup"
 	BondingModeBalanceRR    = "balance-rr"
@@ -60,7 +60,7 @@ var BondingModes = []string{BondingModeActiveBackup, BondingModeBalanceRR}
 var DefaultVPNNetwork net.IPNet
 
 func init() {
-	_, nw, err := net.ParseCIDR(constants.DefaultVPNRangeV6)
+	_, nw, err := net.ParseCIDR("fd8f:6d53:b97a:1::/64")
 	if err != nil {
 		panic(err)
 	}
