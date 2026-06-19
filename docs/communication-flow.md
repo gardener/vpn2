@@ -56,6 +56,12 @@ Seed Cluster:
 In High Availability mode, two VPN server pods in the Seed provide redundancy, with a **bond device** on the Shoot side managing failover.
 Each kube-apiserver pod contains 2 VPN client sidecars connecting to the VPN server.
 
+### Diagram
+
+A detailed diagram about the VPN connection flow in the high-availability setup:
+
+![diagram](https://raw.githubusercontent.com/gardener/gardener/refs/heads/master/docs/development/content/vpn-ha-architecture.png)
+
 ### Connection Steps
 
 ```

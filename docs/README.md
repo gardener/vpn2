@@ -20,10 +20,14 @@ Reference: [GEP-0014: Reversed Cluster VPN](https://github.com/gardener/enhancem
 ## Contents
 
 - [Communication Flow](./communication-flow.md)
-- [Tunnel controller](./tunnel-controller.md)
-- [IPAM](./ipam.md)
 - [Double NAT](./double-nat.md)
 - [MTU](./mtu.md)
 - [Kernel settings](./kernel-settings.md)
 - [Firewall setup](./firewall.md)
 - [Metrics](./metrics.md)
+
+### High availability
+
+- [Tunnel controller](./high-availability/tunnel-controller.md)
+- [IPAM for VPN clients running in kube-apiserver pods](./high-availability/ipam.md)
+- [Failover mechanisms](./high-availability/failover-mechanisms.md)
