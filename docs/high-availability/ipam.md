@@ -5,6 +5,9 @@
 In HA mode, IPs are assigned using a distributed IP pool broker backed by Kubernetes pod annotations on the kube-apiserver pods.
 This ensures conflict-free allocation across multiple VPN clients which are running as side-cars containers in the kube-apiserver pod.
 
+The allocation happens via the [`setup`](../../cmd/vpn_client/app/setup) command of the vpn-client binary.
+In Gardener this is used as an init container running as part of the kube-apiserver pod.
+
 ### Broker Algorithm (`pkg/ippool/broker.go`)
 
 1. **Acquire**: Requests an IP from the pod pool manager using label selectors
