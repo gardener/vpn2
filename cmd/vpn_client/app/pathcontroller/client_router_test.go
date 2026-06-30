@@ -13,9 +13,23 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-type noopNetRouter struct{}
+// fakeNetRouter implements netRouter and records the link states it was asked to set.
+type fakeNetRouter struct {
+	routingConfigured bool
+	linkStates        map[string]bool
+}
 
-func (noopNetRouter) updateRouting(_ net.IP) (_ error) {
+func newFakeNetRouter() *fakeNetRouter {
+	return &fakeNetRouter{linkStates: make(map[string]bool)}
+}
+
+func (f *fakeNetRouter) updateRouting(_ []net.IP) error {
+	f.routingConfigured = true
+	return nil
+}
+
+func (f *fakeNetRouter) setLinkState(clientIP net.IP, up bool) error {
+	f.linkStates[clientIP.String()] = up
 	return nil
 }
 
@@ -34,16 +48,18 @@ func (f *fakePinger) Ping(client net.IP) (_ error) {
 var _ = Describe("#ClientRouter", func() {
 	var router *clientRouter
 	var pinger *fakePinger
+	var netRouter *fakeNetRouter
 	BeforeEach(func() {
 		pinger = &fakePinger{
 			badIPs: make(map[string]struct{}),
 		}
+		netRouter = newFakeNetRouter()
 
 		router = &clientRouter{
-			netRouter: noopNetRouter{},
+			netRouter: netRouter,
 			log:       logr.Discard(),
 			pinger:    pinger,
-			goodIPs:   make(map[string]struct{}),
+			linkUp:    make(map[string]bool),
 		}
 	})
 
@@ -54,40 +70,72 @@ var _ = Describe("#ClientRouter", func() {
 			BeforeEach(func() {
 				pinger.badIPs[badIP.String()] = struct{}{}
 			})
-			It("should result in only the healthy client being in goodIPs map", func() {
+			It("should mark only the healthy client as healthy", func() {
 				clients := []net.IP{badIP, healthyIP}
-				router.pingAllShootClients(clients)
-				Expect(router.goodIPs).To(HaveKey(healthyIP.String()))
-				Expect(router.goodIPs).ToNot(HaveKey(badIP.String()))
+				healthy := router.pingAllShootClients(clients)
+				Expect(healthy).To(HaveKeyWithValue(healthyIP.String(), true))
+				Expect(healthy).To(HaveKeyWithValue(badIP.String(), false))
 			})
 		})
 	})
 
-	Describe("#setCurrentShootClient", func() {
-		Context("with 2 healthy clients", func() {
-			healthyIP1 := net.ParseIP("192.168.0.1")
-			healthyIP2 := net.ParseIP("192.168.0.2")
+	Describe("#reconcileLinks", func() {
+		ip1 := net.ParseIP("192.168.0.1")
+		ip2 := net.ParseIP("192.168.0.2")
+		clients := []net.IP{ip1, ip2}
+
+		BeforeEach(func() {
+			router.linkUp[ip1.String()] = true
+			router.linkUp[ip2.String()] = true
+		})
+
+		Context("when one client is unhealthy and the other healthy", func() {
+			It("should set the unhealthy link down and keep the healthy link up", func() {
+				healthy := map[string]bool{ip1.String(): false, ip2.String(): true}
+				router.reconcileLinks(clients, healthy)
+				Expect(netRouter.linkStates).To(HaveKeyWithValue(ip1.String(), false))
+				Expect(netRouter.linkStates).ToNot(HaveKey(ip2.String()))
+				Expect(router.linkUp[ip1.String()]).To(BeFalse())
+				Expect(router.linkUp[ip2.String()]).To(BeTrue())
+			})
+		})
+
+		Context("when both clients are unhealthy", func() {
+			It("should never set both links down to avoid a complete outage", func() {
+				healthy := map[string]bool{ip1.String(): false, ip2.String(): false}
+				router.reconcileLinks(clients, healthy)
+				// Exactly one link must remain up.
+				upCount := 0
+				for _, up := range router.linkUp {
+					if up {
+						upCount++
+					}
+				}
+				Expect(upCount).To(Equal(1))
+			})
+		})
+
+		Context("when a previously failing link becomes healthy again", func() {
 			BeforeEach(func() {
-				router.goodIPs[healthyIP1.String()] = struct{}{}
-				router.goodIPs[healthyIP2.String()] = struct{}{}
+				router.linkUp[ip1.String()] = false
 			})
-			Context("and current not in goodIPs", func() {
-				It("should have one of the healthy client ips as current", func() {
-					err := router.determinePrimaryShootClient()
-					Expect(err).To(BeNil())
-					// current is selected by random
-					Expect(router.primary).To(BeElementOf([]net.IP{healthyIP1, healthyIP2}))
-				})
+			It("should bring the link back up", func() {
+				healthy := map[string]bool{ip1.String(): true, ip2.String(): true}
+				router.reconcileLinks(clients, healthy)
+				Expect(netRouter.linkStates).To(HaveKeyWithValue(ip1.String(), true))
+				Expect(router.linkUp[ip1.String()]).To(BeTrue())
 			})
-			Context("and current in goodIPs", func() {
-				BeforeEach(func() {
-					router.primary = healthyIP1
-				})
-				It("should not change the current ip", func() {
-					err := router.determinePrimaryShootClient()
-					Expect(err).To(BeNil())
-					Expect(router.primary).To(Equal(healthyIP1))
-				})
+		})
+
+		Context("when only one link is up and that client turns unhealthy", func() {
+			BeforeEach(func() {
+				router.linkUp[ip2.String()] = false
+			})
+			It("should keep the last link up and not touch any link", func() {
+				healthy := map[string]bool{ip1.String(): false, ip2.String(): false}
+				router.reconcileLinks(clients, healthy)
+				Expect(netRouter.linkStates).To(BeEmpty())
+				Expect(router.linkUp[ip1.String()]).To(BeTrue())
 			})
 		})
 	})

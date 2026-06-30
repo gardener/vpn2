@@ -51,6 +51,11 @@ const (
 	WatchdogCooldown   = 20
 
 	EnvoyVPNGroupId = constants.EnvoyVPNGroupId
+
+	// ECMPHashPolicyL3 is the value for Layer 3 ECMP hash policy. It uses source and target IPs.
+	ECMPHashPolicyL3 = "0"
+	// ECMPHashPolicyL4 is the value for Layer 4 ECMP hash policy. It uses source and target ports on top of L3.
+	ECMPHashPolicyL4 = "1"
 )
 
 // BondingModes are the supported bonding modes for the HA VPN.

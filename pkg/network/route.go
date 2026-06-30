@@ -15,7 +15,7 @@ func getDefaultRoute() (*netlink.Route, error) {
 	_, defaultIPv4, _ := net.ParseCIDR("0.0.0.0/0")
 	_, defaultIPv6, _ := net.ParseCIDR("::/0")
 
-	routes, err := netlink.RouteList(nil, netlink.FAMILY_ALL)
+	routes, err := netlink.RouteList(nil, 0)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list network routes: %w", err)
 	}

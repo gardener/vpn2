@@ -93,8 +93,7 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		ticker:             time.NewTicker(constants.PathControllerUpdateInterval),
 		kubeAPIServerPodIP: podIP,
 		netRouter:          netlinkRouter,
-		checkedNet:         checkNetworks[0].ToIPNet(),
-		goodIPs:            make(map[string]struct{}),
+		linkUp:             make(map[string]bool),
 		log:                log.WithName("pingRouter"),
 	}
 
