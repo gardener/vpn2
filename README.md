@@ -11,6 +11,7 @@ This repository contains components to establish network connectivity for Shoot 
 **VPN Client**- a component that configures and runs OpenVPN in client mode. It establishes connectivity from a Shoot cluster to the endpoint in the Seed cluster allowing contacting any IP address within its network and routes the packets back to the caller.
 
 Main features:
+
 - The VPN supports all combinations of IP families:
   - `IPv4` on both sides, i.e. control plane (seed) and shoot
   - `IPv4/IPv6` dual stack on control plane (seed) and any IP families on shoot
@@ -23,7 +24,7 @@ Main features:
     using a bonding device.
 - It is written in Go
 
-Please see [Reversed VPN Tunnel Setup and Configuration](https://github.com/gardener/gardener/blob/master/docs/development/reversed-vpn-tunnel.md) for a detailed discussion of the architecture.
+Please see [Reversed VPN Tunnel Setup and Configuration](https://github.com/gardener/gardener/blob/master/docs/development/reversed-vpn-tunnel.md) and the [docs](/docs/README.md) for a detailed discussion of the architecture.
 
 ## Local test environment
 
@@ -155,22 +156,3 @@ Check if your kernel supports bond devices. You can check on nodes running docke
 `CONFIGURE_BONDING` must be set to either "m" or "y".
 
 For more information, see <https://www.kernelconfig.io/config_bonding?q=&kernelversion=6.1.90&arch=x86>
-
-## MTU tuning
-
-By default, the OpenVPN tunnel uses the OpenVPN default MTU (1500 bytes). In environments where the underlying
-network supports a larger MTU (e.g. clusters connected via a high-speed backbone with jumbo frames), configuring
-a larger tunnel MTU can significantly improve throughput and reduce latency — in particular for geographically
-distant seed/shoot pairs.
-
-Set `OPENVPN_AUTO_MTU=true` on both **vpn-seed-server** and **vpn-client** to enable automatic MTU detection:
-
-```
-OPENVPN_AUTO_MTU=true
-```
-
-At startup each component scans its network interfaces, takes the MTU of the default route interface (typically `eth0`),
-and derives the tunnel MTU by subtracting a fixed overhead of 130 bytes
-(IPv6 header 40 B + TCP header 40 B + OpenVPN AES-256-GCM/tls framing ≈ 50 B). With a typical container
-network MTU of `8930` this yields a tunnel MTU of `8800`. Leave the variable unset (default `false`) to keep
-the OpenVPN default and avoid any change in behaviour for standard environments.
