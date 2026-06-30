@@ -15,7 +15,6 @@ import (
 
 	"github.com/gardener/vpn2/pkg/config"
 	"github.com/gardener/vpn2/pkg/constants"
-	"github.com/gardener/vpn2/pkg/ippool"
 	"github.com/gardener/vpn2/pkg/network"
 )
 
@@ -35,24 +34,7 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	if cfg.IsShootClient {
 		addr = network.BondingShootClientAddress(cfg.VPNNetwork.ToIPNet(), cfg.VPNClientIndex)
 	} else {
-		manager, err := ippool.NewPodIPPoolManager(cfg.Namespace, cfg.PodLabelSelector)
-		if err != nil {
-			return err
-		}
-		broker, err := ippool.NewIPAddressBroker(manager, cfg)
-		if err != nil {
-			return err
-		}
-
-		log.Info("acquiring ip address for bonding from kube-api server")
-		acquiredIP, err := broker.AcquireIP(ctx)
-		if err != nil {
-			return fmt.Errorf("failed to acquire ip: %w", err)
-		}
-		ip := net.ParseIP(acquiredIP)
-		if ip == nil {
-			return fmt.Errorf("acquired ip %s is not a valid ipv6 nor ipv4", ip)
-		}
+		ip := network.BondingSeedClientAddress(cfg.VPNNetwork.ToIPNet(), cfg.PodName).IP
 		addr = network.BondingAddressForClient(ip)
 	}
 
@@ -159,6 +141,23 @@ func ConfigureBonding(ctx context.Context, log logr.Logger, cfg *config.VPNClien
 	err = netlink.AddrAdd(bond, &netlink.Addr{IPNet: addr, Flags: unix.IFA_F_NODAD})
 	if err != nil {
 		return fmt.Errorf("failed to add address %s to %s link: %w", addr, constants.BondDevice, err)
+	}
+
+	// Seed and shoot clients use different /104 prefixes (aa vs bb), so each side needs
+	// an explicit route to the opposite bonding subnet via bond0.
+	bondLink, err := netlink.LinkByName(constants.BondDevice)
+	if err != nil {
+		return fmt.Errorf("failed to get link %s: %w", constants.BondDevice, err)
+	}
+
+	if cfg.IsShootClient {
+		if err := network.ReplaceRoute(log, network.BondingSeedClientSubnet(cfg.VPNNetwork.ToIPNet()), bondLink); err != nil {
+			return err
+		}
+	} else {
+		if err := network.ReplaceRoute(log, network.BondingShootClientSubnet(cfg.VPNNetwork.ToIPNet()), bondLink); err != nil {
+			return err
+		}
 	}
 
 	if !cfg.IsShootClient {
