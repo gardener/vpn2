@@ -90,10 +90,9 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 			timeout: 1 * time.Second,
 			retries: 9,
 		},
-		ticker:             time.NewTicker(constants.PathControllerUpdateInterval),
+		updateInterval:     constants.PathControllerUpdateInterval,
 		kubeAPIServerPodIP: podIP,
 		netRouter:          netlinkRouter,
-		linkUp:             make(map[string]bool),
 		log:                log.WithName("pingRouter"),
 	}
 

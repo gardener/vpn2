@@ -10,6 +10,7 @@ import (
 	"net"
 	"slices"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/go-logr/logr"
@@ -24,24 +25,21 @@ type clientRouter struct {
 	pinger             pinger
 	netRouter          netRouter
 	kubeAPIServerPodIP string
+	updateInterval     time.Duration
 
 	log logr.Logger
-	mu  sync.Mutex
-	// linkUp tracks the desired/believed administrative state of the ip6tnl link for each
-	// shoot client IP. It is used to ensure that we never set all ip6tnl links down at the
-	// same time, which would cause a complete outage.
-	linkUp map[string]bool
-	// routingConfigured indicates whether the ECMP multipath routing has been set up successfully.
-	routingConfigured bool
-	ticker            *time.Ticker
+	// mu serializes the reconcileLink function across all clients
+	mu sync.Mutex
 }
 
 type netRouter interface {
-	// updateRouting sets up the ECMP multipath routes for all shoot networks using every
+	// setupRouting sets up the ECMP multipath routes for all shoot networks using every
 	// shoot client's ip6tnl device as a nexthop.
-	updateRouting(clientIPs []net.IP) error
+	setupRouting(clientIPs []net.IP) error
 	// setLinkState brings the ip6tnl device corresponding to the given shoot client IP up or down.
 	setLinkState(clientIP net.IP, up bool) error
+	// getLinkStates returns the state (up/down) of the ip6tnl device of every given shoot client, keyed by client IP.
+	getLinkStates(clientIPs []net.IP) (map[string]bool, error)
 }
 
 type pinger interface {
@@ -49,110 +47,110 @@ type pinger interface {
 }
 
 func (r *clientRouter) Run(ctx context.Context, clientIPs []net.IP) error {
-	// Initially we assume all ip6tnl links are up (they are created and set up during bonding setup).
-	for _, ip := range clientIPs {
-		r.linkUp[ip.String()] = true
+	// Set up the ECMP multipath route table once. Afterward the route table is never touched
+	// again; only the administrative state of the individual ip6tnl links is changed up/down in
+	// the per-client loops.
+	if err := r.netRouter.setupRouting(clientIPs); err != nil {
+		return err
 	}
 
+	// Run an independent loop per shoot client so that a slow or hanging ping to one client
+	// never blocks the ping and keepalive of the other client.
+	var wg sync.WaitGroup
+	for _, ip := range clientIPs {
+		wg.Add(1)
+		go func(clientIP net.IP) {
+			defer wg.Done()
+			r.runClient(ctx, clientIP, clientIPs)
+		}(ip)
+	}
+	wg.Wait()
+	return ctx.Err()
+}
+
+// runClient drives the lifecycle of a single shoot client: on every tick it sends the
+// UDP keepalive and it pings the client to reconcile the ip6tnl link state.
+func (r *clientRouter) runClient(ctx context.Context, clientIP net.IP, allClients []net.IP) {
+	ticker := time.NewTicker(r.updateInterval)
+	defer ticker.Stop()
+
+	var pinging atomic.Bool
 	for {
 		select {
 		case <-ctx.Done():
-			return ctx.Err()
-		case <-r.ticker.C:
-			if !r.routingConfigured {
-				// Set up the ECMP multipath route once. This may fail during startup when the
-				// ip6tnl links are not ready yet, so we retry on every tick until it succeeds.
-				if err := r.netRouter.updateRouting(clientIPs); err != nil {
-					r.log.Error(err, "error configuring multipath routing, will retry")
-				} else {
-					r.routingConfigured = true
-				}
+			return
+		case <-ticker.C:
+			// Always send the keepalive so the back route can be set up correctly and the tunnel
+			// controller does not run into its update timeout, independent of ping latency.
+			if err := tunnel.Send(clientIP, r.kubeAPIServerPodIP); err != nil {
+				r.log.Info("error sending UDP packet with own IP to vpn-shoot", "ip", clientIP, "error", err)
 			}
-			healthy := r.pingAllShootClients(clientIPs)
-			r.reconcileLinks(clientIPs, healthy)
+			// Only start a new ping if the previous one for this client already finished so a
+			// slow/hanging ping never blocks the timer ticks.
+			if pinging.CompareAndSwap(false, true) {
+				go func() {
+					defer pinging.Store(false)
+					healthy := r.pinger.Ping(clientIP) == nil
+					r.reconcileLink(clientIP, healthy, allClients)
+				}()
+			}
 		}
 	}
 }
 
-// reconcileLinks updates the administrative state of the ip6tnl links based on the ping results.
-// Healthy links are brought up, failing links are set down so that Linux stops using them for
-// sending traffic. The route table itself is kept as-is (the multipath route stays intact), so
-// existing connections on the still-healthy link are not killed. To avoid a complete outage, the
-// last remaining healthy link is never set down.
-func (r *clientRouter) reconcileLinks(clients []net.IP, healthy map[string]bool) {
-	// First bring up links that became healthy again.
-	for _, client := range clients {
-		key := client.String()
-		if healthy[key] && !r.linkUp[key] {
-			if err := r.netRouter.setLinkState(client, true); err != nil {
-				r.log.Error(err, "failed to set ip6tnl link up", "ip", client)
-				continue
-			}
-			r.log.Info("ping succeeded again, setting ip6tnl link up", "ip", client)
-			r.linkUp[key] = true
-		}
+// reconcileLink updates the state of the ip6tnl link of a single shoot client based
+// on its ping result. A healthy but down link is brought up, a failing but up link is set down.
+// To avoid a complete outage, the last remaining up link is never set down. The mutex serializes
+// the read-modify-write across the independent per-client loops.
+func (r *clientRouter) reconcileLink(client net.IP, healthy bool, allClients []net.IP) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	// Fetch the state of all ip6tnl links with a single netlink call and correlate them to their shoot client IP.
+	states, err := r.netRouter.getLinkStates(allClients)
+	if err != nil {
+		r.log.Error(err, "failed to get ip6tnl link states", "ip", client)
+		return
 	}
 
-	// Then set down links that are failing, but never set down the last remaining healthy link.
-	for _, client := range clients {
-		key := client.String()
-		if !healthy[key] && r.linkUp[key] {
-			if r.countUpLinks() <= 1 {
-				r.log.Info("ping failed but not setting ip6tnl link down because it is the last healthy link; keeping route table as-is to avoid a complete outage", "ip", client)
-				continue
-			}
-			if err := r.netRouter.setLinkState(client, false); err != nil {
-				r.log.Error(err, "failed to set ip6tnl link down", "ip", client)
-				continue
-			}
-			r.log.Info("ping failed, setting ip6tnl link down so Linux stops using it for sending traffic", "ip", client)
-			r.linkUp[key] = false
+	up := states[client.String()]
+	switch {
+	case healthy && !up:
+		if err := r.netRouter.setLinkState(client, true); err != nil {
+			r.log.Error(err, "failed to set ip6tnl link up", "ip", client)
+			return
 		}
+		r.log.Info("client recovered, setting ip6tnl link up", "ip", client)
+	case !healthy && up:
+		// This link is up. Only set it down if at least one other link is still up, so we never
+		// cause a complete outage by bringing the last remaining link down.
+		if !anyOtherLinkUp(states, client) {
+			r.log.Info("client not healthy but not setting ip6tnl link down because it is the last healthy link", "ip", client)
+			return
+		}
+		if err := r.netRouter.setLinkState(client, false); err != nil {
+			r.log.Error(err, "failed to set ip6tnl link down", "ip", client)
+			return
+		}
+		r.log.Info("client not healthy, setting ip6tnl link down", "ip", client)
+	case !healthy:
+		r.log.Info("client not healthy, ip6tnl link already down", "ip", client)
 	}
 }
 
-// countUpLinks returns the number of ip6tnl links that are currently believed to be up.
-func (r *clientRouter) countUpLinks() int {
-	count := 0
-	for _, up := range r.linkUp {
+// anyOtherLinkUp reports whether any link other than the given client's is up, based on the
+// pre-fetched link states.
+func anyOtherLinkUp(states map[string]bool, client net.IP) bool {
+	key := client.String()
+	for ip, up := range states {
+		if ip == key {
+			continue
+		}
 		if up {
-			count++
+			return true
 		}
 	}
-	return count
-}
-
-// pingAllShootClients pings every shoot client via its ip6tnl device and returns a map indicating
-// whether each client (keyed by its IP string) is healthy.
-func (r *clientRouter) pingAllShootClients(clients []net.IP) map[string]bool {
-	var wg sync.WaitGroup
-	healthy := make(map[string]bool, len(clients))
-	for _, client := range clients {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			err := r.pinger.Ping(client)
-			r.mu.Lock()
-			defer r.mu.Unlock()
-			if err != nil {
-				r.log.Info("ping to vpn-shoot failed", "ip", client)
-				healthy[client.String()] = false
-			} else {
-				healthy[client.String()] = true
-			}
-		}()
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			// sending own IP to other side of tunnel so that the back route can be setup correctly
-			err := tunnel.Send(client, r.kubeAPIServerPodIP)
-			if err != nil {
-				r.log.Info("error sending UDP packet with own IP to vpn-shoot", "ip", client, "error", err)
-			}
-		}()
-	}
-	wg.Wait()
-	return healthy
+	return false
 }
 
 type netlinkRouter struct {
@@ -164,7 +162,7 @@ type netlinkRouter struct {
 	log logr.Logger
 }
 
-func (r *netlinkRouter) updateRouting(clientIPs []net.IP) error {
+func (r *netlinkRouter) setupRouting(clientIPs []net.IP) error {
 	// Build a nexthop for every shoot client's ip6tnl device so that all of them are used
 	// simultaneously via an ECMP multipath route.
 	var nexthops []*netlink.NexthopInfo
@@ -224,7 +222,7 @@ func (r *netlinkRouter) updateRouting(clientIPs []net.IP) error {
 
 	for _, nw := range nets {
 		for _, n := range nw {
-			route := multiPathRouteForNetwork(n.ToIPNet(), nexthops)
+			route := network.MultiPathRouteForNetwork(n.ToIPNet(), nexthops)
 			r.log.Info("replacing multipath route", "route", route, "net", n)
 			if err = netlink.RouteReplace(&route); err != nil {
 				return fmt.Errorf("error replacing route for %s: %w", n, err)
@@ -248,16 +246,27 @@ func (r *netlinkRouter) setLinkState(clientIP net.IP, up bool) error {
 	return netlink.LinkSetDown(link)
 }
 
-// multiPathRouteForNetwork builds a route for the given network using all provided nexthops as an
-// ECMP multipath route. Each route gets its own copy of the nexthop entries so that netlink does
-// not share/mutate slices between routes.
-func multiPathRouteForNetwork(dst *net.IPNet, nexthops []*netlink.NexthopInfo) netlink.Route {
-	multiPath := make([]*netlink.NexthopInfo, len(nexthops))
-	for i, nh := range nexthops {
-		multiPath[i] = &netlink.NexthopInfo{LinkIndex: nh.LinkIndex}
+// getLinkStates reports the administrative state (up/down) of the ip6tnl device of every given
+// shoot client, keyed by client IP. It uses a single netlink dump to fetch all links at once.
+func (r *netlinkRouter) getLinkStates(clientIPs []net.IP) (map[string]bool, error) {
+	links, err := netlink.LinkList()
+	if err != nil {
+		return nil, fmt.Errorf("failed to list links: %w", err)
 	}
-	return netlink.Route{
-		Dst:       dst,
-		MultiPath: multiPath,
+	upByName := make(map[string]bool, len(links))
+	for _, link := range links {
+		upByName[link.Attrs().Name] = link.Attrs().Flags&net.FlagUp != 0
 	}
+
+	states := make(map[string]bool, len(clientIPs))
+	for _, clientIP := range clientIPs {
+		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP)
+		linkName := network.BondIP6TunnelLinkName(clientIndex)
+		up, ok := upByName[linkName]
+		if !ok {
+			return nil, fmt.Errorf("link %s not found", linkName)
+		}
+		states[clientIP.String()] = up
+	}
+	return states, nil
 }

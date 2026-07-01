@@ -54,3 +54,15 @@ func ReplaceRoute(log logr.Logger, ipnet *net.IPNet, dev netlink.Link) error {
 	}
 	return nil
 }
+
+// MultiPathRouteForNetwork builds a route for the given network using all provided nexthops as an ECMP multipath route.
+func MultiPathRouteForNetwork(dst *net.IPNet, nexthops []*netlink.NexthopInfo) netlink.Route {
+	multiPath := make([]*netlink.NexthopInfo, len(nexthops))
+	for i, nh := range nexthops {
+		multiPath[i] = &netlink.NexthopInfo{LinkIndex: nh.LinkIndex}
+	}
+	return netlink.Route{
+		Dst:       dst,
+		MultiPath: multiPath,
+	}
+}
