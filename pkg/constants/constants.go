@@ -56,6 +56,28 @@ const (
 	ECMPHashPolicyL3 = "0"
 	// ECMPHashPolicyL4 is the value for Layer 4 ECMP hash policy. It uses source and target ports on top of L3.
 	ECMPHashPolicyL4 = "1"
+
+	// ResilientNexthopBuckets is the number of buckets in the resilient ECMP nexthop groups. Each
+	// bucket maps a set of flows to one shoot client's ip6tnl device. More buckets give finer-grained
+	// flow distribution (fewer flows move together) at a small memory cost.
+	ResilientNexthopBuckets = 1024
+	// ResilientNexthopIdleTimer is the time in seconds a bucket must be idle (no forwarded packets)
+	// before it may be reassigned to a recovered/added nexthop. Larger values keep idle connections
+	// pinned to their current device for longer when a shoot client recovers.
+	ResilientNexthopIdleTimer = 60
+	// ResilientNexthopUnbalancedTimer is the time in seconds a group may stay unbalanced before the
+	// kernel force-migrates even active buckets to rebalance load. 0 disables forced rebalancing so
+	// active connections are never moved off their device for load-balancing reasons.
+	ResilientNexthopUnbalancedTimer = 0
+
+	// NexthopGroupIDIPv4 and NexthopGroupIDIPv6 are the (network-namespace-local) IDs of the
+	// resilient ECMP nexthop groups used by the IPv4 and IPv6 shoot-network routes respectively.
+	NexthopGroupIDIPv4 = 400
+	NexthopGroupIDIPv6 = 600
+	// NexthopDeviceBaseIPv4 and NexthopDeviceBaseIPv6 are the base IDs for the per-shoot-client device
+	// nexthop objects. The actual ID is the base plus the client index.
+	NexthopDeviceBaseIPv4 = 4000
+	NexthopDeviceBaseIPv6 = 6000
 )
 
 // BondingModes are the supported bonding modes for the HA VPN.

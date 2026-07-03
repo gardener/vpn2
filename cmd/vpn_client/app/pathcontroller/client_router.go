@@ -28,18 +28,19 @@ type clientRouter struct {
 	updateInterval     time.Duration
 
 	log logr.Logger
-	// mu serializes the reconcileLink function across all clients
+	// mu serializes the reconcileNexthopGroup function across all clients
 	mu sync.Mutex
 }
 
 type netRouter interface {
-	// setupRouting sets up the ECMP multipath routes for all shoot networks using every
-	// shoot client's ip6tnl device as a nexthop.
+	// setupRouting sets up the static shoot-network routes pointing at the resilient ECMP nexthop
+	// groups built from every shoot client's ip6tnl device.
 	setupRouting(clientIPs []net.IP) error
-	// setLinkState brings the ip6tnl device corresponding to the given shoot client IP up or down.
-	setLinkState(clientIP net.IP, up bool) error
-	// getLinkStates returns the state (up/down) of the ip6tnl device of every given shoot client, keyed by client IP.
-	getLinkStates(clientIPs []net.IP) (map[string]bool, error)
+	// setNexthopMember adds/removes the shoot client's nexthops to/from the resilient groups.
+	setNexthopMember(clientIP net.IP, member bool) error
+	// getNexthopGroupMembers returns whether each shoot client's nexthops are currently active members
+	// of the resilient groups, keyed by client IP.
+	getNexthopGroupMembers(clientIPs []net.IP) (map[string]bool, error)
 }
 
 type pinger interface {
@@ -47,9 +48,8 @@ type pinger interface {
 }
 
 func (r *clientRouter) Run(ctx context.Context, clientIPs []net.IP) error {
-	// Set up the ECMP multipath route table once. Afterward the route table is never touched
-	// again; only the administrative state of the individual ip6tnl links is changed up/down in
-	// the per-client loops.
+	// Set up the shoot-network routes once. Afterward the route table is never touched again; only
+	// the membership of the resilient ECMP nexthop groups is changed as clients go down or recover.
 	if err := r.netRouter.setupRouting(clientIPs); err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (r *clientRouter) Run(ctx context.Context, clientIPs []net.IP) error {
 }
 
 // runClient drives the lifecycle of a single shoot client: on every tick it sends the
-// UDP keepalive and it pings the client to reconcile the ip6tnl link state.
+// UDP keepalive and it pings the client to reconcile resilient-group membership.
 func (r *clientRouter) runClient(ctx context.Context, clientIP net.IP, allClients []net.IP) {
 	ticker := time.NewTicker(r.updateInterval)
 	defer ticker.Stop()
@@ -91,23 +91,23 @@ func (r *clientRouter) runClient(ctx context.Context, clientIP net.IP, allClient
 				go func() {
 					defer pinging.Store(false)
 					healthy := r.pinger.Ping(clientIP) == nil
-					r.reconcileLink(clientIP, healthy, allClients)
+					r.reconcileNexthopGroup(clientIP, healthy, allClients)
 				}()
 			}
 		}
 	}
 }
 
-// reconcileLink updates the state of the ip6tnl link of a single shoot client based
-// on its ping result. A healthy but down link is brought up, a failing but up link is set down.
-// To avoid a complete outage, the last remaining up link is never set down. The mutex serializes
-// the read-modify-write across the independent per-client loops.
-func (r *clientRouter) reconcileLink(client net.IP, healthy bool, allClients []net.IP) {
+// reconcileNexthopGroup updates resilient-group membership for a single shoot client based on its ping
+// result. A healthy but inactive member is added back to the groups, a failing active member is
+// removed from the groups. To avoid a complete outage, the last remaining active member is never
+// removed. The mutex serializes the read-modify-write across the independent per-client loops.
+func (r *clientRouter) reconcileNexthopGroup(client net.IP, healthy bool, allClients []net.IP) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	// Fetch the state of all ip6tnl links with a single netlink call and correlate them to their shoot client IP.
-	states, err := r.netRouter.getLinkStates(allClients)
+	states, err := r.netRouter.getNexthopGroupMembers(allClients)
 	if err != nil {
 		r.log.Error(err, "failed to get ip6tnl link states", "ip", client)
 		return
@@ -116,25 +116,25 @@ func (r *clientRouter) reconcileLink(client net.IP, healthy bool, allClients []n
 	up := states[client.String()]
 	switch {
 	case healthy && !up:
-		if err := r.netRouter.setLinkState(client, true); err != nil {
+		if err := r.netRouter.setNexthopMember(client, true); err != nil {
 			r.log.Error(err, "failed to set ip6tnl link up", "ip", client)
 			return
 		}
-		r.log.Info("client recovered, setting ip6tnl link up", "ip", client)
+		r.log.Info("client recovered, adding nexthop back to resilient groups", "ip", client)
 	case !healthy && up:
 		// This link is up. Only set it down if at least one other link is still up, so we never
 		// cause a complete outage by bringing the last remaining link down.
 		if !anyOtherLinkUp(states, client) {
-			r.log.Info("client not healthy but not setting ip6tnl link down because it is the last healthy link", "ip", client)
+			r.log.Info("client not healthy but not removing nexthop because it is the last healthy member", "ip", client)
 			return
 		}
-		if err := r.netRouter.setLinkState(client, false); err != nil {
+		if err := r.netRouter.setNexthopMember(client, false); err != nil {
 			r.log.Error(err, "failed to set ip6tnl link down", "ip", client)
 			return
 		}
-		r.log.Info("client not healthy, setting ip6tnl link down", "ip", client)
+		r.log.Info("client not healthy, removing nexthop from resilient groups", "ip", client)
 	case !healthy:
-		r.log.Info("client not healthy, ip6tnl link already down", "ip", client)
+		r.log.Info("client not healthy, nexthop already inactive in resilient groups", "ip", client)
 	}
 }
 
@@ -159,21 +159,27 @@ type netlinkRouter struct {
 	shootNodeNetworks    []network.CIDR
 	seedPodNetwork       network.CIDR
 
+	// clients holds all shoot client IPs; it is set during setupRouting.
+	clients []net.IP
+	// members tracks whether a client's nexthops are currently active members of the resilient groups.
+	members map[string]bool
+
 	log logr.Logger
 }
 
 func (r *netlinkRouter) setupRouting(clientIPs []net.IP) error {
-	// Build a nexthop for every shoot client's ip6tnl device so that all of them are used
-	// simultaneously via an ECMP multipath route.
-	var nexthops []*netlink.NexthopInfo
+	r.clients = append([]net.IP(nil), clientIPs...)
+	r.members = make(map[string]bool, len(clientIPs))
 	for _, clientIP := range clientIPs {
-		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP)
-		linkName := network.BondIP6TunnelLinkName(clientIndex)
-		tunnelLink, err := netlink.LinkByName(linkName)
-		if err != nil {
-			return fmt.Errorf("failed to get link %s: %w", linkName, err)
-		}
-		nexthops = append(nexthops, &netlink.NexthopInfo{LinkIndex: tunnelLink.Attrs().Index})
+		r.members[clientIP.String()] = true
+	}
+
+	// Create the per-client device nexthops once and initialize resilient groups with all clients.
+	if err := r.ensureDeviceNexthops(clientIPs); err != nil {
+		return err
+	}
+	if err := r.replaceGroupMembership(clientIPs); err != nil {
+		return err
 	}
 
 	var (
@@ -220,11 +226,17 @@ func (r *netlinkRouter) setupRouting(clientIPs []net.IP) error {
 		nodeNetworks,
 	}
 
+	// Point every shoot-network route at the family-appropriate resilient nexthop group. The routes
+	// are static; only the group membership changes when clients go down or recover.
 	for _, nw := range nets {
 		for _, n := range nw {
-			route := network.MultiPathRouteForNetwork(n.ToIPNet(), nexthops)
-			r.log.Info("replacing multipath route", "route", route, "net", n)
-			if err = netlink.RouteReplace(&route); err != nil {
+			dst := n.ToIPNet()
+			groupID := constants.NexthopGroupIDIPv4
+			if dst.IP.To4() == nil {
+				groupID = constants.NexthopGroupIDIPv6
+			}
+			r.log.Info("replacing route via resilient nexthop group", "net", n, "group", groupID)
+			if err := network.ReplaceRouteViaNexthopGroup(dst, groupID); err != nil {
 				return fmt.Errorf("error replacing route for %s: %w", n, err)
 			}
 		}
@@ -232,41 +244,80 @@ func (r *netlinkRouter) setupRouting(clientIPs []net.IP) error {
 	return nil
 }
 
-// setLinkState brings the ip6tnl device corresponding to the given shoot client IP up or down.
-func (r *netlinkRouter) setLinkState(clientIP net.IP, up bool) error {
-	clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP)
-	linkName := network.BondIP6TunnelLinkName(clientIndex)
-	link, err := netlink.LinkByName(linkName)
-	if err != nil {
-		return fmt.Errorf("failed to get link %s: %w", linkName, err)
-	}
-	if up {
-		return netlink.LinkSetUp(link)
-	}
-	return netlink.LinkSetDown(link)
-}
-
-// getLinkStates reports the administrative state (up/down) of the ip6tnl device of every given
-// shoot client, keyed by client IP. It uses a single netlink dump to fetch all links at once.
-func (r *netlinkRouter) getLinkStates(clientIPs []net.IP) (map[string]bool, error) {
-	links, err := netlink.LinkList()
-	if err != nil {
-		return nil, fmt.Errorf("failed to list links: %w", err)
-	}
-	upByName := make(map[string]bool, len(links))
-	for _, link := range links {
-		upByName[link.Attrs().Name] = link.Attrs().Flags&net.FlagUp != 0
-	}
-
-	states := make(map[string]bool, len(clientIPs))
-	for _, clientIP := range clientIPs {
+// ensureDeviceNexthops creates or updates the per-device nexthop objects for all shoot clients.
+func (r *netlinkRouter) ensureDeviceNexthops(clients []net.IP) error {
+	for _, clientIP := range clients {
 		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP)
 		linkName := network.BondIP6TunnelLinkName(clientIndex)
-		up, ok := upByName[linkName]
-		if !ok {
-			return nil, fmt.Errorf("link %s not found", linkName)
+		if _, err := netlink.LinkByName(linkName); err != nil {
+			return fmt.Errorf("failed to get link %s: %w", linkName, err)
 		}
-		states[clientIP.String()] = up
+		v4ID := constants.NexthopDeviceBaseIPv4 + clientIndex
+		v6ID := constants.NexthopDeviceBaseIPv6 + clientIndex
+		if err := network.ReplaceDeviceNexthop(v4ID, linkName, false); err != nil {
+			return err
+		}
+		if err := network.ReplaceDeviceNexthop(v6ID, linkName, true); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// membersAsIPs returns all clients currently marked as group members.
+func (r *netlinkRouter) membersAsIPs() []net.IP {
+	active := make([]net.IP, 0, len(r.clients))
+	for _, clientIP := range r.clients {
+		if r.members[clientIP.String()] {
+			active = append(active, clientIP)
+		}
+	}
+	return active
+}
+
+// replaceGroupMembership updates both IPv4 and IPv6 resilient groups to contain exactly the given
+// shoot clients.
+func (r *netlinkRouter) replaceGroupMembership(clients []net.IP) error {
+	v4IDs := make([]int, 0, len(clients))
+	v6IDs := make([]int, 0, len(clients))
+	for _, clientIP := range clients {
+		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP)
+		v4IDs = append(v4IDs, constants.NexthopDeviceBaseIPv4+clientIndex)
+		v6IDs = append(v6IDs, constants.NexthopDeviceBaseIPv6+clientIndex)
+	}
+	if len(v4IDs) == 0 {
+		return fmt.Errorf("no shoot client nexthops to configure")
+	}
+	if err := network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDIPv4, v4IDs,
+		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer); err != nil {
+		return err
+	}
+	return network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDIPv6, v6IDs,
+		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer)
+}
+
+// setNexthopMember updates resilient-group membership for the given shoot client
+func (r *netlinkRouter) setNexthopMember(clientIP net.IP, member bool) error {
+	key := clientIP.String()
+	current := r.members[key]
+	if current == member {
+		return nil
+	}
+	r.members[key] = member
+	active := r.membersAsIPs()
+	if err := r.replaceGroupMembership(active); err != nil {
+		r.members[key] = current
+		return err
+	}
+	return nil
+}
+
+// getNexthopGroupMembers reports whether each shoot client's nexthops are currently members of the
+// resilient groups, keyed by client IP.
+func (r *netlinkRouter) getNexthopGroupMembers(clientIPs []net.IP) (map[string]bool, error) {
+	states := make(map[string]bool, len(clientIPs))
+	for _, clientIP := range clientIPs {
+		states[clientIP.String()] = r.members[clientIP.String()]
 	}
 	return states, nil
 }

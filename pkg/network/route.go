@@ -6,6 +6,9 @@ package network
 import (
 	"fmt"
 	"net"
+	"os/exec"
+	"strconv"
+	"strings"
 
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
@@ -15,7 +18,7 @@ func getDefaultRoute() (*netlink.Route, error) {
 	_, defaultIPv4, _ := net.ParseCIDR("0.0.0.0/0")
 	_, defaultIPv6, _ := net.ParseCIDR("::/0")
 
-	routes, err := netlink.RouteList(nil, 0)
+	routes, err := netlink.RouteList(nil, netlink.FAMILY_ALL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list network routes: %w", err)
 	}
@@ -55,14 +58,55 @@ func ReplaceRoute(log logr.Logger, ipnet *net.IPNet, dev netlink.Link) error {
 	return nil
 }
 
-// MultiPathRouteForNetwork builds a route for the given network using all provided nexthops as an ECMP multipath route.
-func MultiPathRouteForNetwork(dst *net.IPNet, nexthops []*netlink.NexthopInfo) netlink.Route {
-	multiPath := make([]*netlink.NexthopInfo, len(nexthops))
-	for i, nh := range nexthops {
-		multiPath[i] = &netlink.NexthopInfo{LinkIndex: nh.LinkIndex}
+// runIP executes the iproute2 "ip" command. Nexthop objects and routes that reference a nexthop
+// group cannot be expressed via the netlink library (v1.3.1), so we drive them through iproute2.
+func runIP(args ...string) error {
+	out, err := exec.Command("ip", args...).CombinedOutput() // #nosec: G204 -- No user-provided input
+	if err != nil {
+		return fmt.Errorf("command 'ip %s' failed: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
 	}
-	return netlink.Route{
-		Dst:       dst,
-		MultiPath: multiPath,
+	return nil
+}
+
+// ReplaceDeviceNexthop creates or updates a device-scoped nexthop object with the given id for the
+// given link. Device nexthops are address-family specific: pass ipv6=false for the IPv4 nexthop and
+// ipv6=true for the IPv6 nexthop.
+func ReplaceDeviceNexthop(id int, linkName string, ipv6 bool) error {
+	var args []string
+	if ipv6 {
+		args = append(args, "-6")
 	}
+	args = append(args, "nexthop", "replace", "id", strconv.Itoa(id), "dev", linkName)
+	return runIP(args...)
+}
+
+// ReplaceResilientNexthopGroup creates or updates a resilient ECMP nexthop group with the given id
+// over the given member nexthop ids. The group inherits its address family from its members, so no
+// family flag is passed. Resilient groups minimize flow disruption when members go down and come
+// back: only buckets that have been idle for idleTimer seconds are migrated to a recovered member,
+// and unbalancedTimer=0 disables force-migration of active buckets for rebalancing.
+func ReplaceResilientNexthopGroup(groupID int, memberIDs []int, buckets, idleTimer, unbalancedTimer int) error {
+	ids := make([]string, len(memberIDs))
+	for i, id := range memberIDs {
+		ids[i] = strconv.Itoa(id)
+	}
+	return runIP(
+		"nexthop", "replace", "id", strconv.Itoa(groupID),
+		"group", strings.Join(ids, "/"),
+		"type", "resilient",
+		"buckets", strconv.Itoa(buckets),
+		"idle_timer", strconv.Itoa(idleTimer),
+		"unbalanced_timer", strconv.Itoa(unbalancedTimer),
+	)
+}
+
+// ReplaceRouteViaNexthopGroup installs or updates a route to dst that forwards via the given
+// nexthop group id.
+func ReplaceRouteViaNexthopGroup(dst *net.IPNet, groupID int) error {
+	var args []string
+	if dst.IP.To4() == nil {
+		args = append(args, "-6")
+	}
+	args = append(args, "route", "replace", dst.String(), "nhid", strconv.Itoa(groupID))
+	return runIP(args...)
 }
