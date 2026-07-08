@@ -252,8 +252,7 @@ func (r *netlinkRouter) ensureDeviceNexthops(clients []net.IP) error {
 		if _, err := netlink.LinkByName(linkName); err != nil {
 			return fmt.Errorf("failed to get link %s: %w", linkName, err)
 		}
-		v4ID := constants.NexthopDeviceBaseIDforIPv4 + clientIndex
-		v6ID := constants.NexthopDeviceBaseIDforIPv6 + clientIndex
+		v4ID, v6ID := getNexthopIDsforClientIndex(clientIndex)
 		if err := network.ReplaceDeviceNexthop(v4ID, linkName, false); err != nil {
 			return err
 		}
@@ -282,8 +281,9 @@ func (r *netlinkRouter) replaceGroupMembership(clients []net.IP) error {
 	v6IDs := make([]int, 0, len(clients))
 	for _, clientIP := range clients {
 		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP)
-		v4IDs = append(v4IDs, constants.NexthopDeviceBaseIDforIPv4+clientIndex)
-		v6IDs = append(v6IDs, constants.NexthopDeviceBaseIDforIPv6+clientIndex)
+		v4ID, v6ID := getNexthopIDsforClientIndex(clientIndex)
+		v4IDs = append(v4IDs, v4ID)
+		v6IDs = append(v6IDs, v6ID)
 	}
 	if len(v4IDs) == 0 {
 		return fmt.Errorf("no shoot client nexthops to configure")
@@ -320,4 +320,13 @@ func (r *netlinkRouter) getNexthopGroupMembers(clientIPs []net.IP) (map[string]b
 		states[clientIP.String()] = r.members[clientIP.String()]
 	}
 	return states, nil
+}
+
+// getNexthopIDsforClientIndex returns the correct nexthop ID to be used for a vpn client based on its index.
+// The ID is the base ID for the nexthop type (IPv4 or IPv6) plus the client index.
+func getNexthopIDsforClientIndex(clientIndex int) (v4ID, v6ID int) {
+	v4ID = constants.NexthopDeviceBaseIDforIPv4 + clientIndex
+	v6ID = constants.NexthopDeviceBaseIDforIPv6 + clientIndex
+
+	return
 }
