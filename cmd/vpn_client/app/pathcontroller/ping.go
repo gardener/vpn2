@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/netip"
 	"os"
 	"sync/atomic"
 	"time"
@@ -27,7 +28,7 @@ type icmpPinger struct {
 
 const echoPayload = "HELLO-R-U-THERE"
 
-func (p *icmpPinger) Ping(client net.IP) error {
+func (p *icmpPinger) Ping(client netip.Addr) error {
 	var err error
 	tries := p.retries + 1
 	for try := 1; try <= tries; try++ {
@@ -40,7 +41,7 @@ func (p *icmpPinger) Ping(client net.IP) error {
 	return err
 }
 
-func (p *icmpPinger) pingWithTimer(client net.IP) error {
+func (p *icmpPinger) pingWithTimer(client netip.Addr) error {
 	timer := time.Now()
 	err := p.ping(client)
 
@@ -56,7 +57,7 @@ func (p *icmpPinger) pingWithTimer(client net.IP) error {
 	return err
 }
 
-func (p *icmpPinger) ping(client net.IP) error {
+func (p *icmpPinger) ping(client netip.Addr) error {
 	c, err := icmp.ListenPacket("udp6", "")
 	if err != nil {
 		return fmt.Errorf("error listening for packets: %w", err)
@@ -84,7 +85,7 @@ func (p *icmpPinger) ping(client net.IP) error {
 		return fmt.Errorf("error marshaling msg: %w", err)
 
 	}
-	if _, err := c.WriteTo(marshaledMsg, &net.UDPAddr{IP: client}); err != nil {
+	if _, err := c.WriteTo(marshaledMsg, &net.UDPAddr{IP: client.AsSlice()}); err != nil {
 		return fmt.Errorf("error writing to client: %w", err)
 	}
 

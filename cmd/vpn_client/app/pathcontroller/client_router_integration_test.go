@@ -70,10 +70,13 @@ func runResilientNexthopScenario(enableIPv4, enableIPv6 bool) {
 	rt0 := "rt0" + suffix
 	rt1 := "rt1" + suffix
 
-	clientIPs := []net.IP{
+	clientNetIPs := []net.IP{
 		network.BondingShootClientIP(network.ParseIPNetIgnoreError(constants.DefaultVPNNetwork.String()).ToIPNet(), 0),
 		network.BondingShootClientIP(network.ParseIPNetIgnoreError(constants.DefaultVPNNetwork.String()).ToIPNet(), 1),
 	}
+	// Convert []net.IP to []netip.Addr
+	clientIPs, err := network.IPtoAddr(clientNetIPs)
+	Expect(err).NotTo(HaveOccurred())
 	link0 := network.BondIP6TunnelLinkName(0)
 	link1 := network.BondIP6TunnelLinkName(1)
 
@@ -180,8 +183,8 @@ func runResilientNexthopScenario(enableIPv4, enableIPv6 bool) {
 	router.reconcileNexthopGroup(clientIPs[1], false, clientIPs)
 	members, err := netRouter.getNexthopGroupMembers(clientIPs)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(members[clientIPs[0].String()]).To(BeTrue())
-	Expect(members[clientIPs[1].String()]).To(BeFalse())
+	Expect(members[clientIPs[0]]).To(BeTrue())
+	Expect(members[clientIPs[1]]).To(BeFalse())
 
 	By("persistent connections are created on the remaining good link")
 	tx0Before, tx1Before, _ := txPackets(link0, link1)

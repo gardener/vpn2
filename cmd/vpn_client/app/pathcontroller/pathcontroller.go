@@ -97,6 +97,11 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	}
 
 	// acquired ip is not necessary here, because we don't care about the subnet
-	clientIPs := network.AllBondingShootClientIPs(cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
+	clientNetIPs := network.AllBondingShootClientIPs(cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
+	// Convert []net.IP to []netip.Addr
+	clientIPs, err := network.IPtoAddr(clientNetIPs)
+	if err != nil {
+		return err
+	}
 	return router.Run(ctx, clientIPs)
 }
