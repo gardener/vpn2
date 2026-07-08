@@ -231,9 +231,9 @@ func (r *netlinkRouter) setupRouting(clientIPs []net.IP) error {
 	for _, nw := range nets {
 		for _, n := range nw {
 			dst := n.ToIPNet()
-			groupID := constants.NexthopGroupIDIPv4
+			groupID := constants.NexthopGroupIDforIPv4
 			if dst.IP.To4() == nil {
-				groupID = constants.NexthopGroupIDIPv6
+				groupID = constants.NexthopGroupIDforIPv6
 			}
 			r.log.Info("replacing route via resilient nexthop group", "net", n, "group", groupID)
 			if err := network.ReplaceRouteViaNexthopGroup(dst, groupID); err != nil {
@@ -252,8 +252,8 @@ func (r *netlinkRouter) ensureDeviceNexthops(clients []net.IP) error {
 		if _, err := netlink.LinkByName(linkName); err != nil {
 			return fmt.Errorf("failed to get link %s: %w", linkName, err)
 		}
-		v4ID := constants.NexthopDeviceBaseIPv4 + clientIndex
-		v6ID := constants.NexthopDeviceBaseIPv6 + clientIndex
+		v4ID := constants.NexthopDeviceBaseIDforIPv4 + clientIndex
+		v6ID := constants.NexthopDeviceBaseIDforIPv6 + clientIndex
 		if err := network.ReplaceDeviceNexthop(v4ID, linkName, false); err != nil {
 			return err
 		}
@@ -282,17 +282,17 @@ func (r *netlinkRouter) replaceGroupMembership(clients []net.IP) error {
 	v6IDs := make([]int, 0, len(clients))
 	for _, clientIP := range clients {
 		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP)
-		v4IDs = append(v4IDs, constants.NexthopDeviceBaseIPv4+clientIndex)
-		v6IDs = append(v6IDs, constants.NexthopDeviceBaseIPv6+clientIndex)
+		v4IDs = append(v4IDs, constants.NexthopDeviceBaseIDforIPv4+clientIndex)
+		v6IDs = append(v6IDs, constants.NexthopDeviceBaseIDforIPv6+clientIndex)
 	}
 	if len(v4IDs) == 0 {
 		return fmt.Errorf("no shoot client nexthops to configure")
 	}
-	if err := network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDIPv4, v4IDs,
+	if err := network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv4, v4IDs,
 		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer); err != nil {
 		return err
 	}
-	return network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDIPv6, v6IDs,
+	return network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv6, v6IDs,
 		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer)
 }
 

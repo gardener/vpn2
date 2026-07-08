@@ -70,14 +70,14 @@ const (
 	// active connections are never moved off their device for load-balancing reasons.
 	ResilientNexthopUnbalancedTimer = 0
 
-	// NexthopGroupIDIPv4 and NexthopGroupIDIPv6 are the (network-namespace-local) IDs of the
+	// NexthopGroupIDforIPv4 and NexthopGroupIDforIPv6 are the (network-namespace-local) IDs of the
 	// resilient ECMP nexthop groups used by the IPv4 and IPv6 shoot-network routes respectively.
-	NexthopGroupIDIPv4 = 400
-	NexthopGroupIDIPv6 = 600
-	// NexthopDeviceBaseIPv4 and NexthopDeviceBaseIPv6 are the base IDs for the per-shoot-client device
+	NexthopGroupIDforIPv4 = 400
+	NexthopGroupIDforIPv6 = 600
+	// NexthopDeviceBaseIDforIPv4 and NexthopDeviceBaseIDforIPv6 are the base IDs for the per-shoot-client device
 	// nexthop objects. The actual ID is the base plus the client index.
-	NexthopDeviceBaseIPv4 = 4000
-	NexthopDeviceBaseIPv6 = 6000
+	NexthopDeviceBaseIDforIPv4 = 4000
+	NexthopDeviceBaseIDforIPv6 = 6000
 )
 
 // BondingModes are the supported bonding modes for the HA VPN.
