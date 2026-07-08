@@ -106,10 +106,10 @@ func (r *clientRouter) reconcileNexthopGroup(client net.IP, healthy bool, allCli
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Fetch the state of all ip6tnl links with a single netlink call and correlate them to their shoot client IP.
+	// Fetch the current nexthop group members
 	states, err := r.netRouter.getNexthopGroupMembers(allClients)
 	if err != nil {
-		r.log.Error(err, "failed to get ip6tnl link states", "ip", client)
+		r.log.Error(err, "failed to get current nexthop group members", "clientIP", client, "allClients", allClients)
 		return
 	}
 
@@ -117,19 +117,19 @@ func (r *clientRouter) reconcileNexthopGroup(client net.IP, healthy bool, allCli
 	switch {
 	case healthy && !up:
 		if err := r.netRouter.setNexthopMember(client, true); err != nil {
-			r.log.Error(err, "failed to set ip6tnl link up", "ip", client)
+			r.log.Error(err, "failed to add recovered nexthop back to resilient groups", "ip", client)
 			return
 		}
 		r.log.Info("client recovered, adding nexthop back to resilient groups", "ip", client)
 	case !healthy && up:
-		// This link is up. Only set it down if at least one other link is still up, so we never
-		// cause a complete outage by bringing the last remaining link down.
+		// This link is up. Only remove its nexthop if at least one other link is still up, so we never
+		// cause a complete outage by removing the last remaining nexthop.
 		if !anyOtherLinkUp(states, client) {
 			r.log.Info("client not healthy but not removing nexthop because it is the last healthy member", "ip", client)
 			return
 		}
 		if err := r.netRouter.setNexthopMember(client, false); err != nil {
-			r.log.Error(err, "failed to set ip6tnl link down", "ip", client)
+			r.log.Error(err, "failed remove unhealthy nexthop from resilient groups", "ip", client)
 			return
 		}
 		r.log.Info("client not healthy, removing nexthop from resilient groups", "ip", client)
@@ -138,8 +138,8 @@ func (r *clientRouter) reconcileNexthopGroup(client net.IP, healthy bool, allCli
 	}
 }
 
-// anyOtherLinkUp reports whether any link other than the given client's is up, based on the
-// pre-fetched link states.
+// anyOtherLinkUp reports whether any nexthop other than the given client's is up, based on the
+// pre-fetched nexthop group membership states.
 func anyOtherLinkUp(states map[string]bool, client net.IP) bool {
 	key := client.String()
 	for ip, up := range states {
@@ -176,10 +176,10 @@ func (r *netlinkRouter) setupRouting(clientIPs []net.IP) error {
 
 	// Create the per-client device nexthops once and initialize resilient groups with all clients.
 	if err := r.ensureDeviceNexthops(clientIPs); err != nil {
-		return err
+		return fmt.Errorf("failed to set up nexthops for ip6tnl devices: %w", err)
 	}
 	if err := r.replaceGroupMembership(clientIPs); err != nil {
-		return err
+		return fmt.Errorf("failed to initialize resilient nexthop groups with ip6tnl device nexthops: %w", err)
 	}
 
 	var (
