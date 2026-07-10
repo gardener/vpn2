@@ -46,8 +46,8 @@ github.com/fxamacker/cbor/v2 v2.9.0 h1:NpKPmjDBgUfBms6tr6JZkTHtfFGcMKsw3eGcmD/sa
 github.com/fxamacker/cbor/v2 v2.9.0/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/gardener/gardener v1.145.3 h1:GAqmWTM5hNDa37W9cjivB8O7NWzkyS+XfviJ5SOEisw=
 github.com/gardener/gardener v1.145.3/go.mod h1:cDTZIPHaoj9ywmBTvronK5SpPBc/zI942hsp2//WVNo=
-github.com/gardener/gardener/pkg/apis v1.145.2 h1:dSYbxRZkHI1BZ8QgzoXLAkW5lD+v2qmfeYbtjgBpV1o=
-github.com/gardener/gardener/pkg/apis v1.145.2/go.mod h1:LsjZw5/3awWSMDnKg4bgftM1kW9Dkeor/ged5DNHVPI=
+github.com/gardener/gardener/pkg/apis v1.145.3 h1:LgkYtrEApiVpwEDdP/WRGGl4Ho2ZmrPBSHZ6Iv/y5l8=
+github.com/gardener/gardener/pkg/apis v1.145.3/go.mod h1:LsjZw5/3awWSMDnKg4bgftM1kW9Dkeor/ged5DNHVPI=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
 github.com/gkampitakis/ciinfo v0.3.2/go.mod h1:1NIwaOcFChN4fa/B0hEBdAb6npDlFL8Bwx4dfRLRqAo=
 github.com/gkampitakis/go-diff v1.3.2 h1:Qyn0J9XJSDTgnsgHRdz9Zp24RaJeKMUHg2+PDZZdC4M=
