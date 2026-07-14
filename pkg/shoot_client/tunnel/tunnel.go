@@ -267,7 +267,7 @@ func (c *Controller) Run(log logr.Logger) error {
 		if data.needsUpdate(podIP) {
 			go data.update(podIP)
 		}
-		if c.nextClean.After(time.Now()) {
+		if time.Now().After(c.nextClean) {
 			c.nextClean = time.Now().Add(cleanUpPeriod)
 			go c.clean()
 		}
