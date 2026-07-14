@@ -15,7 +15,7 @@ import (
 var _ = Describe("Watchdog", func() {
 	Describe("NewWatchdog", func() {
 		It("returns a valid watchdog with correct parameters", func() {
-			wd, err := NewWatchdog(logr.Discard(), 5, 3, 2, func() error { return nil })
+			wd, err := NewWatchdog(logr.Discard(), 5, 3, 2, 0, func() error { return nil })
 			Expect(err).NotTo(HaveOccurred())
 			Expect(wd).NotTo(BeNil())
 			Expect(wd.window).To(HaveLen(5))
@@ -25,42 +25,42 @@ var _ = Describe("Watchdog", func() {
 		})
 
 		It("returns an error when windowsize is zero", func() {
-			_, err := NewWatchdog(logr.Discard(), 0, 1, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 0, 1, 1, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid windowsize")))
 		})
 
 		It("returns an error when windowsize is negative", func() {
-			_, err := NewWatchdog(logr.Discard(), -1, 1, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), -1, 1, 1, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid windowsize")))
 		})
 
 		It("returns an error when threshold is zero", func() {
-			_, err := NewWatchdog(logr.Discard(), 5, 0, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, 0, 1, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid threshold")))
 		})
 
 		It("returns an error when threshold is negative", func() {
-			_, err := NewWatchdog(logr.Discard(), 5, -1, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, -1, 1, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid threshold")))
 		})
 
 		It("returns an error when threshold exceeds windowsize", func() {
-			_, err := NewWatchdog(logr.Discard(), 3, 5, 1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 3, 5, 1, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("must be <= windowsize")))
 		})
 
 		It("returns an error when cooldown is zero", func() {
-			_, err := NewWatchdog(logr.Discard(), 5, 3, 0, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, 3, 0, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid cooldown")))
 		})
 
 		It("returns an error when cooldown is negative", func() {
-			_, err := NewWatchdog(logr.Discard(), 5, 3, -1, func() error { return nil })
+			_, err := NewWatchdog(logr.Discard(), 5, 3, -1, 0, func() error { return nil })
 			Expect(err).To(MatchError(ContainSubstring("invalid cooldown")))
 		})
 
 		It("allows threshold equal to windowsize", func() {
-			wd, err := NewWatchdog(logr.Discard(), 5, 5, 1, func() error { return nil })
+			wd, err := NewWatchdog(logr.Discard(), 5, 5, 1, 0, func() error { return nil })
 			Expect(err).NotTo(HaveOccurred())
 			Expect(wd).NotTo(BeNil())
 		})
@@ -81,7 +81,7 @@ var _ = Describe("Watchdog", func() {
 		JustBeforeEach(func() {
 			var err error
 			// windowsize=5, threshold=3, cooldown=3
-			wd, err = NewWatchdog(logr.Discard(), 5, 3, 3, func() error {
+			wd, err = NewWatchdog(logr.Discard(), 5, 3, 3, 0, func() error {
 				actionCount++
 				return actionErr
 			})
@@ -202,6 +202,48 @@ var _ = Describe("Watchdog", func() {
 			Expect(wd.Fail()).To(Succeed())
 			Expect(wd.Fail()).To(Succeed())
 			Expect(actionCount).To(Equal(2))
+		})
+	})
+	Describe("Initial Cooldown", func() {
+		var (
+			actionCount int
+			actionErr   error
+			wd          *Watchdog
+		)
+
+		BeforeEach(func() {
+			actionCount = 0
+			actionErr = nil
+		})
+
+		JustBeforeEach(func() {
+			var err error
+			// windowsize=5, threshold=3, cooldown=3, initialCooldown=2
+			wd, err = NewWatchdog(logr.Discard(), 5, 3, 3, 2, func() error {
+				actionCount++
+				return actionErr
+			})
+			Expect(err).NotTo(HaveOccurred())
+		})
+
+		It("does not trigger action when initial cooldown is still in place", func() {
+			Expect(wd.Fail()).To(Succeed())
+			Expect(wd.Fail()).To(Succeed())
+			Expect(actionCount).To(Equal(0))
+		})
+
+		It("does not trigger action when failures are below threshold after initial cooldown", func() {
+			for range 4 {
+				Expect(wd.Fail()).To(Succeed())
+			}
+			Expect(actionCount).To(Equal(0))
+		})
+
+		It("triggers action when failures reach the threshold after initial cooldown", func() {
+			for range 5 {
+				Expect(wd.Fail()).To(Succeed())
+			}
+			Expect(actionCount).To(Equal(1))
 		})
 	})
 })

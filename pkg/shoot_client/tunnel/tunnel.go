@@ -176,7 +176,7 @@ func (c *Controller) Run(ctx context.Context, log logr.Logger) error {
 		Port: tunnelControllerPort,
 	}
 
-	wd, err := NewWatchdog(log, c.config.WatchdogWindowSize, c.config.WatchdogThreshold, c.config.WatchdogCooldown, func() error {
+	wd, err := NewWatchdog(log, c.config.WatchdogWindowSize, c.config.WatchdogThreshold, c.config.WatchdogCooldown, c.config.WatchdogCooldown, func() error {
 		for clientIndex := range c.config.HAVPNClients {
 			endpoint := fmt.Sprintf("127.0.0.1:%d", constants.ManagementPort+clientIndex)
 			log.Info("watchdog triggered: restarting vpn-shoot-client", "clientIndex", clientIndex, "endpoint", endpoint)
