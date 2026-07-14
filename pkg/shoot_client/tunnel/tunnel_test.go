@@ -126,7 +126,7 @@ var _ = Describe("Controller Run", Serial, func() {
 		// run controller in background
 		go func() {
 			// Run may block; we ignore returned error for the test run
-			_ = c.Run(log)
+			_ = c.Run(ctx, log)
 		}()
 		// give the server a moment to start listening
 		time.Sleep(200 * time.Millisecond)

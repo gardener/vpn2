@@ -5,6 +5,7 @@
 package tunnel
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -157,7 +158,7 @@ type Controller struct {
 }
 
 // Run runs the tunnel controller
-func (c *Controller) Run(log logr.Logger) error {
+func (c *Controller) Run(ctx context.Context, log logr.Logger) error {
 	ips, err := network.GetLinkIPAddressesByName(constants.BondDevice, network.ScopeUniverse)
 	if err != nil {
 		return err
@@ -228,6 +229,9 @@ func (c *Controller) Run(log logr.Logger) error {
 	c.setRunning(true)
 	buffer := make([]byte, 1024)
 	for {
+		if ctx.Err() != nil {
+			c.Stop()
+		}
 		if !c.isRunning() {
 			log.Info("stopping tunnel controller")
 			return nil
