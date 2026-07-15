@@ -68,9 +68,9 @@ func runIP(args ...string) error {
 	return nil
 }
 
-// ReplaceDeviceNexthop creates or updates a device-scoped nexthop object with the given id for the
-// given link. Device nexthops are address-family specific: pass ipv6=false for the IPv4 nexthop and
-// ipv6=true for the IPv6 nexthop.
+// ReplaceDeviceNexthop creates or updates a device-scoped next hop object with the given id for the
+// given link. Device next hops are address-family specific: pass ipv6=false for the IPv4 next hop and
+// ipv6=true for the IPv6 next hop.
 func ReplaceDeviceNexthop(id int, linkName string, ipv6 bool) error {
 	var args []string
 	if ipv6 {
@@ -80,19 +80,24 @@ func ReplaceDeviceNexthop(id int, linkName string, ipv6 bool) error {
 	return runIP(args...)
 }
 
-// ReplaceResilientNexthopGroup creates or updates a resilient ECMP nexthop group with the given id
-// over the given member nexthop ids. The group inherits its address family from its members, so no
-// family flag is passed. Resilient groups minimize flow disruption when members go down and come
-// back: only buckets that have been idle for idleTimer seconds are migrated to a recovered member,
-// and unbalancedTimer=0 disables force-migration of active buckets for rebalancing.
-func ReplaceResilientNexthopGroup(groupID int, memberIDs []int, buckets, idleTimer, unbalancedTimer int) error {
-	ids := make([]string, len(memberIDs))
-	for i, id := range memberIDs {
-		ids[i] = strconv.Itoa(id)
+// ReplaceResilientNexthopGroup creates or updates a resilient ECMP next hop group with the given id
+// over the given member next hop ids and their weights. Resilient groups minimize flow disruption when
+// members go down and come back: only buckets that have been idle for idleTimer seconds are
+// migrated to a recovered member. If unbalancedTimer is non-zero, active buckets are force-migrated
+// after unbalancedTimer seconds to rebalance load.
+func ReplaceResilientNexthopGroup(groupID int, memberIDs []int, weights []int, buckets, idleTimer, unbalancedTimer int) error {
+	// Build group specification with weights: "id1,weight1/id2,weight2/..."
+	if len(memberIDs) != len(weights) {
+		return fmt.Errorf("memberIDs and weights must have same length, got %d and %d", len(memberIDs), len(weights))
 	}
+	groupParts := make([]string, len(memberIDs))
+	for i, id := range memberIDs {
+		groupParts[i] = fmt.Sprintf("%d,%d", id, weights[i])
+	}
+
 	return runIP(
 		"nexthop", "replace", "id", strconv.Itoa(groupID),
-		"group", strings.Join(ids, "/"),
+		"group", strings.Join(groupParts, "/"),
 		"type", "resilient",
 		"buckets", strconv.Itoa(buckets),
 		"idle_timer", strconv.Itoa(idleTimer),
@@ -101,7 +106,7 @@ func ReplaceResilientNexthopGroup(groupID int, memberIDs []int, buckets, idleTim
 }
 
 // ReplaceRouteViaNexthopGroup installs or updates a route to dst that forwards via the given
-// nexthop group id.
+// next hop group id.
 func ReplaceRouteViaNexthopGroup(dst *net.IPNet, groupID int) error {
 	var args []string
 	if dst.IP.To4() == nil {

@@ -13,18 +13,18 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// fakeNetRouter implements netRouter. state is the source of truth returned by getNexthopGroupMembers;
-// setCalls records the value setNexthopMember was last invoked with per IP.
+// fakeNetRouter implements netRouter. state is the source of truth returned by getNexthopHealth;
+// setHealthCalls records which IPs had their health state changed.
 type fakeNetRouter struct {
 	routingConfigured bool
 	state             map[netip.Addr]bool
-	setCalls          map[netip.Addr]bool
+	setHealthCalls    map[netip.Addr]bool
 }
 
 func newFakeNetRouter() *fakeNetRouter {
 	return &fakeNetRouter{
-		state:    make(map[netip.Addr]bool),
-		setCalls: make(map[netip.Addr]bool),
+		state:          make(map[netip.Addr]bool),
+		setHealthCalls: make(map[netip.Addr]bool),
 	}
 }
 
@@ -33,13 +33,13 @@ func (f *fakeNetRouter) setupRouting(_ []netip.Addr) error {
 	return nil
 }
 
-func (f *fakeNetRouter) setNexthopMember(clientIP netip.Addr, up bool) error {
-	f.state[clientIP] = up
-	f.setCalls[clientIP] = up
+func (f *fakeNetRouter) setNexthopHealth(clientIP netip.Addr, healthy bool, _ []netip.Addr) error {
+	f.state[clientIP] = healthy
+	f.setHealthCalls[clientIP] = healthy
 	return nil
 }
 
-func (f *fakeNetRouter) getNexthopGroupMembers(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
+func (f *fakeNetRouter) getNexthopHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
 	states := make(map[netip.Addr]bool, len(clientIPs))
 	for _, ip := range clientIPs {
 		states[ip] = f.state[ip]
@@ -47,7 +47,7 @@ func (f *fakeNetRouter) getNexthopGroupMembers(clientIPs []netip.Addr) (map[neti
 	return states, nil
 }
 
-// fakePinger implements pinger interface and returns and error if clientIP used for ping is part of badIPs
+// fakePinger implements pinger interface and returns an error if clientIP used for ping is part of badIPs
 type fakePinger struct {
 	badIPs map[netip.Addr]struct{}
 }
@@ -86,21 +86,19 @@ var _ = Describe("#ClientRouter", func() {
 			netRouter.state[ip2] = true
 		})
 
-		Context("when one client is unhealthy and the other healthy", func() {
-			It("should set the unhealthy link down and keep the healthy link up", func() {
+		Context("when one client becomes unhealthy", func() {
+			It("should update the unhealthy client's health to false", func() {
 				router.reconcileNexthopGroup(ip1, false, clients)
-				router.reconcileNexthopGroup(ip2, true, clients)
-				Expect(netRouter.setCalls).To(HaveKeyWithValue(ip1, false))
-				Expect(netRouter.setCalls).ToNot(HaveKey(ip2))
+				Expect(netRouter.setHealthCalls).To(HaveKeyWithValue(ip1, false))
 				Expect(netRouter.state[ip1]).To(BeFalse())
 				Expect(netRouter.state[ip2]).To(BeTrue())
 			})
 		})
 
 		Context("when both clients are unhealthy", func() {
-			It("should never set both links down to avoid a complete outage", func() {
+			It("should never set both next hops unhealthy to avoid a complete outage", func() {
 				// The independent per-client loops reconcile one after another; the second one must
-				// keep the last remaining healthy link up.
+				// keep the last remaining healthy next hop up.
 				router.reconcileNexthopGroup(ip1, false, clients)
 				router.reconcileNexthopGroup(ip2, false, clients)
 				upCount := 0
@@ -113,26 +111,21 @@ var _ = Describe("#ClientRouter", func() {
 			})
 		})
 
-		Context("when a previously failing link becomes healthy again", func() {
+		Context("when a previously failing client becomes healthy again", func() {
 			BeforeEach(func() {
 				netRouter.state[ip1] = false
 			})
-			It("should bring the link back up", func() {
+			It("should update the client's health back to true", func() {
 				router.reconcileNexthopGroup(ip1, true, clients)
-				Expect(netRouter.setCalls).To(HaveKeyWithValue(ip1, true))
+				Expect(netRouter.setHealthCalls).To(HaveKeyWithValue(ip1, true))
 				Expect(netRouter.state[ip1]).To(BeTrue())
 			})
 		})
 
-		Context("when only one link is up and that client turns unhealthy", func() {
-			BeforeEach(func() {
-				netRouter.state[ip2] = false
-			})
-			It("should keep the last link up and not touch any link", func() {
-				router.reconcileNexthopGroup(ip1, false, clients)
-				router.reconcileNexthopGroup(ip2, false, clients)
-				Expect(netRouter.setCalls).To(BeEmpty())
-				Expect(netRouter.state[ip1]).To(BeTrue())
+		Context("when no health change occurs", func() {
+			It("should not call setNexthopHealth", func() {
+				router.reconcileNexthopGroup(ip1, true, clients)
+				Expect(netRouter.setHealthCalls).To(BeEmpty())
 			})
 		})
 	})

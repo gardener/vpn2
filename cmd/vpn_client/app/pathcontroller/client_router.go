@@ -33,14 +33,13 @@ type clientRouter struct {
 }
 
 type netRouter interface {
-	// setupRouting sets up the static shoot-network routes pointing at the resilient ECMP nexthop
+	// setupRouting sets up the static shoot-network routes pointing at the resilient ECMP next hop
 	// groups built from every shoot client's ip6tnl device.
 	setupRouting(clientIPs []netip.Addr) error
-	// setNexthopMember adds/removes the shoot client's nexthops to/from the resilient groups.
-	setNexthopMember(clientIP netip.Addr, member bool) error
-	// getNexthopGroupMembers returns whether each shoot client's nexthops are currently active members
-	// of the resilient groups, keyed by client IP.
-	getNexthopGroupMembers(clientIPs []netip.Addr) (map[netip.Addr]bool, error)
+	// setNexthopHealth adjusts nexthop weights based on client health
+	setNexthopHealth(clientIP netip.Addr, healthy bool, allClients []netip.Addr) error
+	// getNexthopHealth returns the current health status of each client, keyed by client IP.
+	getNexthopHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error)
 }
 
 type pinger interface {
@@ -49,7 +48,7 @@ type pinger interface {
 
 func (r *clientRouter) Run(ctx context.Context, clientIPs []netip.Addr) error {
 	// Set up the shoot-network routes once. Afterward the route table is never touched again; only
-	// the membership of the resilient ECMP nexthop groups is changed as clients go down or recover.
+	// the weights of the resilient ECMP next hop groups are adjusted as clients go down or recover.
 	if err := r.netRouter.setupRouting(clientIPs); err != nil {
 		return err
 	}
@@ -69,7 +68,7 @@ func (r *clientRouter) Run(ctx context.Context, clientIPs []netip.Addr) error {
 }
 
 // runClient drives the lifecycle of a single shoot client: on every tick it sends the
-// UDP keepalive and it pings the client to reconcile resilient-group membership.
+// UDP keepalive, and it pings the client to reconcile next hop health-based weights.
 func (r *clientRouter) runClient(ctx context.Context, clientIP netip.Addr, allClients []netip.Addr) {
 	ticker := time.NewTicker(r.updateInterval)
 	defer ticker.Stop()
@@ -91,6 +90,7 @@ func (r *clientRouter) runClient(ctx context.Context, clientIP netip.Addr, allCl
 				go func() {
 					defer pinging.Store(false)
 					healthy := r.pinger.Ping(clientIP) == nil
+					r.updateNeighborCache(clientIP, healthy)
 					r.reconcileNexthopGroup(clientIP, healthy, allClients)
 				}()
 			}
@@ -98,58 +98,63 @@ func (r *clientRouter) runClient(ctx context.Context, clientIP netip.Addr, allCl
 	}
 }
 
-// reconcileNexthopGroup updates resilient-group membership for a single shoot client based on its ping
-// result. A healthy but inactive member is added back to the groups, a failing active member is
-// removed from the groups. To avoid a complete outage, the last remaining active member is never
-// removed. The mutex serializes the read-modify-write across the independent per-client loops.
+// reconcileNexthopGroup updates next hop weights for a single shoot client based on its health.
+// When a client becomes unhealthy, its weight stays at default while others are set to overweight,
+// causing graceful bucket migration away from it over time. When a client recovers,
+// all weights are restored to default for equal distribution.
+// If another client is already unhealthy, the new unhealthy client is ignored.
 func (r *clientRouter) reconcileNexthopGroup(client netip.Addr, healthy bool, allClients []netip.Addr) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Fetch the current nexthop group members
-	states, err := r.netRouter.getNexthopGroupMembers(allClients)
+	// Fetch the current health state of all next hops
+	states, err := r.netRouter.getNexthopHealth(allClients)
 	if err != nil {
-		r.log.Error(err, "failed to get current nexthop group members", "clientIP", client, "allClients", allClients)
+		r.log.Error(err, "failed to get current next hop health state", "clientIP", client, "allClients", allClients)
 		return
 	}
 
+	// Compare health state (ping) vs. next hop weight (up / down)
 	up := states[client]
+
 	switch {
 	case healthy && !up:
-		if err := r.netRouter.setNexthopMember(client, true); err != nil {
-			r.log.Error(err, "failed to add recovered nexthop back to resilient groups", "ip", client)
-			return
-		}
-		r.log.Info("client recovered, adding nexthop back to resilient groups", "ip", client)
+		r.log.Info("client recovered, restoring next hop weights", "ip", client)
 	case !healthy && up:
-		// This link is up. Only remove its nexthop if at least one other link is still up, so we never
-		// cause a complete outage by removing the last remaining nexthop.
-		if !anyOtherLinkUp(states, client) {
-			r.log.Info("client not healthy but not removing nexthop because it is the last healthy member", "ip", client)
-			return
+		// Keep at most one unhealthy client at a time. If another client is already
+		// marked unhealthy, do not mark this one unhealthy as well, otherwise the
+		// weight skew would be canceled out.
+		for otherClient, otherHealthy := range states {
+			if otherClient != client && !otherHealthy {
+				r.log.Info("client not healthy, but doing nothing because another unhealthy client already exists", "clientIP", client, "unhealthyPeer", otherClient)
+				return
+			}
 		}
-		if err := r.netRouter.setNexthopMember(client, false); err != nil {
-			r.log.Error(err, "failed remove unhealthy nexthop from resilient groups", "ip", client)
-			return
-		}
-		r.log.Info("client not healthy, removing nexthop from resilient groups", "ip", client)
+		r.log.Info("client not healthy, setting next hop to underweight for graceful migration", "ip", client)
 	case !healthy:
-		r.log.Info("client not healthy, nexthop already inactive in resilient groups", "ip", client)
+		r.log.Info("client is still down and underweight", "ip", client)
+		return
+	default:
+		// healthy and up - nothing to do
+		return
+	}
+	// Update the health state and recalculate weights for all next hops
+	if err = r.netRouter.setNexthopHealth(client, healthy, allClients); err != nil {
+		r.log.Error(err, "failed to update next hop health", "ip", client, "healthy", healthy)
+		return
 	}
 }
 
-// anyOtherLinkUp reports whether any nexthop other than the given client's is up, based on the
-// pre-fetched nexthop group membership states.
-func anyOtherLinkUp(states map[netip.Addr]bool, client netip.Addr) bool {
-	for ip, up := range states {
-		if ip == client {
-			continue
-		}
-		if up {
-			return true
+// updateNeighborCache deletes the neighbor table entry for a failed clientIP.
+// This is necessary because the neighbor entry may be stale and cause the ping to fail even after the client has recovered.
+func (r *clientRouter) updateNeighborCache(clientIP netip.Addr, healthy bool) {
+	if !healthy {
+		err := network.DeleteNeighborEntry(clientIP.AsSlice(), constants.BondDevice)
+
+		if err != nil {
+			r.log.Error(err, "failed to delete neighbor cache entry", "clientIP", clientIP)
 		}
 	}
-	return false
 }
 
 type netlinkRouter struct {
@@ -160,25 +165,26 @@ type netlinkRouter struct {
 
 	// clients holds all shoot client IPs; it is set during setupRouting.
 	clients []netip.Addr
-	// members tracks whether a client's nexthops are currently active members of the resilient groups.
-	members map[netip.Addr]bool
+	// health tracks the current health status of each client's next hops.
+	health map[netip.Addr]bool
 
 	log logr.Logger
 }
 
 func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 	r.clients = append([]netip.Addr(nil), clientIPs...)
-	r.members = make(map[netip.Addr]bool, len(clientIPs))
+	r.health = make(map[netip.Addr]bool, len(clientIPs))
 	for _, clientIP := range clientIPs {
-		r.members[clientIP] = true
+		r.health[clientIP] = true
 	}
 
-	// Create the per-client device nexthops once and initialize resilient groups with all clients.
+	// Create the per-client device next hops once.
 	if err := r.ensureDeviceNexthops(clientIPs); err != nil {
-		return fmt.Errorf("failed to set up nexthops for ip6tnl devices: %w", err)
+		return fmt.Errorf("failed to set up next hops for ip6tnl devices: %w", err)
 	}
-	if err := r.replaceGroupMembership(clientIPs); err != nil {
-		return fmt.Errorf("failed to initialize resilient nexthop groups with ip6tnl device nexthops: %w", err)
+	// Initialize resilient groups with all clients at equal weight (1).
+	if err := r.adjustGroupWeights(clientIPs); err != nil {
+		return fmt.Errorf("failed to initialize resilient next hop groups with ip6tnl device next hops: %w", err)
 	}
 
 	var (
@@ -225,8 +231,8 @@ func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 		nodeNetworks,
 	}
 
-	// Point every shoot-network route at the family-appropriate resilient nexthop group. The routes
-	// are static; only the group membership changes when clients go down or recover.
+	// Point every shoot network route at the family-appropriate resilient next hop group. The routes
+	// are static; only the weights of group members change when clients go down or recover.
 	for _, nw := range nets {
 		for _, n := range nw {
 			dst := n.ToIPNet()
@@ -234,7 +240,7 @@ func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 			if dst.IP.To4() == nil {
 				groupID = constants.NexthopGroupIDforIPv6
 			}
-			r.log.Info("replacing route via resilient nexthop group", "net", n, "group", groupID)
+			r.log.Info("replacing route via resilient next hop group", "net", n, "group", groupID)
 			if err := network.ReplaceRouteViaNexthopGroup(dst, groupID); err != nil {
 				return fmt.Errorf("error replacing route for %s: %w", n, err)
 			}
@@ -243,7 +249,7 @@ func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 	return nil
 }
 
-// ensureDeviceNexthops creates or updates the per-device nexthop objects for all shoot clients.
+// ensureDeviceNexthops creates or updates the per-device next hop objects for all shoot clients.
 func (r *netlinkRouter) ensureDeviceNexthops(clients []netip.Addr) error {
 	for _, clientIP := range clients {
 		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP.AsSlice())
@@ -262,66 +268,76 @@ func (r *netlinkRouter) ensureDeviceNexthops(clients []netip.Addr) error {
 	return nil
 }
 
-// membersAsIPs returns all clients currently marked as group members.
-func (r *netlinkRouter) membersAsIPs() []netip.Addr {
-	active := make([]netip.Addr, 0, len(r.clients))
-	for _, clientIP := range r.clients {
-		if r.members[clientIP] {
-			active = append(active, clientIP)
+// adjustGroupWeights updates both IPv4 and IPv6 resilient groups to contain all clients with
+// calculated weights based on their health status.
+// If a client is unhealthy, it gets underweight while all others get overweight.
+func (r *netlinkRouter) adjustGroupWeights(clients []netip.Addr) error {
+	weights := make([]int, len(clients))
+	var unhealthyClient netip.Addr
+	unhealthyCount := 0
+	for _, clientIP := range clients {
+		if !r.health[clientIP] {
+			unhealthyClient = clientIP
+			unhealthyCount++
 		}
 	}
-	return active
-}
 
-// replaceGroupMembership updates both IPv4 and IPv6 resilient groups to contain exactly the given
-// shoot clients.
-func (r *netlinkRouter) replaceGroupMembership(clients []netip.Addr) error {
+	// If exactly one client is unhealthy, make it underweight
+	if unhealthyCount == 1 {
+		for i, clientIP := range clients {
+			if clientIP == unhealthyClient {
+				weights[i] = constants.NexthopWeightDefault
+			} else {
+				weights[i] = constants.NexthopWeightOverweight
+			}
+		}
+	} else {
+		// All healthy or multiple unhealthy: equal weights
+		for i := range weights {
+			weights[i] = constants.NexthopWeightDefault
+		}
+	}
+
 	v4IDs := make([]int, 0, len(clients))
+	v4Weights := make([]int, 0, len(clients))
 	v6IDs := make([]int, 0, len(clients))
-	for _, clientIP := range clients {
+	v6Weights := make([]int, 0, len(clients))
+	for i, clientIP := range clients {
 		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP.AsSlice())
 		v4ID, v6ID := getNexthopIDsforClientIndex(clientIndex)
 		v4IDs = append(v4IDs, v4ID)
+		v4Weights = append(v4Weights, weights[i])
 		v6IDs = append(v6IDs, v6ID)
+		v6Weights = append(v6Weights, weights[i])
 	}
 	if len(v4IDs) == 0 {
-		return fmt.Errorf("no shoot client nexthops to configure")
+		return fmt.Errorf("no shoot client next hops to configure")
 	}
-	if err := network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv4, v4IDs,
+	if err := network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv4, v4IDs, v4Weights,
 		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer); err != nil {
 		return err
 	}
-	return network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv6, v6IDs,
+	return network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv6, v6IDs, v6Weights,
 		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer)
 }
 
-// setNexthopMember updates resilient-group membership for the given shoot client
-func (r *netlinkRouter) setNexthopMember(clientIP netip.Addr, member bool) error {
-	current := r.members[clientIP]
-	if current == member {
-		return nil
-	}
-	r.members[clientIP] = member
-	active := r.membersAsIPs()
-	if err := r.replaceGroupMembership(active); err != nil {
-		r.members[clientIP] = current
-		return err
-	}
-	return nil
+// setNexthopHealth updates the health status of a client and recalculates weights for all nexthops.
+func (r *netlinkRouter) setNexthopHealth(clientIP netip.Addr, healthy bool, allClients []netip.Addr) error {
+	r.health[clientIP] = healthy
+	return r.adjustGroupWeights(allClients)
 }
 
-// getNexthopGroupMembers reports whether each shoot client's nexthops are currently members of the
-// resilient groups, keyed by client IP.
-func (r *netlinkRouter) getNexthopGroupMembers(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
+// getNexthopHealth reports the current health status of each shoot client's nexthops, keyed by client IP.
+func (r *netlinkRouter) getNexthopHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
 	states := make(map[netip.Addr]bool, len(clientIPs))
 	for _, clientIP := range clientIPs {
-		states[clientIP] = r.members[clientIP]
+		states[clientIP] = r.health[clientIP]
 	}
 	return states, nil
 }
 
-// getNexthopIDsforClientIndex returns the correct nexthop ID to be used for a vpn client based on its index.
-// The ID is the base ID for the nexthop type (IPv4 or IPv6) plus the client index.
+// getNexthopIDsforClientIndex returns the correct next hop ID to be used for a vpn client based on its index.
+// The ID is the base ID for the next hop type (IPv4 or IPv6) plus the client index.
 func getNexthopIDsforClientIndex(clientIndex int) (v4ID, v6ID int) {
 	v4ID = constants.NexthopDeviceBaseIDforIPv4 + clientIndex
 	v6ID = constants.NexthopDeviceBaseIDforIPv6 + clientIndex

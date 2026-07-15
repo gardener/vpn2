@@ -9,6 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     tcpdump \
     && rm -rf /var/lib/apt/lists/*
 
-RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.31.0
+RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.32.0
 
 WORKDIR /src

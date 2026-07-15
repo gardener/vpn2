@@ -41,7 +41,7 @@ const (
 
 var scenarioSeq atomic.Uint32
 
-var _ = Describe("ClientRouter resilient nexthop integration", Serial, func() {
+var _ = Describe("ClientRouter resilient next hop integration", Serial, func() {
 	It("shoot is IPv4 only", func() {
 		runResilientNexthopScenario(true, false)
 	})
@@ -164,27 +164,27 @@ func runResilientNexthopScenario(enableIPv4, enableIPv6 bool) {
 	router := &clientRouter{netRouter: netRouter, log: logr.Discard()}
 
 	By("initially both links can carry traffic")
-	Expect(netRouter.setNexthopMember(clientIPs[1], false)).To(Succeed())
+	Expect(netRouter.setNexthopHealth(clientIPs[1], false, clientIPs)).To(Succeed())
 	for _, tc := range traffic {
 		Eventually(func() error {
 			return runShortEcho(tc.network, tc.localIP, tc.remote, "initial-link0-"+tc.name)
 		}, "5s", "200ms").Should(Succeed())
 	}
-	Expect(netRouter.setNexthopMember(clientIPs[1], true)).To(Succeed())
-	Expect(netRouter.setNexthopMember(clientIPs[0], false)).To(Succeed())
+	Expect(netRouter.setNexthopHealth(clientIPs[1], true, clientIPs)).To(Succeed())
+	Expect(netRouter.setNexthopHealth(clientIPs[0], false, clientIPs)).To(Succeed())
 	for _, tc := range traffic {
 		Eventually(func() error {
 			return runShortEcho(tc.network, tc.localIP, tc.remote, "initial-link1-"+tc.name)
 		}, "5s", "200ms").Should(Succeed())
 	}
-	Expect(netRouter.setNexthopMember(clientIPs[0], true)).To(Succeed())
+	Expect(netRouter.setNexthopHealth(clientIPs[0], true, clientIPs)).To(Succeed())
 
-	By("a troubled link is removed from the resilient group")
+	By("an unhealthy link is set to underweight for graceful migration")
 	router.reconcileNexthopGroup(clientIPs[1], false, clientIPs)
-	members, err := netRouter.getNexthopGroupMembers(clientIPs)
+	health, err := netRouter.getNexthopHealth(clientIPs)
 	Expect(err).NotTo(HaveOccurred())
-	Expect(members[clientIPs[0]]).To(BeTrue())
-	Expect(members[clientIPs[1]]).To(BeFalse())
+	Expect(health[clientIPs[0]]).To(BeTrue())
+	Expect(health[clientIPs[1]]).To(BeFalse())
 
 	By("persistent connections are created on the remaining good link")
 	tx0Before, tx1Before, _ := txPackets(link0, link1)
