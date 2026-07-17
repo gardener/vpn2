@@ -102,9 +102,6 @@ func ParseOpenVPNStatus(reader io.Reader) (*OpenVPNStatus, error) {
 					return nil, err
 				}
 				ipv6 := net.ParseIP(parts[4])
-				if ipv6 == nil {
-					return nil, fmt.Errorf("CLIENT_LIST: can't parse virtual client address: %s", parts[4])
-				}
 				realAddress, err := parseRealClientAddress(parts[2])
 				if err != nil {
 					return nil, fmt.Errorf("CLIENT_LIST: can't parse real client address: %s (%w)", parts[2], err)
