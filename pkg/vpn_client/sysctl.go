@@ -120,6 +120,23 @@ func ConntrackSettings() error {
 	return nil
 }
 
+// BufferSettings adjusts socket buffer sizes to suit OpenVPN better.
+// Note: all buffer sizes must be within net.core.wmem_max / net.core.rmem_max as defined in
+// https://github.com/gardener/gardener/blob/master/pkg/component/extensions/operatingsystemconfig/original/components/kernelconfig/component.go#L100-L103
+func BufferSettings() error {
+	// Increase minimum send buffer to 64k (from 4k)
+	if err := sysctl.Set("net.ipv4.tcp_wmem", "65536\t12582912\t16777216"); err != nil {
+		return err
+	}
+
+	// Increase minimum receive buffer to 64k (from 4k)
+	if err := sysctl.Set("net.ipv4.tcp_rmem", "65536\t12582912\t16777216"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // KernelSettings sets the kernel parameters required for the VPN tunnel to function properly.
 func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	// Disable martian logging on both sides.
@@ -128,6 +145,10 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	}
 	// Disable reverse path filtering on both sides.
 	if err := DisableRpFilter(); err != nil {
+		return err
+	}
+	// Adjust buffer sizes on both sides
+	if err := BufferSettings(); err != nil {
 		return err
 	}
 	// For seed clients, we need to enable IPv6 networking to be able to use IPv6 addresses for the tunnel.
