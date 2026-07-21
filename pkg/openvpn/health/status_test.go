@@ -349,4 +349,23 @@ var _ = Describe("OpenVPN Server Status", func() {
 			Expect(err.Error()).To(ContainSubstring("unknown line type: END_OF_FILE"))
 		})
 	})
+
+	Context("server with incomplete / failed connection attempts from clients", func() {
+		BeforeEach(func() {
+			status, err = ParseFile(`test/openvpn-bad-client.status`)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(status).ToNot(BeNil())
+			status.UpdatedAt = time.Now().Add(-2 * time.Second)
+		})
+
+		It("should report vpn-server as up", func() {
+			Expect(isUp(log, status, 15)).To(BeTrue())
+		})
+		It("should not be ready (HA)", func() {
+			Expect(isReady(log, status, true)).To(BeFalse())
+		})
+		It("should not be ready (non-HA)", func() {
+			Expect(isReady(log, status, false)).To(BeFalse())
+		})
+	})
 })
