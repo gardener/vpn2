@@ -89,6 +89,10 @@ var _ = Describe("KernelSettings", func() {
 			Expect(err).NotTo(HaveOccurred())
 			err = sysctl.Set("net.ipv4.conf.default.rp_filter", "1")
 			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.tcp_rmem", "4096 12582912 16777216")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.tcp_wmem", "4096 12582912 16777216")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should enable IPv6 networking", func() {
@@ -112,6 +116,19 @@ var _ = Describe("KernelSettings", func() {
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("0"))
 		})
+
+		It("should adjust buffer sizes", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.tcp_rmem")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("65536\t12582912\t16777216"))
+
+			value, err = sysctl.Get("net.ipv4.tcp_wmem")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("65536\t12582912\t16777216"))
+		})
 	})
 
 	Context("when called for shoot client", func() {
@@ -124,6 +141,10 @@ var _ = Describe("KernelSettings", func() {
 			err = sysctl.Set("net.ipv4.conf.all.rp_filter", "1")
 			Expect(err).NotTo(HaveOccurred())
 			err = sysctl.Set("net.ipv4.conf.default.rp_filter", "1")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.tcp_rmem", "4096 12582912 16777216")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.tcp_wmem", "4096 12582912 16777216")
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -230,6 +251,19 @@ var _ = Describe("KernelSettings", func() {
 			value, err = sysctl.Get("net.netfilter.nf_conntrack_tcp_timeout_max_retrans")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("120"))
+		})
+
+		It("should adjust buffer sizes", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.tcp_rmem")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("65536\t12582912\t16777216"))
+
+			value, err = sysctl.Get("net.ipv4.tcp_wmem")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("65536\t12582912\t16777216"))
 		})
 	})
 })
