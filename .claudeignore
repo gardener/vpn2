@@ -1,0 +1,13 @@
+# Local development files
+local/
+dev/
+redo.sh
+
+# IDE settings
+.idea/
+.vscode/
+
+# Built binaries
+bin/
+
+gosec-report.sarif
