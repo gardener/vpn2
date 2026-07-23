@@ -5,6 +5,7 @@ hack/tools/bin
 /dev
 /go/acquire-ip
 /go/openvpn-exporter
+redo.sh
 
 .vscode
 .idea
@@ -15,3 +16,6 @@ TODO
 
 # gosec
 gosec-report.sarif
+
+.claude
+CLAUDE.md
