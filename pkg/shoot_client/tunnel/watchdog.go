@@ -23,7 +23,8 @@ type Watchdog struct {
 	action        func() error
 }
 
-func NewWatchdog(log logr.Logger, windowsize, threshold, cooldown int, action func() error) (*Watchdog, error) {
+// NewWatchdog creates a new watchdog with initial cooldown.
+func NewWatchdog(log logr.Logger, windowsize, threshold, cooldown, initialCooldown int, action func() error) (*Watchdog, error) {
 	log.Info("watchdog initialized", "windowSize", windowsize, "threshold", threshold, "cooldown", cooldown)
 	if windowsize <= 0 {
 		return nil, fmt.Errorf("invalid windowsize %d, must be > 0", windowsize)
@@ -47,7 +48,7 @@ func NewWatchdog(log logr.Logger, windowsize, threshold, cooldown int, action fu
 		windowPos:     0,
 		threshold:     threshold,
 		cooldown:      cooldown,
-		cooldownCount: 0,
+		cooldownCount: initialCooldown,
 		action:        action,
 	}
 

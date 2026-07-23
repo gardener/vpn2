@@ -7,6 +7,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 )
 
 var _ = Describe("EnableIPv6Networking", func() {
@@ -63,6 +64,42 @@ var _ = Describe("EnableIPv6Networking", func() {
 	})
 })
 
+var _ = Describe("SetECMPHashPolicy", func() {
+	BeforeEach(func() {
+		// Reset the hash policy to the Layer 3 default before each test.
+		err := sysctl.Set("net.ipv4.fib_multipath_hash_policy", constants.ECMPHashPolicyL3)
+		Expect(err).NotTo(HaveOccurred())
+		err = sysctl.Set("net.ipv6.fib_multipath_hash_policy", constants.ECMPHashPolicyL3)
+		Expect(err).NotTo(HaveOccurred())
+	})
+
+	It("should set the IPv4 and IPv6 multipath hash policy to L4", func() {
+		err := SetECMPHashPolicy(constants.ECMPHashPolicyL4)
+		Expect(err).NotTo(HaveOccurred())
+
+		ipv4Policy, err := sysctl.Get("net.ipv4.fib_multipath_hash_policy")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv4Policy).To(Equal(constants.ECMPHashPolicyL4))
+
+		ipv6Policy, err := sysctl.Get("net.ipv6.fib_multipath_hash_policy")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv6Policy).To(Equal(constants.ECMPHashPolicyL4))
+	})
+
+	It("should set the IPv4 and IPv6 multipath hash policy to the given value", func() {
+		err := SetECMPHashPolicy(constants.ECMPHashPolicyL3)
+		Expect(err).NotTo(HaveOccurred())
+
+		ipv4Policy, err := sysctl.Get("net.ipv4.fib_multipath_hash_policy")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv4Policy).To(Equal(constants.ECMPHashPolicyL3))
+
+		ipv6Policy, err := sysctl.Get("net.ipv6.fib_multipath_hash_policy")
+		Expect(err).NotTo(HaveOccurred())
+		Expect(ipv6Policy).To(Equal(constants.ECMPHashPolicyL3))
+	})
+})
+
 var _ = Describe("KernelSettings", func() {
 	var (
 		log logr.Logger
@@ -102,6 +139,19 @@ var _ = Describe("KernelSettings", func() {
 			value, err := sysctl.Get("net.ipv6.conf.all.disable_ipv6")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("0"))
+		})
+
+		It("should set L4 ECMP hash policy", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			ipv4Policy, err := sysctl.Get("net.ipv4.fib_multipath_hash_policy")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ipv4Policy).To(Equal(constants.ECMPHashPolicyL4))
+
+			ipv6Policy, err := sysctl.Get("net.ipv6.fib_multipath_hash_policy")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(ipv6Policy).To(Equal(constants.ECMPHashPolicyL4))
 		})
 
 		It("should disable logging of martian packets", func() {

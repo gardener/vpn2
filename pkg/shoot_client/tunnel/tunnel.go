@@ -5,6 +5,7 @@
 package tunnel
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"sync"
@@ -157,7 +158,7 @@ type Controller struct {
 }
 
 // Run runs the tunnel controller
-func (c *Controller) Run(log logr.Logger) error {
+func (c *Controller) Run(ctx context.Context, log logr.Logger) error {
 	ips, err := network.GetLinkIPAddressesByName(constants.BondDevice, network.ScopeUniverse)
 	if err != nil {
 		return err
@@ -175,7 +176,7 @@ func (c *Controller) Run(log logr.Logger) error {
 		Port: tunnelControllerPort,
 	}
 
-	wd, err := NewWatchdog(log, c.config.WatchdogWindowSize, c.config.WatchdogThreshold, c.config.WatchdogCooldown, func() error {
+	wd, err := NewWatchdog(log, c.config.WatchdogWindowSize, c.config.WatchdogThreshold, c.config.WatchdogCooldown, c.config.WatchdogCooldown, func() error {
 		for clientIndex := range c.config.HAVPNClients {
 			endpoint := fmt.Sprintf("127.0.0.1:%d", constants.ManagementPort+clientIndex)
 			log.Info("watchdog triggered: restarting vpn-shoot-client", "clientIndex", clientIndex, "endpoint", endpoint)
@@ -228,6 +229,9 @@ func (c *Controller) Run(log logr.Logger) error {
 	c.setRunning(true)
 	buffer := make([]byte, 1024)
 	for {
+		if ctx.Err() != nil {
+			c.Stop()
+		}
 		if !c.isRunning() {
 			log.Info("stopping tunnel controller")
 			return nil
@@ -267,7 +271,7 @@ func (c *Controller) Run(log logr.Logger) error {
 		if data.needsUpdate(podIP) {
 			go data.update(podIP)
 		}
-		if c.nextClean.After(time.Now()) {
+		if time.Now().After(c.nextClean) {
 			c.nextClean = time.Now().Add(cleanUpPeriod)
 			go c.clean()
 		}

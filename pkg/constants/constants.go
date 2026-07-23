@@ -51,6 +51,39 @@ const (
 	WatchdogCooldown   = 20
 
 	EnvoyVPNGroupId = constants.EnvoyVPNGroupId
+
+	// ECMPHashPolicyL3 is the value for Layer 3 ECMP hash policy. It uses source and target IPs.
+	ECMPHashPolicyL3 = "0"
+	// ECMPHashPolicyL4 is the value for Layer 4 ECMP hash policy. It uses source and target ports on top of L3.
+	ECMPHashPolicyL4 = "1"
+
+	// ResilientNexthopBuckets is the number of buckets in the resilient ECMP nexthop groups. Each
+	// bucket maps a set of flows to one shoot client's ip6tnl device. More buckets give finer-grained
+	// flow distribution (fewer flows move together) at a small memory cost.
+	ResilientNexthopBuckets = 512
+	// ResilientNexthopIdleTimer is the time in seconds a bucket must be idle (no forwarded packets)
+	// before it may be reassigned to a recovered/added nexthop. Larger values keep idle connections
+	// pinned to their current device for longer when a shoot client recovers.
+	ResilientNexthopIdleTimer = 10
+	// ResilientNexthopUnbalancedTimer is the time in seconds a group may stay unbalanced before the
+	// kernel force-migrates even active buckets to rebalance load. 30 seconds allows a grace period
+	// for long-lived connections to complete gracefully before forced rebalancing.
+	ResilientNexthopUnbalancedTimer = 30
+
+	// NexthopGroupIDforIPv4 and NexthopGroupIDforIPv6 are the (network-namespace-local) IDs of the
+	// resilient ECMP nexthop groups used by the IPv4 and IPv6 shoot-network routes respectively.
+	NexthopGroupIDforIPv4 = 400
+	NexthopGroupIDforIPv6 = 600
+	// NexthopDeviceBaseIDforIPv4 and NexthopDeviceBaseIDforIPv6 are the base IDs for the per-shoot-client device
+	// nexthop objects. The actual ID is the base plus the client index.
+	NexthopDeviceBaseIDforIPv4 = 4000
+	NexthopDeviceBaseIDforIPv6 = 6000
+	// NexthopWeightDefault is the default weight for a nexthop in an equally distributed nexthop group.
+	NexthopWeightDefault = 1
+	// NexthopWeightOverweight is the weight for the overweighted nexthop in the resilient ECMP group.
+	// Setting it at 2x ResilientNexthopBuckets sets a "wants" count below 0.5, rounded down to zero for the underweight nexthop,
+	// effectively draining all buckets from it. Should be mod(256)
+	NexthopWeightOverweight = 2 * ResilientNexthopBuckets
 )
 
 // BondingModes are the supported bonding modes for the HA VPN.

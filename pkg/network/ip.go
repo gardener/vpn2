@@ -7,6 +7,7 @@ package network
 import (
 	"fmt"
 	"net"
+	"net/netip"
 	"slices"
 
 	"github.com/gardener/vpn2/pkg/constants"
@@ -89,4 +90,18 @@ func HAVPNTunnelNetwork(vpnNetworkIP net.IP, vpnIndex int) CIDR {
 		IP:   base,
 		Mask: net.CIDRMask(vpnTunnelPrefixSize, addrLen),
 	}
+}
+
+// IPtoAddr converts []net.IP to []netip.Addr
+func IPtoAddr(ips []net.IP) ([]netip.Addr, error) {
+	netIPs := make([]netip.Addr, 0, len(ips))
+	for _, ip := range ips {
+		addr, err := netip.ParseAddr(ip.String())
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse ip %s: %w", ip.String(), err)
+		}
+		netIPs = append(netIPs, addr)
+	}
+
+	return netIPs, nil
 }

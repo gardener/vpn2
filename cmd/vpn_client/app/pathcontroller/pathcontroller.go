@@ -88,17 +88,20 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 		pinger: &icmpPinger{
 			log:     log.WithName("ping"),
 			timeout: 1 * time.Second,
-			retries: 9,
+			retries: 4,
 		},
-		ticker:             time.NewTicker(constants.PathControllerUpdateInterval),
+		updateInterval:     constants.PathControllerUpdateInterval,
 		kubeAPIServerPodIP: podIP,
 		netRouter:          netlinkRouter,
-		checkedNet:         checkNetworks[0].ToIPNet(),
-		goodIPs:            make(map[string]struct{}),
 		log:                log.WithName("pingRouter"),
 	}
 
 	// acquired ip is not necessary here, because we don't care about the subnet
-	clientIPs := network.AllBondingShootClientIPs(cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
+	clientNetIPs := network.AllBondingShootClientIPs(cfg.VPNNetwork.ToIPNet(), cfg.HAVPNClients)
+	// Convert []net.IP to []netip.Addr
+	clientIPs, err := network.IPtoAddr(clientNetIPs)
+	if err != nil {
+		return err
+	}
 	return router.Run(ctx, clientIPs)
 }

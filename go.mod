@@ -16,6 +16,7 @@ require (
 	github.com/prometheus/client_golang v1.23.3-0.20260710134234-de192175ccd6
 	github.com/spf13/cobra v1.10.2
 	github.com/vishvananda/netlink v1.3.1
+	github.com/vishvananda/netns v0.0.5
 	go.uber.org/zap v1.28.0
 	golang.org/x/net v0.56.0
 	golang.org/x/sys v0.47.0
@@ -67,7 +68,6 @@ require (
 	github.com/prometheus/common v0.70.0 // indirect
 	github.com/prometheus/procfs v0.21.1 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect
-	github.com/vishvananda/netns v0.0.5 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	go.yaml.in/yaml/v2 v2.4.4 // indirect

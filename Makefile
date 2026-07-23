@@ -111,11 +111,12 @@ test:
 
 .PHONY: test-docker
 test-docker:
+	@docker build -t vpn-test -f Dockerfile.test .
 	@docker run --rm --cap-add NET_ADMIN --cap-add MKNOD --privileged \
 		-v $(REPO_ROOT):/src \
 		-w /src \
-		golang:1.26.5 \
-		go test -p 1 ./...
+		vpn-test \
+		ginkgo run --v ./...
 
 .PHONY: build
 build: build-vpn-server build-vpn-client

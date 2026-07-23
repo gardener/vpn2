@@ -5,6 +5,7 @@
 package tunnelcontroller
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
@@ -28,7 +29,8 @@ func NewCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return run(log)
+			ctx := cmd.Context()
+			return run(ctx, log)
 		},
 	}
 
@@ -45,7 +47,7 @@ func runReadinessServer(c *tunnel.Controller, log logr.Logger) {
 	}()
 }
 
-func run(log logr.Logger) error {
+func run(ctx context.Context, log logr.Logger) error {
 	cfg, err := config.GetTunnelControllerConfig(log)
 	if err != nil {
 		return err
@@ -54,5 +56,5 @@ func run(log logr.Logger) error {
 	c := tunnel.NewController(cfg)
 	runReadinessServer(c, log)
 
-	return c.Run(log)
+	return c.Run(ctx, log)
 }
