@@ -5,13 +5,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 )
 
@@ -26,7 +26,7 @@ var _ = Describe("GetVPNClientConfig", func() {
 			"IP_FAMILIES":            "IPv4",
 			"ENDPOINT":               "endpoint",
 			"OPENVPN_PORT":           "8132",
-			"VPN_NETWORK":            "fd8f:6d53:b97a:1::/96",
+			"VPN_NETWORK":            "fd8f:6d53:b97a:1::/64",
 			"SEED_POD_NETWORK":       "10.0.0.0/8",
 			"SHOOT_SERVICE_NETWORKS": "100.64.0.0/13",
 			"SHOOT_POD_NETWORKS":     "100.96.0.0/11",
@@ -207,11 +207,11 @@ var _ = Describe("GetVPNClientConfig", func() {
 				"VPN_NETWORK": "",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
-				"VPNNetwork": Equal(network.ParseIPNetIgnoreError(constants.DefaultVPNRangeV6))}),
+				"VPNNetwork": Equal(network.ParseIPNetIgnoreError(constants.DefaultVPNNetwork.String()))}),
 		}),
 		Entry("multiple vpn networks should fail", testCase{
 			envVars: map[string]string{
-				"VPN_NETWORK": "fd8f:6d53:b97a:1::/96,fd8f:6d53:b97a:2::/96",
+				"VPN_NETWORK": "fd8f:6d53:b97a:1::/64,fd8f:6d53:b97a:2::/64",
 			},
 			expectedError: true,
 		}),

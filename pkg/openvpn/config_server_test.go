@@ -20,7 +20,7 @@ var _ = Describe("#SeedServerConfig", func() {
 		prepareIPv4HA = func() {
 			cfgIPv4.IsHA = true
 			cfgIPv4.Device = "tap0"
-			cfgIPv4.OpenVPNNetwork = network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96")
+			cfgIPv4.OpenVPNNetwork = network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/64")
 			cfgIPv4.StatusPath = "/srv/status/openvpn.status"
 		}
 	)
@@ -28,7 +28,7 @@ var _ = Describe("#SeedServerConfig", func() {
 	BeforeEach(func() {
 		cfgIPv4 = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/64"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
 				network.ParseIPNetIgnoreError("100.64.0.0/13"),
@@ -44,7 +44,7 @@ var _ = Describe("#SeedServerConfig", func() {
 		}
 		cfgIPv6 = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/64"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
 				network.ParseIPNetIgnoreError("2001:db8:1::/48"),
@@ -60,7 +60,7 @@ var _ = Describe("#SeedServerConfig", func() {
 		}
 		cfgDualStack = SeedServerValues{
 			Device:         "tun0",
-			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
+			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/64"),
 			IsHA:           false,
 			ShootNetworks: []network.CIDR{
 				network.ParseIPNetIgnoreError("100.64.0.0/13"),
@@ -93,7 +93,7 @@ var _ = Describe("#SeedServerConfig", func() {
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
 
-server-ipv6 fd8f:6d53:b97a:7777::/96
+server-ipv6 fd8f:6d53:b97a:7777::/64
 `))
 
 			Expect(content).To(ContainSubstring(`dev tun0
@@ -115,7 +115,7 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
 
-server-ipv6 fd8f:6d53:b97a:7777::/96
+server-ipv6 fd8f:6d53:b97a:7777::/64
 `))
 
 			Expect(content).To(ContainSubstring(`
@@ -146,7 +146,7 @@ status-version 2`))
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
 
-server-ipv6 fd8f:6d53:b97a:7777::/96
+server-ipv6 fd8f:6d53:b97a:7777::/64
 `))
 			Expect(content).To(ContainSubstring(`
 dev tun0
@@ -166,7 +166,7 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
 
-server-ipv6 fd8f:6d53:b97a:7777::/96
+server-ipv6 fd8f:6d53:b97a:7777::/64
 `))
 			Expect(content).To(ContainSubstring(`
 dev tun0

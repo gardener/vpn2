@@ -4,7 +4,6 @@ import (
 	"maps"
 	"os"
 
-	"github.com/gardener/gardener/pkg/apis/core/v1beta1/constants"
 	"github.com/go-logr/logr"
 	"github.com/go-logr/logr/funcr"
 	. "github.com/onsi/ginkgo/v2"
@@ -13,6 +12,7 @@ import (
 	"github.com/onsi/gomega/types"
 
 	"github.com/gardener/vpn2/pkg/config"
+	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 )
 
@@ -33,7 +33,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 			"SHOOT_SERVICE_NETWORKS": "100.64.0.0/13",
 			"SHOOT_POD_NETWORKS":     "100.96.0.0/11",
 			"SHOOT_NODE_NETWORKS":    "100.128.0.0/10",
-			"VPN_NETWORK":            "fd8f:6d53:b97a:1::/96",
+			"VPN_NETWORK":            "fd8f:6d53:b97a:1::/64",
 			"SEED_POD_NETWORK":       "10.0.0.0/8",
 			"POD_NAME":               "test-pod",
 			"OPENVPN_STATUS_PATH":    "/status",
@@ -151,7 +151,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 				"VPN_NETWORK": "",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{
-				"VPNNetwork": Equal(network.ParseIPNetIgnoreError(constants.DefaultVPNRangeV6)),
+				"VPNNetwork": Equal(network.ParseIPNetIgnoreError(constants.DefaultVPNNetwork.String())),
 			}),
 		}),
 		Entry("missing LOCAL_NODE_IP should yield env default", testCase{
@@ -209,7 +209,7 @@ var _ = Describe("GetVPNServerConfig", func() {
 		}),
 		Entry("multiple vpn networks should fail", testCase{
 			envVars: map[string]string{
-				"VPN_NETWORK": "fd8f:6d53:b97a:1::/96,fd8f:6d53:b97a:2::/96",
+				"VPN_NETWORK": "fd8f:6d53:b97a:1::/64,fd8f:6d53:b97a:2::/64",
 			},
 			expectedError: true,
 		}),

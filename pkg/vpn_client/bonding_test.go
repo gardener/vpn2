@@ -3,6 +3,7 @@ package vpn_client
 import (
 	"context"
 	"fmt"
+	"net"
 	"os/exec"
 
 	"github.com/gardener/gardener/pkg/logger"
@@ -17,6 +18,19 @@ import (
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 )
+
+func hasV6Route(link netlink.Link, dst *net.IPNet) bool {
+	routes, err := netlink.RouteList(link, netlink.FAMILY_V6)
+	if err != nil {
+		return false
+	}
+	for _, route := range routes {
+		if route.Dst != nil && route.Dst.String() == dst.String() {
+			return true
+		}
+	}
+	return false
+}
 
 var _ = Describe("ConfigureBonding", Serial, func() {
 	var (
@@ -85,6 +99,34 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 			addrs, err := netlink.AddrList(bond, netlink.FAMILY_V6)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(addrs).NotTo(BeEmpty())
+		})
+
+		It("should add route VPN network via bond device", func() {
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			bond, err := netlink.LinkByName(constants.BondDevice)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(hasV6Route(bond, cfg.VPNNetwork.ToIPNet())).To(BeTrue())
+		})
+	})
+
+	Context("when configuring bonding for seed client", func() {
+		BeforeEach(func() {
+			cfg.IsShootClient = false
+			cfg.PodName = "seed-client-test-0"
+			cfg.HAVPNClients = 0 // keep test focused on route installation only
+		})
+
+		It("should add route from to VPN network via bond device", func() {
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			bond, err := netlink.LinkByName(constants.BondDevice)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(hasV6Route(bond, cfg.VPNNetwork.ToIPNet())).To(BeTrue())
 		})
 	})
 

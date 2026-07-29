@@ -19,7 +19,7 @@ func Test_ValidateVPNNetworkCIDR(t *testing.T) {
 	}{
 		{
 			name:        "valid cidr",
-			networkCIDR: "fd8f:6d53:b97a:1::/96",
+			networkCIDR: "fd8f:6d53:b97a:1::/64",
 		},
 
 		{
@@ -30,12 +30,12 @@ func Test_ValidateVPNNetworkCIDR(t *testing.T) {
 
 		{
 			name:        "ipv6 valid subnet mask",
-			networkCIDR: "fd8f:6d53:b97a:1::/96",
+			networkCIDR: "fd8f:6d53:b97a:1::/64",
 		},
 
 		{
-			name:        "ipv4 invalid subnet mask",
-			networkCIDR: "fd8f:6d53:b97a:1::/120",
+			name:        "ipv6 invalid subnet mask",
+			networkCIDR: "fd8f:6d53:b97a:1::/96",
 			wantError:   true,
 		},
 	}
