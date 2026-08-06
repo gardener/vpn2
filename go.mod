@@ -6,7 +6,7 @@ require (
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/coreos/go-iptables v0.8.0
 	github.com/gardener/gardener v1.148.1
-	github.com/gardener/gardener/hack/tools v1.148.1
+	github.com/gardener/gardener/hack/tools v1.148.2
 	github.com/gardener/gardener/pkg/apis v1.148.1
 	github.com/go-logr/logr v1.4.3
 	github.com/kumina/openvpn_exporter v0.3.0
