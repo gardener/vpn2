@@ -30,6 +30,7 @@ var _ = Describe("#SeedServerConfig", func() {
 			Device:         "tun0",
 			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
+			Protocol:       "tcp",
 			ShootNetworks: []network.CIDR{
 				network.ParseIPNetIgnoreError("100.64.0.0/13"),
 				network.ParseIPNetIgnoreError("100.96.0.0/11"),
@@ -46,6 +47,7 @@ var _ = Describe("#SeedServerConfig", func() {
 			Device:         "tun0",
 			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
+			Protocol:       "tcp",
 			ShootNetworks: []network.CIDR{
 				network.ParseIPNetIgnoreError("2001:db8:1::/48"),
 				network.ParseIPNetIgnoreError("2001:db8:2::/48"),
@@ -62,6 +64,7 @@ var _ = Describe("#SeedServerConfig", func() {
 			Device:         "tun0",
 			OpenVPNNetwork: network.ParseIPNetIgnoreError("fd8f:6d53:b97a:7777::/96"),
 			IsHA:           false,
+			Protocol:       "tcp",
 			ShootNetworks: []network.CIDR{
 				network.ParseIPNetIgnoreError("100.64.0.0/13"),
 				network.ParseIPNetIgnoreError("100.96.0.0/11"),
@@ -175,6 +178,37 @@ dev tun0
 script-security 2
 up "/bin/vpn-server firewall --mode up --device tun0 --shoot-network=100.64.0.0/13,100.96.0.0/11,10.0.1.0/24,2001:db8:1::/48,2001:db8:2::/48,2001:db8:3::/48 --seed-pod-network=100.64.0.0/12"
 down "/bin/vpn-server firewall --mode down --device tun0"`))
+			Expect(content).To(HaveNoLineLongerThan(OpenVPNConfigMaxLineLength))
+		})
+
+		It("should generate correct openvpn.config for IPv4 with udp protocol", func() {
+			cfgIPv4.Protocol = "udp"
+			cfgIPv4.FragmentMTU = 1400
+			content, err := generateSeedServerConfig(cfgIPv4)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(content).To(ContainSubstring(`proto udp6`))
+			Expect(content).To(ContainSubstring(`server-ipv6 fd8f:6d53:b97a:7777::/96`))
+			Expect(content).To(ContainSubstring(`fragment 1400 mtu`))
+			Expect(content).To(ContainSubstring(`sndbuf 16777216`))
+			Expect(content).To(ContainSubstring(`rcvbuf 16777216`))
+			Expect(content).NotTo(ContainSubstring(`tcp-nodelay`))
+			Expect(content).To(HaveNoLineLongerThan(OpenVPNConfigMaxLineLength))
+		})
+
+		It("should generate correct openvpn.config for IPv4 HA with udp protocol", func() {
+			prepareIPv4HA()
+			cfgIPv4.Protocol = "udp"
+			cfgIPv4.FragmentMTU = 1400
+			content, err := generateSeedServerConfig(cfgIPv4)
+			Expect(err).NotTo(HaveOccurred())
+
+			Expect(content).To(ContainSubstring(`proto udp6`))
+			Expect(content).To(ContainSubstring(`fragment 1400 mtu`))
+			Expect(content).To(ContainSubstring(`
+client-to-client
+duplicate-cn
+`))
 			Expect(content).To(HaveNoLineLongerThan(OpenVPNConfigMaxLineLength))
 		})
 	})

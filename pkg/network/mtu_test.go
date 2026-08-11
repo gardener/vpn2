@@ -66,4 +66,52 @@ var _ = Describe("MTU", Serial, func() {
 			Expect(mtu).To(Equal(constants.MinimumMTU))
 		})
 	})
+
+	Describe("DetectFragmentMTU", func() {
+		It("subtracts v1 overhead for udpm v1 non-HA", func() {
+			defaultMTU, err := GetDefaultMTU()
+			Expect(err).NotTo(HaveOccurred())
+
+			mtu, err := DetectFragmentMTU("v1", false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(mtu).To(Equal(defaultMTU - constants.UDPProxyOverheadV1))
+		})
+
+		It("subtracts v2 overhead for udpm v2 non-HA", func() {
+			defaultMTU, err := GetDefaultMTU()
+			Expect(err).NotTo(HaveOccurred())
+
+			mtu, err := DetectFragmentMTU("v2", false)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(mtu).To(Equal(defaultMTU - constants.UDPProxyOverheadV2))
+		})
+
+		It("adds HA overhead on top of v1 overhead for udpm v1 HA", func() {
+			defaultMTU, err := GetDefaultMTU()
+			Expect(err).NotTo(HaveOccurred())
+
+			mtu, err := DetectFragmentMTU("v1", true)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(mtu).To(Equal(defaultMTU - constants.UDPProxyOverheadV1 - constants.UDProxyHAVPNOverhead))
+		})
+
+		It("adds HA overhead on top of v2 overhead for udpm v2 HA", func() {
+			defaultMTU, err := GetDefaultMTU()
+			Expect(err).NotTo(HaveOccurred())
+
+			mtu, err := DetectFragmentMTU("v2", true)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(mtu).To(Equal(defaultMTU - constants.UDPProxyOverheadV2 - constants.UDProxyHAVPNOverhead))
+		})
+
+		It("returns an error for unknown udpm version", func() {
+			_, err := DetectFragmentMTU("v99", false)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid UDPM version"))
+
+			_, err = DetectFragmentMTU("v99", true)
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("invalid UDPM version"))
+		})
+	})
 })

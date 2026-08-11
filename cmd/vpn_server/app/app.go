@@ -81,11 +81,21 @@ func run(_ context.Context, log logr.Logger) error {
 	if cfg.AutoMTU {
 		tunMTU, err = network.DetectTunnelMTU(constants.TunnelMTUOverhead)
 		if err != nil {
-			return fmt.Errorf("failed to detect tunnel MTU: %w", err)
+			return err
 		}
 		log.Info("detected tunnel MTU", "MTU", tunMTU)
 	}
 	v.TunMTU = tunMTU
+
+	fragmentMTU := 0
+	if cfg.Protocol == "udp" {
+		fragmentMTU, err = network.DetectFragmentMTU(cfg.UDPMVersion, cfg.IsHA)
+		if err != nil {
+			return err
+		}
+		log.Info("detected fragment MTU", "MTU", fragmentMTU)
+	}
+	v.FragmentMTU = fragmentMTU
 
 	log.Info("writing openvpn config file", "values", v)
 	return openvpn.WriteServerConfigFiles(v)

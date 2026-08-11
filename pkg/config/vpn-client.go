@@ -40,6 +40,8 @@ type VPNClient struct {
 	WaitTime             time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 	BondingMode          string        `env:"BONDING_MODE" envDefault:"active-backup"`
 	AutoMTU              bool          `env:"OPENVPN_AUTO_MTU"`
+	Protocol             string        `env:"PROTOCOL" envDefault:"tcp"`
+	UDPMVersion          string        `env:"UDPM_VERSION" envDefault:"v1"`
 }
 
 func (v VPNClient) PrimaryIPFamily() string {
@@ -105,5 +107,14 @@ func GetVPNClientConfig() (VPNClient, error) {
 			cfg.VPNClientIndex = clientIndex
 		}
 	}
+
+	if cfg.Protocol != "tcp" && cfg.Protocol != "udp" {
+		return VPNClient{}, fmt.Errorf("PROTOCOL must be either tcp or udp, got %s", cfg.Protocol)
+	}
+
+	if cfg.UDPMVersion != "v1" && cfg.UDPMVersion != "v2" {
+		return VPNClient{}, fmt.Errorf("UDPM_VERSION must be either v1 or v2, got %s", cfg.UDPMVersion)
+	}
+
 	return cfg, nil
 }

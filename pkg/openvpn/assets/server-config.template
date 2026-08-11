@@ -5,7 +5,9 @@ topology subnet
 
 # Additional optimizations
 txqueuelen 1000
+{{- if (eq .Protocol "tcp") }}
 tcp-nodelay
+{{- end }}
 
 {{- if .TunMTU }}
 tun-mtu {{ .TunMTU }}
@@ -41,8 +43,16 @@ dh none
 auth SHA256
 tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 
+{{- if (eq .Protocol "tcp") }}
 # always listen on both IPv4 & IPv6 via tcp6-server
 proto tcp6-server
+{{- else if (eq .Protocol "udp") }}
+# always listen on both IPv4 & IPv6 via udp6
+proto udp6
+fragment {{ .FragmentMTU }} mtu
+sndbuf 16777216
+rcvbuf 16777216
+{{- end }}
 
 server-ipv6 {{ printf "%s" .OpenVPNNetwork }}
 

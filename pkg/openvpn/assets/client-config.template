@@ -5,7 +5,9 @@ auth-nocache
 
 # Additional optimizations
 txqueuelen 1000
+{{- if (eq .Protocol "tcp") }}
 tcp-nodelay
+{{- end }}
 
 {{- if .TunMTU }}
 tun-mtu {{ .TunMTU }}
@@ -25,12 +27,25 @@ tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 1
 # https://openvpn.net/index.php/open-source/documentation/howto.html#mitm
 remote-cert-tls server
 
+{{- if (eq .Protocol "tcp") }}
 {{- if .IsDualStack }}
 proto tcp-client
 {{- else if (eq .IPFamily "IPv4") }}
 proto tcp4-client
 {{- else if (eq .IPFamily "IPv6") }}
 proto tcp6-client
+{{- end }}
+{{- else if (eq .Protocol "udp") }}
+{{- if .IsDualStack }}
+proto udp
+{{- else if (eq .IPFamily "IPv4") }}
+proto udp4
+{{- else if (eq .IPFamily "IPv6") }}
+proto udp6
+{{- end }}
+fragment {{ .FragmentMTU }} mtu
+sndbuf 16777216
+rcvbuf 16777216
 {{- end }}
 
 {{- if (eq .VPNClientIndex -1) }}
@@ -44,8 +59,10 @@ ca /srv/secrets/vpn-client-{{.VPNClientIndex}}/ca.crt
 {{- end }}
 
 {{- if .IsShootClient }}
+{{- if (eq .Protocol "tcp") }}
 http-proxy {{ .Endpoint }} {{.OpenVPNPort}}
 http-proxy-option CUSTOM-HEADER {{ .ReversedVPNHeaderKey }} {{ .ReversedVPNHeader }}
+{{- end }}
 management 127.0.0.1 {{ .ManagementPort }}
 {{- end }}
 

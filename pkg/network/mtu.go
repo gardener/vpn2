@@ -48,3 +48,31 @@ func DetectTunnelMTU(overhead int) (int, error) {
 
 	return tunnelMTU, nil
 }
+
+// DetectFragmentMTU returns the fragment size for UDP fragments in OpenVPN based on the
+// MTU of the default route device (i.e. eth0 in a container) by subtracting
+// the given overhead for UDP Proxy encapsulation via UDPM (UDP-Mux) protocol.
+func DetectFragmentMTU(udpmVersion string, isHA bool) (int, error) {
+	defaultMTU, err := GetDefaultMTU()
+
+	if err != nil {
+		return 0, fmt.Errorf("failed to detect fragment MTU: %w", err)
+	}
+
+	overhead := 0
+	switch udpmVersion {
+	case "v1":
+		overhead += constants.UDPProxyOverheadV1
+	case "v2":
+		overhead += constants.UDPProxyOverheadV2
+	default:
+		return 0, fmt.Errorf("invalid UDPM version: %s", udpmVersion)
+	}
+	if isHA {
+		overhead += constants.UDProxyHAVPNOverhead
+	}
+
+	fragmentMTU := defaultMTU - overhead
+
+	return fragmentMTU, nil
+}

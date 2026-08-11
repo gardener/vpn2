@@ -18,6 +18,7 @@ var _ = Describe("#ClientConfig", func() {
 				IPFamily:       "IPv4",
 				OpenVPNPort:    1143,
 				IsShootClient:  false,
+				Protocol:       "tcp",
 			}
 			content, err := generateClientConfig(cfg)
 			It("does not error creating the template", func() {
@@ -47,6 +48,7 @@ ca /srv/secrets/vpn-client/ca.crt`))
 				ReversedVPNHeaderKey: "Reversed-VPN",
 				IsShootClient:        true,
 				SeedPodNetwork:       "10.123.0.0/19",
+				Protocol:             "tcp",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -88,6 +90,7 @@ up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 				ReversedVPNHeader: "invalid-host",
 				IsShootClient:     true,
 				SeedPodNetwork:    "10.123.0.0/19",
+				Protocol:          "tcp",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -126,6 +129,7 @@ up "/bin/sh -c '/sbin/ip route replace 10.123.0.0/19 dev $1' -- "
 				IsShootClient:     true,
 				IsHA:              true,
 				SeedPodNetwork:    "10.123.0.0/19",
+				Protocol:          "tcp",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -153,6 +157,7 @@ ca /srv/secrets/vpn-client-0/ca.crt
 				VPNClientIndex: -1,
 				IPFamily:       "IPv6",
 				OpenVPNPort:    1143,
+				Protocol:       "tcp",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -174,6 +179,7 @@ ca /srv/secrets/vpn-client-0/ca.crt
 				IPFamily:       "IPv6",
 				OpenVPNPort:    1143,
 				IsDualStack:    true,
+				Protocol:       "tcp",
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -184,6 +190,81 @@ ca /srv/secrets/vpn-client-0/ca.crt
 			Describe("generated config contain check", func() {
 				It("proto tcp6-client", func() {
 					Expect(content).To(ContainSubstring(`proto tcp-client`))
+				})
+			})
+		})
+
+		Context("ipv4 non HA config with udp protocol", func() {
+			cfg := ClientValues{
+				Endpoint:       "123.123.0.0",
+				VPNClientIndex: -1,
+				IPFamily:       "IPv4",
+				OpenVPNPort:    1143,
+				Protocol:       "udp",
+				FragmentMTU:    1400,
+			}
+
+			content, err := generateClientConfig(cfg)
+			It("does not error creating the template", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("generated config contain check", func() {
+				It("proto udp4", func() {
+					Expect(content).To(ContainSubstring(`proto udp4`))
+				})
+				It("has fragment and buffer options", func() {
+					Expect(content).To(ContainSubstring(`fragment 1400 mtu`))
+					Expect(content).To(ContainSubstring(`sndbuf 16777216`))
+					Expect(content).To(ContainSubstring(`rcvbuf 16777216`))
+				})
+				It("does not have tcp-nodelay", func() {
+					Expect(content).NotTo(ContainSubstring(`tcp-nodelay`))
+				})
+			})
+		})
+
+		Context("ipv6 non HA config with udp protocol", func() {
+			cfg := ClientValues{
+				Endpoint:       "123.123.0.0",
+				VPNClientIndex: -1,
+				IPFamily:       "IPv6",
+				OpenVPNPort:    1143,
+				Protocol:       "udp",
+				FragmentMTU:    1400,
+			}
+
+			content, err := generateClientConfig(cfg)
+			It("does not error creating the template", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("generated config contain check", func() {
+				It("proto udp6", func() {
+					Expect(content).To(ContainSubstring(`proto udp6`))
+				})
+			})
+		})
+
+		Context("dual-stack non HA config with udp protocol", func() {
+			cfg := ClientValues{
+				Endpoint:       "123.123.0.0",
+				VPNClientIndex: -1,
+				IPFamily:       "IPv6",
+				OpenVPNPort:    1143,
+				IsDualStack:    true,
+				Protocol:       "udp",
+				FragmentMTU:    1400,
+			}
+
+			content, err := generateClientConfig(cfg)
+			It("does not error creating the template", func() {
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			Describe("generated config contain check", func() {
+				It("proto udp", func() {
+					Expect(content).To(ContainSubstring(`proto udp`))
 				})
 			})
 		})

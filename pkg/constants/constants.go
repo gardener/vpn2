@@ -22,6 +22,15 @@ const (
 	TunnelMTUOverhead = 130
 	// MinimumMTU is the smallest possible MTU that can still transport IPv6 packets
 	MinimumMTU = 1280
+	// UDPProxyOverheadV1 is the number of bytes subtracted from the underlying interface MTU.
+	// It is used for UDP fragments only. (20 IP + 8 UDP + 266 UDPM v1 header)
+	UDPProxyOverheadV1 = 294
+	// UDPProxyOverheadV2 is the number of bytes subtracted from the underlying interface MTU.
+	// It is used for UDP fragments only. (20 IP + 8 UDP + 17 UDPM v1 header)
+	UDPProxyOverheadV2 = 45
+	// UDProxyHAVPNOverhead is the size of an Ethernet header that is added to the UDP packet when using a HA VPN due to the bonding device.
+	// It is used for UDP fragments only. (14 Ethernet header)
+	UDProxyHAVPNOverhead = 14
 	// BondDevice is the name of the bond device used for the HA deployment.
 	BondDevice = "bond0"
 	// TapDevice is the name of the tap device used for the HA VPN.
