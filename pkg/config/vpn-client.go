@@ -44,6 +44,7 @@ type VPNClient struct {
 	WaitTime             time.Duration `env:"WAIT_TIME" envDefault:"2s"`
 	BondingMode          string        `env:"BONDING_MODE" envDefault:"active-backup"`
 	AutoMTU              bool          `env:"OPENVPN_AUTO_MTU"`
+	Protocol             string        `env:"PROTOCOL" envDefault:"tcp"`
 }
 
 func (v VPNClient) PrimaryIPFamily() string {
@@ -118,5 +119,10 @@ func GetVPNClientConfig() (VPNClient, error) {
 	if cfg.IsShootClient && cfg.IsHA && cfg.VPNClientIndex >= 0 && cfg.VPNClientIndex+cfg.VPNClientIndexOffset > 255 {
 		return VPNClient{}, fmt.Errorf("VPNClientIndex+offset (%d) exceeds the bonding last-byte max of 255", cfg.VPNClientIndex+cfg.VPNClientIndexOffset)
 	}
+
+	if cfg.Protocol != "tcp" && cfg.Protocol != "udp" {
+		return VPNClient{}, fmt.Errorf("PROTOCOL must be either tcp or udp, got %s", cfg.Protocol)
+	}
+
 	return cfg, nil
 }
