@@ -25,6 +25,7 @@ type VPNServer struct {
 	HAVPNClients         int            `env:"HA_VPN_CLIENTS"`
 	LocalNodeIP          string         `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
 	AutoMTU              bool           `env:"OPENVPN_AUTO_MTU"`
+	Protocol             string         `env:"PROTOCOL" envDefault:"tcp"`
 }
 
 func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
@@ -54,6 +55,10 @@ func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 
 	if cfg.StatusPath == "" {
 		return VPNServer{}, fmt.Errorf("OPENVPN_STATUS_PATH is not set")
+	}
+
+	if cfg.Protocol != "tcp" && cfg.Protocol != "udp" {
+		return VPNServer{}, fmt.Errorf("PROTOCOL must be either tcp or udp, got %s", cfg.Protocol)
 	}
 
 	log.Info("config parsed", "config", cfg)

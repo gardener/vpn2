@@ -71,6 +71,7 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU int) openvpn.Client
 		IsShootClient:        cfg.IsShootClient,
 		IsHA:                 cfg.IsHA,
 		SeedPodNetwork:       cfg.SeedPodNetwork.String(),
+		Protocol:             cfg.Protocol,
 		TunMTU:               tunMTU,
 	}
 	vpnSeedServer := "vpn-seed-server"
