@@ -28,10 +28,10 @@ github.com/fxamacker/cbor/v2 v2.9.2 h1:X4Ksno9+x3cz0TZv69ec1hxP/+tymuR8PXQJyDwfh
 github.com/fxamacker/cbor/v2 v2.9.2/go.mod h1:vM4b+DJCtHn+zz7h3FFp/hDAI9WNWCsZj23V5ytsSxQ=
 github.com/gardener/gardener v1.149.2 h1:b/5rqf35G1i9gydpgvGM6waQrzSOyp/gmHGPflqJZWI=
 github.com/gardener/gardener v1.149.2/go.mod h1:tXquTwbfbYIL75hcg8DnVMrWOgo37Aihe4KN4ui58jo=
-github.com/gardener/gardener/hack/tools v1.149.1 h1:8IO0qWwFC1yyBT52UW52G9W/4a7+Y5Ny63rijRHaqbE=
-github.com/gardener/gardener/hack/tools v1.149.1/go.mod h1:AScKS5MFZnOwia6F/6W3s3Agg3K5l9n9bgd8Tqyie5o=
-github.com/gardener/gardener/pkg/apis v1.149.1 h1:axD2hrFjvLexyqKDK5tVcQs6zaRCAyyobG6QbTWP8Vg=
-github.com/gardener/gardener/pkg/apis v1.149.1/go.mod h1:jWVcJcOtKb9TynpN+Fc1hRfBmwBAPOgwzmhlt8ub2l8=
+github.com/gardener/gardener/hack/tools v1.149.2 h1:ta00KJqoSaMQ8wRIehEy7EGlqoV7sjaM3PD7zgrYblw=
+github.com/gardener/gardener/hack/tools v1.149.2/go.mod h1:AScKS5MFZnOwia6F/6W3s3Agg3K5l9n9bgd8Tqyie5o=
+github.com/gardener/gardener/pkg/apis v1.149.2 h1:Sd6/Kjp5aaQkBCiCC4pxHT+io11YR+DNhm3AoDyrZzU=
+github.com/gardener/gardener/pkg/apis v1.149.2/go.mod h1:jWVcJcOtKb9TynpN+Fc1hRfBmwBAPOgwzmhlt8ub2l8=
 github.com/gkampitakis/ciinfo v0.3.2 h1:JcuOPk8ZU7nZQjdUhctuhQofk7BGHuIy0c9Ez8BNhXs=
 github.com/gkampitakis/ciinfo v0.3.2/go.mod h1:1NIwaOcFChN4fa/B0hEBdAb6npDlFL8Bwx4dfRLRqAo=
 github.com/gkampitakis/go-diff v1.3.2 h1:Qyn0J9XJSDTgnsgHRdz9Zp24RaJeKMUHg2+PDZZdC4M=
