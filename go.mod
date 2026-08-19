@@ -5,7 +5,7 @@ go 1.26.5
 require (
 	github.com/caarlos0/env/v11 v11.4.1
 	github.com/coreos/go-iptables v0.8.0
-	github.com/gardener/gardener v1.149.1
+	github.com/gardener/gardener v1.149.2
 	github.com/gardener/gardener/hack/tools v1.149.1
 	github.com/gardener/gardener/pkg/apis v1.149.1
 	github.com/go-logr/logr v1.4.3
