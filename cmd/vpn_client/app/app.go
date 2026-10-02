@@ -58,7 +58,7 @@ func NewCommand() *cobra.Command {
 	return cmd
 }
 
-func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU, fragmentMTU int) openvpn.ClientValues {
+func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU int) openvpn.ClientValues {
 	v := openvpn.ClientValues{
 		Device:               constants.TunnelDevice,
 		IPFamily:             cfg.PrimaryIPFamily(),
@@ -73,7 +73,6 @@ func vpnConfig(log logr.Logger, cfg config.VPNClient, tunMTU, fragmentMTU int) o
 		SeedPodNetwork:       cfg.SeedPodNetwork.String(),
 		Protocol:             cfg.Protocol,
 		TunMTU:               tunMTU,
-		FragmentMTU:          fragmentMTU,
 	}
 	vpnSeedServer := "vpn-seed-server"
 
@@ -112,21 +111,12 @@ func run(_ context.Context, log logr.Logger) error {
 		log.Info("detected tunnel MTU", "MTU", tunMTU)
 	}
 
-	fragmentMTU := 0
-	if cfg.Protocol == "udp" {
-		fragmentMTU, err = network.DetectFragmentMTU(cfg.UDPMVersion, cfg.IsHA)
-		if err != nil {
-			return err
-		}
-		log.Info("detected fragment MTU", "MTU", fragmentMTU)
-	}
-
 	err = vpn_client.SetIPTableRules(log, cfg)
 	if err != nil {
 		return err
 	}
 
-	values := vpnConfig(log, cfg, tunMTU, fragmentMTU)
+	values := vpnConfig(log, cfg, tunMTU)
 
 	if err := vpn_client.Cleanup(log, values); err != nil {
 		return err

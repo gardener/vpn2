@@ -43,7 +43,7 @@ proto udp4
 {{- else if (eq .IPFamily "IPv6") }}
 proto udp6
 {{- end }}
-fragment {{ .FragmentMTU }} mtu
+fragment 1300 mtu
 sndbuf 16777216
 rcvbuf 16777216
 {{- end }}

@@ -35,5 +35,16 @@ func NewCommand() *cobra.Command {
 }
 
 func run(_ context.Context, _ context.CancelFunc, log logr.Logger) error {
+
+	err := vpn_client.BufferSettings()
+	if err != nil {
+		return err
+	}
+
+	err = vpn_client.TCPSettings()
+	if err != nil {
+		return err
+	}
+
 	return vpn_client.EnableIPv6Networking(log)
 }

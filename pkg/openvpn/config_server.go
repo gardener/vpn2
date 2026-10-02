@@ -34,7 +34,6 @@ type SeedServerValues struct {
 	VPNIndex           int
 	LocalNodeIP        string
 	TunMTU             int
-	FragmentMTU        int
 	MaxRoutesPerClient int
 	Protocol           string
 }

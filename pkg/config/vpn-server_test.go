@@ -41,7 +41,6 @@ var _ = Describe("GetVPNServerConfig", func() {
 			"HA_VPN_CLIENTS":         "3",
 			"LOCAL_NODE_IP":          "192.168.1.1",
 			"PROTOCOL":               "tcp",
-			"UDPM_VERSION":           "v1",
 		}
 	})
 
@@ -58,7 +57,6 @@ var _ = Describe("GetVPNServerConfig", func() {
 		Expect(os.Unsetenv("HA_VPN_CLIENTS")).To(Succeed())
 		Expect(os.Unsetenv("LOCAL_NODE_IP")).To(Succeed())
 		Expect(os.Unsetenv("PROTOCOL")).To(Succeed())
-		Expect(os.Unsetenv("UDPM_VERSION")).To(Succeed())
 	})
 
 	type testCase struct {
@@ -232,24 +230,6 @@ var _ = Describe("GetVPNServerConfig", func() {
 		Entry("invalid PROTOCOL value should fail", testCase{
 			envVars: map[string]string{
 				"PROTOCOL": "banana",
-			},
-			expectedError: true,
-		}),
-		Entry("missing UDPM_VERSION should yield v1 default", testCase{
-			envVars: map[string]string{
-				"UDPM_VERSION": "",
-			},
-			expectedMatcher: MatchFields(IgnoreExtras, Fields{"UDPMVersion": Equal("v1")}),
-		}),
-		Entry("UDPM_VERSION=v2 should be accepted", testCase{
-			envVars: map[string]string{
-				"UDPM_VERSION": "v2",
-			},
-			expectedMatcher: MatchFields(IgnoreExtras, Fields{"UDPMVersion": Equal("v2")}),
-		}),
-		Entry("invalid UDPM_VERSION value should fail", testCase{
-			envVars: map[string]string{
-				"UDPM_VERSION": "v3",
 			},
 			expectedError: true,
 		}),

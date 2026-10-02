@@ -26,7 +26,6 @@ type VPNServer struct {
 	LocalNodeIP          string         `env:"LOCAL_NODE_IP" envDefault:"255.255.255.255"`
 	AutoMTU              bool           `env:"OPENVPN_AUTO_MTU"`
 	Protocol             string         `env:"PROTOCOL" envDefault:"tcp"`
-	UDPMVersion          string         `env:"UDPM_VERSION" envDefault:"v1"`
 }
 
 func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
@@ -60,10 +59,6 @@ func GetVPNServerConfig(log logr.Logger) (VPNServer, error) {
 
 	if cfg.Protocol != "tcp" && cfg.Protocol != "udp" {
 		return VPNServer{}, fmt.Errorf("PROTOCOL must be either tcp or udp, got %s", cfg.Protocol)
-	}
-
-	if cfg.UDPMVersion != "v1" && cfg.UDPMVersion != "v2" {
-		return VPNServer{}, fmt.Errorf("UDPM_VERSION must be either v1 or v2, got %s", cfg.UDPMVersion)
 	}
 
 	log.Info("config parsed", "config", cfg)

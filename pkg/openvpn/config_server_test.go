@@ -183,13 +183,12 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 
 		It("should generate correct openvpn.config for IPv4 with udp protocol", func() {
 			cfgIPv4.Protocol = "udp"
-			cfgIPv4.FragmentMTU = 1400
 			content, err := generateSeedServerConfig(cfgIPv4)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(content).To(ContainSubstring(`proto udp6`))
 			Expect(content).To(ContainSubstring(`server-ipv6 fd8f:6d53:b97a:7777::/96`))
-			Expect(content).To(ContainSubstring(`fragment 1400 mtu`))
+			Expect(content).To(ContainSubstring(`fragment 1300 mtu`))
 			Expect(content).To(ContainSubstring(`sndbuf 16777216`))
 			Expect(content).To(ContainSubstring(`rcvbuf 16777216`))
 			Expect(content).NotTo(ContainSubstring(`tcp-nodelay`))
@@ -199,12 +198,15 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 		It("should generate correct openvpn.config for IPv4 HA with udp protocol", func() {
 			prepareIPv4HA()
 			cfgIPv4.Protocol = "udp"
-			cfgIPv4.FragmentMTU = 1400
 			content, err := generateSeedServerConfig(cfgIPv4)
 			Expect(err).NotTo(HaveOccurred())
 
 			Expect(content).To(ContainSubstring(`proto udp6`))
-			Expect(content).To(ContainSubstring(`fragment 1400 mtu`))
+			Expect(content).To(ContainSubstring(`server-ipv6 fd8f:6d53:b97a:7777::/96`))
+			Expect(content).To(ContainSubstring(`fragment 1300 mtu`))
+			Expect(content).To(ContainSubstring(`sndbuf 16777216`))
+			Expect(content).To(ContainSubstring(`rcvbuf 16777216`))
+			Expect(content).NotTo(ContainSubstring(`tcp-nodelay`))
 			Expect(content).To(ContainSubstring(`
 client-to-client
 duplicate-cn

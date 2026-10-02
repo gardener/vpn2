@@ -41,8 +41,7 @@ var _ = Describe("GetVPNClientConfig", func() {
 			"HA_VPN_SERVERS":         "3",
 			"POD_LABEL_SELECTOR":     "app=kubernetes,role=apiserver",
 			"WAIT_TIME":              "2s",
-		"PROTOCOL":               "tcp",
-		"UDPM_VERSION":           "v1",
+			"PROTOCOL":               "tcp",
 		}
 	})
 
@@ -67,7 +66,6 @@ var _ = Describe("GetVPNClientConfig", func() {
 		Expect(os.Unsetenv("POD_LABEL_SELECTOR")).To(Succeed())
 		Expect(os.Unsetenv("WAIT_TIME")).To(Succeed())
 		Expect(os.Unsetenv("PROTOCOL")).To(Succeed())
-		Expect(os.Unsetenv("UDPM_VERSION")).To(Succeed())
 	})
 
 	type testCase struct {
@@ -321,24 +319,6 @@ var _ = Describe("GetVPNClientConfig", func() {
 		Entry("invalid PROTOCOL value should fail", testCase{
 			envVars: map[string]string{
 				"PROTOCOL": "banana",
-			},
-			expectedError: true,
-		}),
-		Entry("missing UDPM_VERSION should yield v1 default", testCase{
-			envVars: map[string]string{
-				"UDPM_VERSION": "",
-			},
-			expectedMatcher: MatchFields(IgnoreExtras, Fields{"UDPMVersion": Equal("v1")}),
-		}),
-		Entry("UDPM_VERSION=v2 should be accepted", testCase{
-			envVars: map[string]string{
-				"UDPM_VERSION": "v2",
-			},
-			expectedMatcher: MatchFields(IgnoreExtras, Fields{"UDPMVersion": Equal("v2")}),
-		}),
-		Entry("invalid UDPM_VERSION value should fail", testCase{
-			envVars: map[string]string{
-				"UDPM_VERSION": "v3",
 			},
 			expectedError: true,
 		}),

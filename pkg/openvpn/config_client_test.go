@@ -201,7 +201,6 @@ ca /srv/secrets/vpn-client-0/ca.crt
 				IPFamily:       "IPv4",
 				OpenVPNPort:    1143,
 				Protocol:       "udp",
-				FragmentMTU:    1400,
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -214,7 +213,7 @@ ca /srv/secrets/vpn-client-0/ca.crt
 					Expect(content).To(ContainSubstring(`proto udp4`))
 				})
 				It("has fragment and buffer options", func() {
-					Expect(content).To(ContainSubstring(`fragment 1400 mtu`))
+					Expect(content).To(ContainSubstring(`fragment 1300`))
 					Expect(content).To(ContainSubstring(`sndbuf 16777216`))
 					Expect(content).To(ContainSubstring(`rcvbuf 16777216`))
 				})
@@ -231,7 +230,6 @@ ca /srv/secrets/vpn-client-0/ca.crt
 				IPFamily:       "IPv6",
 				OpenVPNPort:    1143,
 				Protocol:       "udp",
-				FragmentMTU:    1400,
 			}
 
 			content, err := generateClientConfig(cfg)
@@ -254,7 +252,6 @@ ca /srv/secrets/vpn-client-0/ca.crt
 				OpenVPNPort:    1143,
 				IsDualStack:    true,
 				Protocol:       "udp",
-				FragmentMTU:    1400,
 			}
 
 			content, err := generateClientConfig(cfg)

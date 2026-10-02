@@ -150,6 +150,20 @@ func BufferSettings() error {
 	return nil
 }
 
+func TCPSettings() error {
+	// Increase retransmission timeout to 400ms (from 200ms)
+	if err := sysctl.Set("net.ipv4.tcp_rto_min_us", "400000"); err != nil {
+		return err
+	}
+
+	// Disable slow start after idle to avoid cwnd collapse
+	if err := sysctl.Set("net.ipv4.tcp_slow_start_after_idle", "0"); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // KernelSettings sets the kernel parameters required for the VPN tunnel to function properly.
 func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	// Disable martian logging on both sides.
@@ -162,6 +176,11 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 	}
 	// Adjust buffer sizes on both sides
 	if err := BufferSettings(); err != nil {
+		return err
+	}
+
+	// Adjust TCP settings on both sides
+	if err := TCPSettings(); err != nil {
 		return err
 	}
 

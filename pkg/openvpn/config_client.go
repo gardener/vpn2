@@ -28,7 +28,6 @@ type ClientValues struct {
 	SeedPodNetwork       string
 	IsDualStack          bool
 	Protocol             string
-	FragmentMTU          int
 	TunMTU               int
 }
 
