@@ -7,7 +7,7 @@ require (
 	github.com/coreos/go-iptables v0.8.0
 	github.com/gardener/gardener v1.150.4
 	github.com/gardener/gardener/hack/tools v1.150.4
-	github.com/gardener/gardener/pkg/apis v1.150.3
+	github.com/gardener/gardener/pkg/apis v1.150.4
 	github.com/go-logr/logr v1.4.4
 	github.com/kumina/openvpn_exporter v0.3.0
 	github.com/lorenzosaino/go-sysctl v0.3.1
