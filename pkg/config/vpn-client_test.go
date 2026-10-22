@@ -41,6 +41,7 @@ var _ = Describe("GetVPNClientConfig", func() {
 			"HA_VPN_SERVERS":         "3",
 			"POD_LABEL_SELECTOR":     "app=kubernetes,role=apiserver",
 			"WAIT_TIME":              "2s",
+			"PROTOCOL":               "tcp",
 		}
 	})
 
@@ -64,6 +65,7 @@ var _ = Describe("GetVPNClientConfig", func() {
 		Expect(os.Unsetenv("HA_VPN_SERVERS")).To(Succeed())
 		Expect(os.Unsetenv("POD_LABEL_SELECTOR")).To(Succeed())
 		Expect(os.Unsetenv("WAIT_TIME")).To(Succeed())
+		Expect(os.Unsetenv("PROTOCOL")).To(Succeed())
 	})
 
 	type testCase struct {
@@ -301,6 +303,24 @@ var _ = Describe("GetVPNClientConfig", func() {
 				"POD_LABEL_SELECTOR": "",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{"PodLabelSelector": Equal("app=kubernetes,role=apiserver")}),
+		}),
+		Entry("missing PROTOCOL should yield tcp default", testCase{
+			envVars: map[string]string{
+				"PROTOCOL": "",
+			},
+			expectedMatcher: MatchFields(IgnoreExtras, Fields{"Protocol": Equal("tcp")}),
+		}),
+		Entry("PROTOCOL=udp should be accepted", testCase{
+			envVars: map[string]string{
+				"PROTOCOL": "udp",
+			},
+			expectedMatcher: MatchFields(IgnoreExtras, Fields{"Protocol": Equal("udp")}),
+		}),
+		Entry("invalid PROTOCOL value should fail", testCase{
+			envVars: map[string]string{
+				"PROTOCOL": "banana",
+			},
+			expectedError: true,
 		}),
 	)
 })

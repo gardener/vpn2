@@ -130,6 +130,10 @@ var _ = Describe("KernelSettings", func() {
 			Expect(err).NotTo(HaveOccurred())
 			err = sysctl.Set("net.ipv4.tcp_wmem", "4096 12582912 16777216")
 			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.tcp_rto_min_us", "200000")
+			Expect(err).NotTo(HaveOccurred())
+			err = sysctl.Set("net.ipv4.tcp_slow_start_after_idle", "1")
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		It("should enable IPv6 networking", func() {
@@ -178,6 +182,19 @@ var _ = Describe("KernelSettings", func() {
 			value, err = sysctl.Get("net.ipv4.tcp_wmem")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("65536\t12582912\t16777216"))
+		})
+
+		It("should adjust TCP settings", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.tcp_rto_min_us")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("400000"))
+
+			value, err = sysctl.Get("net.ipv4.tcp_slow_start_after_idle")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
 		})
 	})
 
@@ -314,6 +331,19 @@ var _ = Describe("KernelSettings", func() {
 			value, err = sysctl.Get("net.ipv4.tcp_wmem")
 			Expect(err).NotTo(HaveOccurred())
 			Expect(value).To(Equal("65536\t12582912\t16777216"))
+		})
+
+		It("should adjust TCP settings", func() {
+			err := KernelSettings(log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			value, err := sysctl.Get("net.ipv4.tcp_rto_min_us")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("400000"))
+
+			value, err = sysctl.Get("net.ipv4.tcp_slow_start_after_idle")
+			Expect(err).NotTo(HaveOccurred())
+			Expect(value).To(Equal("0"))
 		})
 	})
 })
