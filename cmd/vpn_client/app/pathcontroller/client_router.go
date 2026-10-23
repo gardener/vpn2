@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	"github.com/vishvananda/netlink"
 
 	"github.com/gardener/vpn2/pkg/constants"
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/shoot_client/tunnel"
+	vpnclient "github.com/gardener/vpn2/pkg/vpn_client"
 )
 
 type clientRouter struct {
@@ -28,18 +28,17 @@ type clientRouter struct {
 	updateInterval     time.Duration
 
 	log logr.Logger
-	// mu serializes the reconcileNexthopGroup function across all clients
+	// mu serializes the reconcileRoutingPolicy function across all clients
 	mu sync.Mutex
 }
 
 type netRouter interface {
-	// setupRouting sets up the static shoot-network routes pointing at the resilient ECMP next hop
-	// groups built from every shoot client's ip6tnl device.
+	// setupRouting sets up the per-client routing tables, fwmark ip rules, and iptables mark rules.
 	setupRouting(clientIPs []netip.Addr) error
-	// setNexthopHealth adjusts nexthop weights based on client health
-	setNexthopHealth(clientIP netip.Addr, healthy bool, allClients []netip.Addr) error
-	// getNexthopHealth returns the current health status of each client, keyed by client IP.
-	getNexthopHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error)
+	// setShootClientHealth redirects or restores the fwmark ip rule for clientIP based on health.
+	setShootClientHealth(clientIP netip.Addr, healthy bool, allClients []netip.Addr) error
+	// getShootClientHealth returns the current health status of each client, keyed by client IP.
+	getShootClientHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error)
 }
 
 type pinger interface {
@@ -47,8 +46,7 @@ type pinger interface {
 }
 
 func (r *clientRouter) Run(ctx context.Context, clientIPs []netip.Addr) error {
-	// Set up the shoot-network routes once. Afterward the route table is never touched again; only
-	// the weights of the resilient ECMP next hop groups are adjusted as clients go down or recover.
+	// Set up routing once. Afterward only fwmark ip rules are adjusted on health changes.
 	if err := r.netRouter.setupRouting(clientIPs); err != nil {
 		return err
 	}
@@ -68,7 +66,7 @@ func (r *clientRouter) Run(ctx context.Context, clientIPs []netip.Addr) error {
 }
 
 // runClient drives the lifecycle of a single shoot client: on every tick it sends the
-// UDP keepalive, and it pings the client to reconcile next hop health-based weights.
+// UDP keepalive, and it pings the client to reconcile the routing policy (single-path vs. multipath) based on the ping result.
 func (r *clientRouter) runClient(ctx context.Context, clientIP netip.Addr, allClients []netip.Addr) {
 	ticker := time.NewTicker(r.updateInterval)
 	defer ticker.Stop()
@@ -90,57 +88,57 @@ func (r *clientRouter) runClient(ctx context.Context, clientIP netip.Addr, allCl
 				go func() {
 					defer pinging.Store(false)
 					healthy := r.pinger.Ping(clientIP) == nil
-					r.updateNeighborCache(clientIP, healthy)
-					r.reconcileNexthopGroup(clientIP, healthy, allClients)
+					r.reconcileRoutingPolicy(clientIP, healthy, allClients)
 				}()
 			}
 		}
 	}
 }
 
-// reconcileNexthopGroup updates next hop weights for a single shoot client based on its health.
-// When a client becomes unhealthy, its weight stays at default while others are set to overweight,
-// causing graceful bucket migration away from it over time. When a client recovers,
-// all weights are restored to default for equal distribution.
+// reconcileRoutingPolicy updates the fwmark ip rule for a single shoot client based on its health.
+// When a client becomes unhealthy, its mark is redirected to the surviving client's table.
+// When a client recovers, its mark is restored to its own routing table.
 // If another client is already unhealthy, the new unhealthy client is ignored.
-func (r *clientRouter) reconcileNexthopGroup(client netip.Addr, healthy bool, allClients []netip.Addr) {
+func (r *clientRouter) reconcileRoutingPolicy(client netip.Addr, healthy bool, allClients []netip.Addr) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	// Fetch the current health state of all next hops
-	states, err := r.netRouter.getNexthopHealth(allClients)
+	// Fetch the current health state of all shoot clients
+	states, err := r.netRouter.getShootClientHealth(allClients)
 	if err != nil {
-		r.log.Error(err, "failed to get current next hop health state", "clientIP", client, "allClients", allClients)
+		r.log.Error(err, "failed to get current shoot client health state", "clientIP", client, "allClients", allClients)
 		return
 	}
 
-	// Compare health state (ping) vs. next hop weight (up / down)
+	// Compare health state (ping) vs. shoot client health (up / down)
 	up := states[client]
 
 	switch {
 	case healthy && !up:
-		r.log.Info("client recovered, restoring next hop weights", "ip", client)
+		r.log.Info("client recovered, restoring multi-path routing policy", "ip", client)
 	case !healthy && up:
 		// Keep at most one unhealthy client at a time. If another client is already
 		// marked unhealthy, do not mark this one unhealthy as well, otherwise the
-		// weight skew would be canceled out.
+		// redirection would be canceled out.
 		for otherClient, otherHealthy := range states {
 			if otherClient != client && !otherHealthy {
 				r.log.Info("client not healthy, but doing nothing because another unhealthy client already exists", "clientIP", client, "unhealthyPeer", otherClient)
 				return
 			}
 		}
-		r.log.Info("client not healthy, setting next hop to underweight for graceful migration", "ip", client)
+		r.log.Info("client not healthy, setting single-path routing policy to surviving client", "ip", client)
+		// Delete the neighbor cache entry for the failed client to avoid stale entries causing ping failures after recovery.
+		r.updateNeighborCache(client, healthy)
 	case !healthy:
-		r.log.Info("client is still down and underweight", "ip", client)
+		r.log.Info("client is still down", "ip", client)
 		return
 	default:
 		// healthy and up - nothing to do
 		return
 	}
-	// Update the health state and recalculate weights for all next hops
-	if err = r.netRouter.setNexthopHealth(client, healthy, allClients); err != nil {
-		r.log.Error(err, "failed to update next hop health", "ip", client, "healthy", healthy)
+	// Update the health state and recalculate routing rules for all clients
+	if err = r.netRouter.setShootClientHealth(client, healthy, allClients); err != nil {
+		r.log.Error(err, "failed to update shoot client health", "ip", client, "healthy", healthy)
 		return
 	}
 }
@@ -165,7 +163,7 @@ type netlinkRouter struct {
 
 	// clients holds all shoot client IPs; it is set during setupRouting.
 	clients []netip.Addr
-	// health tracks the current health status of each client's next hops.
+	// health tracks the current health status of each client.
 	health map[netip.Addr]bool
 
 	log logr.Logger
@@ -178,31 +176,16 @@ func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 		r.health[clientIP] = true
 	}
 
-	// Create the per-client device next hops once.
-	if err := r.ensureDeviceNexthops(clientIPs); err != nil {
-		return fmt.Errorf("failed to set up next hops for ip6tnl devices: %w", err)
-	}
-	// Initialize resilient groups with all clients at equal weight (1).
-	if err := r.adjustGroupWeights(clientIPs); err != nil {
-		return fmt.Errorf("failed to initialize resilient next hop groups with ip6tnl device next hops: %w", err)
-	}
-
 	var (
 		serviceNetworks []network.CIDR
 		podNetworks     []network.CIDR
 		nodeNetworks    []network.CIDR
 	)
 
-	// we don't need the specific mappings here because the /8 routes encompass all shoot networks
-	_, _, _, err := network.ShootNetworksForNetmap(r.shootPodNetworks, r.shootServiceNetworks, r.shootNodeNetworks)
-	if err != nil {
-		return err
-	}
-
 	// Check if there is an overlap between the seed pod network and shoot networks.
 	overlap := network.OverLapAny(r.seedPodNetwork, slices.Concat(r.shootPodNetworks, r.shootServiceNetworks, r.shootNodeNetworks)...)
 
-	// IPv4 networks are mapped to 240/4, IPv6 networks are kept as is
+	// IPv4 networks are mapped to 240/4, IPv6 networks are kept as-is
 	for _, serviceNetwork := range r.shootServiceNetworks {
 		if serviceNetwork.IP.To4() != nil && overlap {
 			serviceNetworks = append(serviceNetworks, network.ParseIPNetIgnoreError(constants.ShootServiceNetworkMapped))
@@ -231,116 +214,99 @@ func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 		nodeNetworks,
 	}
 
-	// Point every shoot network route at the family-appropriate resilient next hop group. The routes
-	// are static; only the weights of group members change when clients go down or recover.
-	for _, nw := range nets {
-		for _, n := range nw {
-			dst := n.ToIPNet()
-			groupID := constants.NexthopGroupIDforIPv4
-			if dst.IP.To4() == nil {
-				groupID = constants.NexthopGroupIDforIPv6
-			}
-			r.log.Info("replacing route via resilient next hop group", "net", n, "group", groupID)
-			if err := network.ReplaceRouteViaNexthopGroup(dst, groupID); err != nil {
-				return fmt.Errorf("error replacing route for %s: %w", n, err)
-			}
-		}
-	}
-	return nil
-}
-
-// ensureDeviceNexthops creates or updates the per-device next hop objects for all shoot clients.
-func (r *netlinkRouter) ensureDeviceNexthops(clients []netip.Addr) error {
-	for _, clientIP := range clients {
+	// Install per-client routing tables: each shoot network is routed via the client's ip6tnl device
+	// in a dedicated table. The fwmark ip rules below steer new connections into the right table.
+	for _, clientIP := range clientIPs {
 		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP.AsSlice())
 		linkName := network.BondIP6TunnelLinkName(clientIndex)
-		if _, err := netlink.LinkByName(linkName); err != nil {
-			return fmt.Errorf("failed to get link %s: %w", linkName, err)
+		tableID := constants.RoutingTableBaseID + clientIndex
+		for _, nw := range nets {
+			for _, n := range nw {
+				dst := n.ToIPNet()
+				r.log.Info("replacing route in per-client table", "net", n, "link", linkName, "table", tableID)
+				if err := network.ReplaceRouteViaDevice(dst, linkName, tableID); err != nil {
+					return fmt.Errorf("error replacing route for %s in table %d: %w", n, tableID, err)
+				}
+			}
 		}
-		v4ID, v6ID := getNexthopIDsforClientIndex(clientIndex)
-		if err := network.ReplaceDeviceNexthop(v4ID, linkName, false); err != nil {
-			return err
+	}
+
+	// IPv6 shoot networks need a loopback route in the main table so the initial routing lookup
+	// for locally-generated packets succeeds. Without it the kernel returns ENETUNREACHABLE before
+	// iptables mangle OUTPUT fires, preventing the fwmark from being set.
+	for _, nw := range nets {
+		for _, n := range nw {
+			if n.IP.To4() == nil {
+				if err := network.AddLoopbackRoute(n.ToIPNet()); err != nil {
+					return fmt.Errorf("error adding loopback route for %s: %w", n, err)
+				}
+			}
 		}
-		if err := network.ReplaceDeviceNexthop(v6ID, linkName, true); err != nil {
-			return err
+	}
+
+	// Install fwmark ip rules: one per client, both IPv4 and IPv6.
+	for _, clientIP := range clientIPs {
+		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP.AsSlice())
+		tableID := constants.RoutingTableBaseID + clientIndex
+		mark := constants.FwmarkBase + clientIndex
+		priority := constants.FwmarkRulePriorityBase + clientIndex
+		for _, ipv6 := range []bool{false, true} {
+			if err := network.AddFWmarkRule(mark, tableID, priority, ipv6); err != nil {
+				return fmt.Errorf("error adding fwmark rule for client %d: %w", clientIndex, err)
+			}
+		}
+	}
+
+	// Install iptables MARK/CONNMARK rules to distribute new connections across shoot clients.
+	// Pass the effective (post-overlap-mapping) networks so only shoot-destined traffic is marked.
+	allNets := slices.Concat(nets...)
+	if err := vpnclient.SetMarkRules(r.log, allNets, len(clientIPs)); err != nil {
+		return fmt.Errorf("error setting iptables mark rules: %w", err)
+	}
+
+	return nil
+}
+
+// setShootClientHealth updates the health status of a client and adjusts fwmark ip rules accordingly.
+func (r *netlinkRouter) setShootClientHealth(clientIP netip.Addr, healthy bool, allClients []netip.Addr) error {
+	r.health[clientIP] = healthy
+
+	clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP.AsSlice())
+	mark := constants.FwmarkBase + clientIndex
+	priority := constants.FwmarkRulePriorityBase + clientIndex
+
+	var targetTableID int
+	if healthy {
+		// Restore the client's mark to its own routing table.
+		targetTableID = constants.RoutingTableBaseID + clientIndex
+	} else {
+		// Redirect the client's mark to a surviving client's table.
+		for _, other := range allClients {
+			if other != clientIP && r.health[other] {
+				otherIndex := network.ClientIndexFromBondingShootClientIP(other.AsSlice())
+				targetTableID = constants.RoutingTableBaseID + otherIndex
+				break
+			}
+		}
+		if targetTableID == 0 {
+			// No healthy client found — leave the rule as-is to avoid dropping all connectivity.
+			return nil
+		}
+	}
+
+	for _, ipv6 := range []bool{false, true} {
+		if err := network.ReplaceFWmarkRule(mark, targetTableID, priority, ipv6); err != nil {
+			return fmt.Errorf("error replacing fwmark rule for client %d: %w", clientIndex, err)
 		}
 	}
 	return nil
 }
 
-// adjustGroupWeights updates both IPv4 and IPv6 resilient groups to contain all clients with
-// calculated weights based on their health status.
-// If a client is unhealthy, it gets underweight while all others get overweight.
-func (r *netlinkRouter) adjustGroupWeights(clients []netip.Addr) error {
-	weights := make([]int, len(clients))
-	var unhealthyClient netip.Addr
-	unhealthyCount := 0
-	for _, clientIP := range clients {
-		if !r.health[clientIP] {
-			unhealthyClient = clientIP
-			unhealthyCount++
-		}
-	}
-
-	// If exactly one client is unhealthy, make it underweight
-	if unhealthyCount == 1 {
-		for i, clientIP := range clients {
-			if clientIP == unhealthyClient {
-				weights[i] = constants.NexthopWeightDefault
-			} else {
-				weights[i] = constants.NexthopWeightOverweight
-			}
-		}
-	} else {
-		// All healthy or multiple unhealthy: equal weights
-		for i := range weights {
-			weights[i] = constants.NexthopWeightDefault
-		}
-	}
-
-	v4IDs := make([]int, 0, len(clients))
-	v4Weights := make([]int, 0, len(clients))
-	v6IDs := make([]int, 0, len(clients))
-	v6Weights := make([]int, 0, len(clients))
-	for i, clientIP := range clients {
-		clientIndex := network.ClientIndexFromBondingShootClientIP(clientIP.AsSlice())
-		v4ID, v6ID := getNexthopIDsforClientIndex(clientIndex)
-		v4IDs = append(v4IDs, v4ID)
-		v4Weights = append(v4Weights, weights[i])
-		v6IDs = append(v6IDs, v6ID)
-		v6Weights = append(v6Weights, weights[i])
-	}
-	if len(v4IDs) == 0 {
-		return fmt.Errorf("no shoot client next hops to configure")
-	}
-	if err := network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv4, v4IDs, v4Weights,
-		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer); err != nil {
-		return err
-	}
-	return network.ReplaceResilientNexthopGroup(constants.NexthopGroupIDforIPv6, v6IDs, v6Weights,
-		constants.ResilientNexthopBuckets, constants.ResilientNexthopIdleTimer, constants.ResilientNexthopUnbalancedTimer)
-}
-
-// setNexthopHealth updates the health status of a client and recalculates weights for all nexthops.
-func (r *netlinkRouter) setNexthopHealth(clientIP netip.Addr, healthy bool, allClients []netip.Addr) error {
-	r.health[clientIP] = healthy
-	return r.adjustGroupWeights(allClients)
-}
-
-// getNexthopHealth reports the current health status of each shoot client's nexthops, keyed by client IP.
-func (r *netlinkRouter) getNexthopHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
+// getShootClientHealth reports the current health status of each shoot client, keyed by client IP.
+func (r *netlinkRouter) getShootClientHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
 	states := make(map[netip.Addr]bool, len(clientIPs))
 	for _, clientIP := range clientIPs {
 		states[clientIP] = r.health[clientIP]
 	}
 	return states, nil
-}
-
-// getNexthopIDsforClientIndex returns the correct next hop ID to be used for a vpn client based on its index.
-// The ID is the base ID for the next hop type (IPv4 or IPv6) plus the client index.
-func getNexthopIDsforClientIndex(clientIndex int) (v4ID, v6ID int) {
-	v4ID = constants.NexthopDeviceBaseIDforIPv4 + clientIndex
-	v6ID = constants.NexthopDeviceBaseIDforIPv6 + clientIndex
-
-	return
 }

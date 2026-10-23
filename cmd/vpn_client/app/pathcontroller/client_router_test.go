@@ -13,7 +13,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-// fakeNetRouter implements netRouter. state is the source of truth returned by getNexthopHealth;
+// fakeNetRouter implements netRouter. state is the source of truth returned by getShootClientHealth;
 // setHealthCalls records which IPs had their health state changed.
 type fakeNetRouter struct {
 	routingConfigured bool
@@ -33,13 +33,13 @@ func (f *fakeNetRouter) setupRouting(_ []netip.Addr) error {
 	return nil
 }
 
-func (f *fakeNetRouter) setNexthopHealth(clientIP netip.Addr, healthy bool, _ []netip.Addr) error {
+func (f *fakeNetRouter) setShootClientHealth(clientIP netip.Addr, healthy bool, _ []netip.Addr) error {
 	f.state[clientIP] = healthy
 	f.setHealthCalls[clientIP] = healthy
 	return nil
 }
 
-func (f *fakeNetRouter) getNexthopHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
+func (f *fakeNetRouter) getShootClientHealth(clientIPs []netip.Addr) (map[netip.Addr]bool, error) {
 	states := make(map[netip.Addr]bool, len(clientIPs))
 	for _, ip := range clientIPs {
 		states[ip] = f.state[ip]
@@ -76,7 +76,7 @@ var _ = Describe("#ClientRouter", func() {
 		}
 	})
 
-	Describe("#reconcileNexthopGroup", func() {
+	Describe("#reconcileRoutingPolicy", func() {
 		ip1 := netip.MustParseAddr("192.168.0.1")
 		ip2 := netip.MustParseAddr("192.168.0.2")
 		clients := []netip.Addr{ip1, ip2}
@@ -88,7 +88,7 @@ var _ = Describe("#ClientRouter", func() {
 
 		Context("when one client becomes unhealthy", func() {
 			It("should update the unhealthy client's health to false", func() {
-				router.reconcileNexthopGroup(ip1, false, clients)
+				router.reconcileRoutingPolicy(ip1, false, clients)
 				Expect(netRouter.setHealthCalls).To(HaveKeyWithValue(ip1, false))
 				Expect(netRouter.state[ip1]).To(BeFalse())
 				Expect(netRouter.state[ip2]).To(BeTrue())
@@ -96,11 +96,11 @@ var _ = Describe("#ClientRouter", func() {
 		})
 
 		Context("when both clients are unhealthy", func() {
-			It("should never set both next hops unhealthy to avoid a complete outage", func() {
+			It("should never set both clients unhealthy to avoid a complete outage", func() {
 				// The independent per-client loops reconcile one after another; the second one must
-				// keep the last remaining healthy next hop up.
-				router.reconcileNexthopGroup(ip1, false, clients)
-				router.reconcileNexthopGroup(ip2, false, clients)
+				// keep the last remaining healthy client up.
+				router.reconcileRoutingPolicy(ip1, false, clients)
+				router.reconcileRoutingPolicy(ip2, false, clients)
 				upCount := 0
 				for _, up := range netRouter.state {
 					if up {
@@ -116,15 +116,15 @@ var _ = Describe("#ClientRouter", func() {
 				netRouter.state[ip1] = false
 			})
 			It("should update the client's health back to true", func() {
-				router.reconcileNexthopGroup(ip1, true, clients)
+				router.reconcileRoutingPolicy(ip1, true, clients)
 				Expect(netRouter.setHealthCalls).To(HaveKeyWithValue(ip1, true))
 				Expect(netRouter.state[ip1]).To(BeTrue())
 			})
 		})
 
 		Context("when no health change occurs", func() {
-			It("should not call setNexthopHealth", func() {
-				router.reconcileNexthopGroup(ip1, true, clients)
+			It("should not call reconcileRoutingPolicy", func() {
+				router.reconcileRoutingPolicy(ip1, true, clients)
 				Expect(netRouter.setHealthCalls).To(BeEmpty())
 			})
 		})

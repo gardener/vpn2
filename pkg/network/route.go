@@ -4,11 +4,10 @@
 package network
 
 import (
+	"errors"
 	"fmt"
 	"net"
-	"os/exec"
-	"strconv"
-	"strings"
+	"syscall"
 
 	"github.com/go-logr/logr"
 	"github.com/vishvananda/netlink"
@@ -58,60 +57,98 @@ func ReplaceRoute(log logr.Logger, ipnet *net.IPNet, dev netlink.Link) error {
 	return nil
 }
 
-// runIP executes the iproute2 "ip" command. Nexthop objects and routes that reference a nexthop
-// group cannot be expressed via the netlink library (v1.3.1), so we drive them through iproute2.
-func runIP(args ...string) error {
-	out, err := exec.Command("ip", args...).CombinedOutput() // #nosec: G204 -- No user-provided input
+// ReplaceRouteViaDevice installs or replaces a route to dst that forwards via the named device in
+// the given routing table. Use unix.RT_TABLE_MAIN (254) for the main routing table.
+func ReplaceRouteViaDevice(dst *net.IPNet, linkName string, tableID int) error {
+	link, err := netlink.LinkByName(linkName)
 	if err != nil {
-		return fmt.Errorf("command 'ip %s' failed: %w: %s", strings.Join(args, " "), err, strings.TrimSpace(string(out)))
+		return fmt.Errorf("failed to find link %s: %w", linkName, err)
+	}
+	route := &netlink.Route{
+		Dst:       dst,
+		LinkIndex: link.Attrs().Index,
+		Table:     tableID,
+	}
+	if err := netlink.RouteReplace(route); err != nil {
+		return fmt.Errorf("error replacing route for %s via %s table %d: %w", dst, linkName, tableID, err)
 	}
 	return nil
 }
 
-// ReplaceDeviceNexthop creates or updates a device-scoped next hop object with the given id for the
-// given link. Device next hops are address-family specific: pass ipv6=false for the IPv4 next hop and
-// ipv6=true for the IPv6 next hop.
-func ReplaceDeviceNexthop(id int, linkName string, ipv6 bool) error {
-	var args []string
+// AddFWmarkRule adds a policy routing rule that steers packets marked with the given fwmark into
+// the given routing table. The priority must be unique among ip rules for the address family.
+func AddFWmarkRule(mark, tableID, priority int, ipv6 bool) error {
+	family := netlink.FAMILY_V4
 	if ipv6 {
-		args = append(args, "-6")
+		family = netlink.FAMILY_V6
 	}
-	args = append(args, "nexthop", "replace", "id", strconv.Itoa(id), "dev", linkName)
-	return runIP(args...)
+	rule := netlink.NewRule()
+	rule.Family = family
+	rule.Mark = uint32(mark) //nolint:gosec // mark is a small non-negative constant
+	rule.Table = tableID
+	rule.Priority = priority
+	if err := netlink.RuleAdd(rule); err != nil {
+		return fmt.Errorf("error adding ip rule fwmark %d table %d: %w", mark, tableID, err)
+	}
+	return nil
 }
 
-// ReplaceResilientNexthopGroup creates or updates a resilient ECMP next hop group with the given id
-// over the given member next hop ids and their weights. Resilient groups minimize flow disruption when
-// members go down and come back: only buckets that have been idle for idleTimer seconds are
-// migrated to a recovered member. If unbalancedTimer is non-zero, active buckets are force-migrated
-// after unbalancedTimer seconds to rebalance load.
-func ReplaceResilientNexthopGroup(groupID int, memberIDs []int, weights []int, buckets, idleTimer, unbalancedTimer int) error {
-	// Build group specification with weights: "id1,weight1/id2,weight2/..."
-	if len(memberIDs) != len(weights) {
-		return fmt.Errorf("memberIDs and weights must have same length, got %d and %d", len(memberIDs), len(weights))
+// AddLoopbackRoute installs a route for dst via lo in the main routing table. This is needed for
+// IPv6 shoot networks when there is no default IPv6 gateway: without a main-table entry the
+// initial routing lookup for locally-generated packets fails before iptables mangle OUTPUT fires,
+// so the fwmark-based policy routing never gets a chance to redirect the packet. A loopback route
+// (unlike a blackhole) allows the kernel to proceed to the re-route after mangle OUTPUT, where the
+// fwmark set by SHOOT_MARK is evaluated against the ip rules and the packet is steered into the
+// correct per-client table.
+func AddLoopbackRoute(dst *net.IPNet) error {
+	lo, err := netlink.LinkByName("lo")
+	if err != nil {
+		return fmt.Errorf("failed to find lo: %w", err)
 	}
-	groupParts := make([]string, len(memberIDs))
-	for i, id := range memberIDs {
-		groupParts[i] = fmt.Sprintf("%d,%d", id, weights[i])
+	route := &netlink.Route{
+		Dst:       dst,
+		LinkIndex: lo.Attrs().Index,
 	}
-
-	return runIP(
-		"nexthop", "replace", "id", strconv.Itoa(groupID),
-		"group", strings.Join(groupParts, "/"),
-		"type", "resilient",
-		"buckets", strconv.Itoa(buckets),
-		"idle_timer", strconv.Itoa(idleTimer),
-		"unbalanced_timer", strconv.Itoa(unbalancedTimer),
-	)
+	if err := netlink.RouteReplace(route); err != nil {
+		return fmt.Errorf("error adding loopback route for %s: %w", dst, err)
+	}
+	return nil
 }
 
-// ReplaceRouteViaNexthopGroup installs or updates a route to dst that forwards via the given
-// next hop group id.
-func ReplaceRouteViaNexthopGroup(dst *net.IPNet, groupID int) error {
-	var args []string
-	if dst.IP.To4() == nil {
-		args = append(args, "-6")
+// ReplaceFWmarkRule atomically redirects the fwmark policy rule for mark/priority to newTableID.
+// It first adds the new rule, then deletes any old rule that points to a different table. This
+// ensures there is no window where the mark is unroutable: a brief overlap with both rules present
+// is safe because both tables are valid routing tables during the transition.
+func ReplaceFWmarkRule(mark, newTableID, priority int, ipv6 bool) error {
+	family := netlink.FAMILY_V4
+	if ipv6 {
+		family = netlink.FAMILY_V6
 	}
-	args = append(args, "route", "replace", dst.String(), "nhid", strconv.Itoa(groupID))
-	return runIP(args...)
+
+	// Add the new rule first so packets are never left without a matching rule.
+	newRule := netlink.NewRule()
+	newRule.Family = family
+	newRule.Mark = uint32(mark) //nolint:gosec
+	newRule.Table = newTableID
+	newRule.Priority = priority
+	if err := netlink.RuleAdd(newRule); err != nil {
+		// If the exact rule already exists (same mark+priority+table), that is fine.
+		if !errors.Is(err, syscall.EEXIST) {
+			return fmt.Errorf("error adding ip rule fwmark %d table %d: %w", mark, newTableID, err)
+		}
+	}
+
+	// Now delete any stale rules at the same priority that point to a different table.
+	rules, err := netlink.RuleList(family)
+	if err != nil {
+		return fmt.Errorf("error listing ip rules: %w", err)
+	}
+	for _, r := range rules {
+		if r.Mark == uint32(mark) && r.Priority == priority && r.Table != newTableID { //nolint:gosec
+			if err := netlink.RuleDel(&r); err != nil {
+				return fmt.Errorf("error deleting stale ip rule fwmark %d table %d: %w", mark, r.Table, err)
+			}
+		}
+	}
+	return nil
 }

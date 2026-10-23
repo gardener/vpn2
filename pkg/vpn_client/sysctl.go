@@ -12,7 +12,6 @@ import (
 	"github.com/lorenzosaino/go-sysctl"
 
 	"github.com/gardener/vpn2/pkg/config"
-	"github.com/gardener/vpn2/pkg/constants"
 )
 
 // EnableIPv6Networking enables IPv6 networking on the system.
@@ -57,18 +56,6 @@ func DisableRpFilter() error {
 	}
 	// Disable reverse path filtering for new interfaces.
 	if err := sysctl.Set("net.ipv4.conf.default.rp_filter", "0"); err != nil {
-		return err
-	}
-	return nil
-}
-
-// SetECMPHashPolicy configures the kernel to use the given hash policy for IPv4 and IPv6 multipath
-// (ECMP) routing.
-func SetECMPHashPolicy(hashPolicy string) error {
-	if err := sysctl.Set("net.ipv4.fib_multipath_hash_policy", hashPolicy); err != nil {
-		return err
-	}
-	if err := sysctl.Set("net.ipv6.fib_multipath_hash_policy", hashPolicy); err != nil {
 		return err
 	}
 	return nil
@@ -165,11 +152,8 @@ func KernelSettings(log logr.Logger, cfg config.VPNClient) error {
 		return err
 	}
 
-	// For seed clients, we need IPv6 networking and multipath routing.
+	// For seed clients, we need IPv6 networking.
 	if !cfg.IsShootClient {
-		if err := SetECMPHashPolicy(constants.ECMPHashPolicyL4); err != nil {
-			return err
-		}
 		return EnableIPv6Networking(log)
 	}
 

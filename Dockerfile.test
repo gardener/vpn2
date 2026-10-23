@@ -6,9 +6,10 @@ FROM golang:1.27.2
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     iproute2 \
+    iptables \
     tcpdump \
     && rm -rf /var/lib/apt/lists/*
 
-RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.32.0
+RUN go install github.com/onsi/ginkgo/v2/ginkgo@v2.33.0
 
 WORKDIR /src

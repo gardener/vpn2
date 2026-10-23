@@ -17,6 +17,73 @@ import (
 	"github.com/gardener/vpn2/pkg/network"
 )
 
+// SetMarkRules installs mangle OUTPUT rules that distribute new outbound connections to shoot
+// networks across shoot clients by assigning per-connection fwmarks. Only traffic destined for
+// shootNetworks is marked; all other traffic is unaffected. The mark is persisted in conntrack so
+// all packets of an established connection carry the same mark without re-evaluation. Rules are
+// idempotent (AppendUnique). numClients must equal the number of ip6tnl tunnel devices created by
+// setup.
+func SetMarkRules(log logr.Logger, shootNetworks []network.CIDR, numClients int) error {
+	for _, protocol := range []iptables.Protocol{iptables.ProtocolIPv4, iptables.ProtocolIPv6} {
+		ipt, err := network.NewIPTables(log, protocol)
+		if err != nil {
+			return err
+		}
+
+		// Ensure the chain exists; ignore the error if it already does.
+		_ = ipt.NewChain("mangle", constants.ShootMarkChain)
+
+		// Assign marks to new connections using random distribution. Rules are guarded by
+		// "-m mark --mark 0" so only the first matching rule fires: once a mark is set,
+		// subsequent rules are skipped. For N clients, the i-th rule fires with probability
+		// 1/(N-i) given that no earlier rule matched, so the overall distribution is uniform.
+		for i := range numClients {
+			mark := strconv.Itoa(constants.FwmarkBase + i)
+			remaining := numClients - i
+			// Only fire if this connection has not been marked yet by a previous rule.
+			args := []string{"-m", "conntrack", "--ctstate", "NEW", "-m", "mark", "--mark", "0"}
+			if remaining > 1 {
+				prob := fmt.Sprintf("%f", 1.0/float64(remaining))
+				args = append(args, "-m", "statistic", "--mode", "random", "--probability", prob)
+			}
+			args = append(args, "-j", "MARK", "--set-mark", mark)
+			if err := ipt.AppendUnique("mangle", constants.ShootMarkChain, args...); err != nil {
+				return fmt.Errorf("error adding mark rule for client %d: %w", i, err)
+			}
+		}
+		// Persist the mark into conntrack so subsequent packets of the same connection reuse it.
+		if err := ipt.AppendUnique("mangle", constants.ShootMarkChain,
+			"-m", "conntrack", "--ctstate", "NEW",
+			"-j", "CONNMARK", "--save-mark",
+		); err != nil {
+			return fmt.Errorf("error adding CONNMARK save rule: %w", err)
+		}
+		// Restore the mark on established/related packets so they follow the same table as the SYN.
+		if err := ipt.AppendUnique("mangle", constants.ShootMarkChain,
+			"-m", "conntrack", "--ctstate", "ESTABLISHED,RELATED",
+			"-j", "CONNMARK", "--restore-mark",
+		); err != nil {
+			return fmt.Errorf("error adding CONNMARK restore rule: %w", err)
+		}
+
+		// Jump into the chain only for shoot-destined traffic so seed and other traffic is unaffected.
+		isIPv6 := protocol == iptables.ProtocolIPv6
+		for _, cidr := range shootNetworks {
+			networkIsIPv6 := cidr.IP.To4() == nil
+			if networkIsIPv6 != isIPv6 {
+				continue
+			}
+			if err := ipt.AppendUnique("mangle", "OUTPUT",
+				"-d", cidr.String(),
+				"-j", constants.ShootMarkChain,
+			); err != nil {
+				return fmt.Errorf("error adding OUTPUT jump rule for %s: %w", cidr, err)
+			}
+		}
+	}
+	return nil
+}
+
 func SetIPTableRules(log logr.Logger, cfg config.VPNClient) error {
 	forwardDevice := constants.TunnelDevice
 	if cfg.VPNServerIndex != "" {
