@@ -31,6 +31,10 @@ type VPNClient struct {
 	Namespace            string         `env:"NAMESPACE"`
 	VPNServerIndex       string         `env:"VPN_SERVER_INDEX"`
 	VPNClientIndex       int
+	// VPNClientIndexOffset shifts the bonding index to VPNClientIndex+offset without affecting
+	// the certificate identity. Allows running multiple shoot-client StatefulSets with
+	// non-overlapping bonding ranges. Only used for IS_SHOOT_CLIENT=true.
+	VPNClientIndexOffset int           `env:"VPN_CLIENT_INDEX_OFFSET" envDefault:"0"`
 	IsHA                 bool          `env:"IS_HA"`
 	ReversedVPNHeader    string        `env:"REVERSED_VPN_HEADER" envDefault:"invalid-host"`
 	ReversedVPNHeaderKey string        `env:"REVERSED_VPN_HEADER_KEY" envDefault:"Reversed-VPN"`
@@ -104,6 +108,15 @@ func GetVPNClientConfig() (VPNClient, error) {
 		if err == nil {
 			cfg.VPNClientIndex = clientIndex
 		}
+	}
+
+	if cfg.VPNClientIndexOffset < 0 {
+		return VPNClient{}, fmt.Errorf("VPN_CLIENT_INDEX_OFFSET must not be negative")
+	}
+	// BondingShootClientIP encodes the slot in the last byte (ip[15] = index & 0xFF), so the
+	// offset bonding index must stay <= 255 to remain distinct.
+	if cfg.IsShootClient && cfg.IsHA && cfg.VPNClientIndex >= 0 && cfg.VPNClientIndex+cfg.VPNClientIndexOffset > 255 {
+		return VPNClient{}, fmt.Errorf("VPNClientIndex+offset (%d) exceeds the bonding last-byte max of 255", cfg.VPNClientIndex+cfg.VPNClientIndexOffset)
 	}
 	return cfg, nil
 }
