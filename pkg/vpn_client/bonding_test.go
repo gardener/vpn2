@@ -44,6 +44,13 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 		_ = exec.Command("mknod", "/dev/net/tun", "c", "10", "200").Run()
 	})
 
+	AfterEach(func() {
+		_ = network.DeleteLinkByName(constants.BondDevice)
+		for i := range cfg.HAVPNServers {
+			_ = network.DeleteLinkByName(fmt.Sprintf("tap%d", i))
+		}
+	})
+
 	Context("when configuring bonding with active-backup mode for shoot client", func() {
 		It("should successfully create bond with tap devices", func() {
 			err := ConfigureBonding(ctx, log, cfg)
@@ -114,6 +121,34 @@ var _ = Describe("ConfigureBonding", Serial, func() {
 			err := ConfigureBonding(ctx, log, cfg)
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("unsupported bonding mode"))
+		})
+	})
+
+	Context("when VPNClientIndexOffset is set", func() {
+		BeforeEach(func() {
+			cfg.VPNClientIndex = 0
+			cfg.VPNClientIndexOffset = 2
+		})
+
+		It("should assign the bond address for VPNClientIndex+offset, not for VPNClientIndex alone", func() {
+			err := ConfigureBonding(ctx, log, cfg)
+			Expect(err).NotTo(HaveOccurred())
+
+			bond, err := netlink.LinkByName(constants.BondDevice)
+			Expect(err).NotTo(HaveOccurred())
+
+			addrs, err := netlink.AddrList(bond, netlink.FAMILY_V6)
+			Expect(err).NotTo(HaveOccurred())
+
+			expectedAddr := network.BondingShootClientAddress(cfg.VPNNetwork.ToIPNet(), cfg.VPNClientIndex+cfg.VPNClientIndexOffset)
+			unexpectedAddr := network.BondingShootClientAddress(cfg.VPNNetwork.ToIPNet(), cfg.VPNClientIndex)
+
+			assignedIPs := make([]string, 0, len(addrs))
+			for _, a := range addrs {
+				assignedIPs = append(assignedIPs, a.IP.String())
+			}
+			Expect(assignedIPs).To(ContainElement(expectedAddr.IP.String()))
+			Expect(assignedIPs).NotTo(ContainElement(unexpectedAddr.IP.String()))
 		})
 	})
 

@@ -23,24 +23,25 @@ var _ = Describe("GetVPNClientConfig", func() {
 	BeforeEach(func() {
 		// Set default environment variables
 		defaultEnvVars = map[string]string{
-			"IP_FAMILIES":            "IPv4",
-			"ENDPOINT":               "endpoint",
-			"OPENVPN_PORT":           "8132",
-			"VPN_NETWORK":            "fd8f:6d53:b97a:1::/96",
-			"SEED_POD_NETWORK":       "10.0.0.0/8",
-			"SHOOT_SERVICE_NETWORKS": "100.64.0.0/13",
-			"SHOOT_POD_NETWORKS":     "100.96.0.0/11",
-			"SHOOT_NODE_NETWORKS":    "100.128.0.0/10",
-			"IS_SHOOT_CLIENT":        "true",
-			"POD_NAME":               "test-pod-1",
-			"NAMESPACE":              "test-namespace",
-			"VPN_SERVER_INDEX":       "1",
-			"IS_HA":                  "true",
-			"REVERSED_VPN_HEADER":    "invalid-host",
-			"HA_VPN_CLIENTS":         "3",
-			"HA_VPN_SERVERS":         "3",
-			"POD_LABEL_SELECTOR":     "app=kubernetes,role=apiserver",
-			"WAIT_TIME":              "2s",
+			"IP_FAMILIES":             "IPv4",
+			"ENDPOINT":                "endpoint",
+			"OPENVPN_PORT":            "8132",
+			"VPN_NETWORK":             "fd8f:6d53:b97a:1::/96",
+			"SEED_POD_NETWORK":        "10.0.0.0/8",
+			"SHOOT_SERVICE_NETWORKS":  "100.64.0.0/13",
+			"SHOOT_POD_NETWORKS":      "100.96.0.0/11",
+			"SHOOT_NODE_NETWORKS":     "100.128.0.0/10",
+			"IS_SHOOT_CLIENT":         "true",
+			"POD_NAME":                "test-pod-1",
+			"NAMESPACE":               "test-namespace",
+			"VPN_SERVER_INDEX":        "1",
+			"IS_HA":                   "true",
+			"REVERSED_VPN_HEADER":     "invalid-host",
+			"HA_VPN_CLIENTS":          "3",
+			"HA_VPN_SERVERS":          "3",
+			"POD_LABEL_SELECTOR":      "app=kubernetes,role=apiserver",
+			"WAIT_TIME":               "2s",
+			"VPN_CLIENT_INDEX_OFFSET": "0",
 		}
 	})
 
@@ -64,6 +65,7 @@ var _ = Describe("GetVPNClientConfig", func() {
 		Expect(os.Unsetenv("HA_VPN_SERVERS")).To(Succeed())
 		Expect(os.Unsetenv("POD_LABEL_SELECTOR")).To(Succeed())
 		Expect(os.Unsetenv("WAIT_TIME")).To(Succeed())
+		Expect(os.Unsetenv("VPN_CLIENT_INDEX_OFFSET")).To(Succeed())
 	})
 
 	type testCase struct {
@@ -159,6 +161,29 @@ var _ = Describe("GetVPNClientConfig", func() {
 				"POD_NAME": "test-pod-2",
 			},
 			expectedMatcher: MatchFields(IgnoreExtras, Fields{"VPNClientIndex": Equal(2)}),
+		}),
+		Entry("VPN_CLIENT_INDEX_OFFSET shifts the bonding slot but leaves VPNClientIndex (cert identity) on the pod ordinal", testCase{
+			envVars: map[string]string{
+				"POD_NAME":                "vpn-shoot-tmp-0",
+				"VPN_CLIENT_INDEX_OFFSET": "2",
+			},
+			expectedMatcher: MatchFields(IgnoreExtras, Fields{
+				"VPNClientIndex":       Equal(0),
+				"VPNClientIndexOffset": Equal(2),
+			}),
+		}),
+		Entry("negative VPN_CLIENT_INDEX_OFFSET should fail", testCase{
+			envVars: map[string]string{
+				"VPN_CLIENT_INDEX_OFFSET": "-1",
+			},
+			expectedError: true,
+		}),
+		Entry("VPNClientIndex+offset exceeding 255 should fail in HA mode", testCase{
+			envVars: map[string]string{
+				"POD_NAME":                "test-pod-200",
+				"VPN_CLIENT_INDEX_OFFSET": "100",
+			},
+			expectedError: true,
 		}),
 		Entry("empty IP_FAMILIES should yield IPv4 default", testCase{
 			envVars: map[string]string{
