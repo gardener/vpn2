@@ -717,8 +717,11 @@ func runFwmarkSwitchUnderLoadScenario() {
 	// No connection attempt should fail due to a window where no matching rule exists.
 	const (
 		switchDuration = 3 * time.Second
-		connRate       = 500 // connections per second across all loaders
 		numLoaders     = 8
+		// 50ms between connections per goroutine — sleep comes after the echo so even a slow
+		// round-trip (e.g. under the race detector) doesn't pile up concurrent connections and
+		// trigger conntrack INVALID classification (mark=0 → routing failure).
+		connInterval = 50 * time.Millisecond
 	)
 
 	ctx, cancel := context.WithTimeout(context.Background(), switchDuration)
@@ -747,20 +750,16 @@ func runFwmarkSwitchUnderLoadScenario() {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			// limit conn/s per goroutine — avoid conntrack misclassifying SYNs
-			// as INVALID under extreme load, which leaves mark=0 and fails routing.
-			ticker := time.NewTicker(time.Second / time.Duration(connRate/numLoaders))
-			defer ticker.Stop()
 			for i := 0; ctx.Err() == nil; i++ {
-				select {
-				case <-ctx.Done():
-					return
-				case <-ticker.C:
-				}
 				totalAttempts.Add(1)
 				if err := runShortEcho("tcp4", localAddr, echoAddr, fmt.Sprintf("load-%d", i)); err != nil {
 					totalFailures.Add(1)
 					fmt.Fprintf(GinkgoWriter, "connection failed: %v\n", err)
+				}
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(connInterval):
 				}
 			}
 		}()

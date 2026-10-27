@@ -116,7 +116,7 @@ test-docker:
 		-v $(REPO_ROOT):/src \
 		-w /src \
 		vpn-test \
-		ginkgo run --v ./...
+		ginkgo run --race --v ./...
 
 .PHONY: build
 build: build-vpn-server build-vpn-client

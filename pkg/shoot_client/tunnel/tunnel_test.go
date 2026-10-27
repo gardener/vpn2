@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/gardener/gardener/pkg/logger"
@@ -20,6 +21,24 @@ import (
 	"github.com/gardener/vpn2/pkg/network"
 	"github.com/gardener/vpn2/pkg/vpn_client"
 )
+
+// lockedBuffer wraps bytes.Buffer with a mutex so it is safe for concurrent writes (logger) and reads (test).
+type lockedBuffer struct {
+	mu  sync.Mutex
+	buf bytes.Buffer
+}
+
+func (b *lockedBuffer) Write(p []byte) (int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.Write(p)
+}
+
+func (b *lockedBuffer) String() string {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	return b.buf.String()
+}
 
 var _ = Describe("Tunnel controller helpers", func() {
 	Describe("NewController", func() {
@@ -99,14 +118,14 @@ var _ = Describe("Tunnel controller helpers", func() {
 // Serialized tests because they modify system network state
 var _ = Describe("Controller Run", Serial, func() {
 	var (
-		logBuf *bytes.Buffer
+		logBuf *lockedBuffer
 		log    logr.Logger
 		cfg    *config.VPNClient
 		c      *Controller
 	)
 
 	BeforeEach(func() {
-		logBuf = bytes.NewBuffer(nil)
+		logBuf = &lockedBuffer{}
 		log, _ = logger.NewZapLogger("debug", "text", zap.StacktraceLevel(zapcore.PanicLevel), zap.WriteTo(logBuf))
 		ctx := context.Background()
 		cfg = &config.VPNClient{
