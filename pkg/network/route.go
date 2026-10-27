@@ -84,7 +84,7 @@ func AddFWmarkRule(mark, tableID, priority int, ipv6 bool) error {
 	}
 	rule := netlink.NewRule()
 	rule.Family = family
-	rule.Mark = uint32(mark) //nolint:gosec // mark is a small non-negative constant
+	rule.Mark = uint32(mark) // #nosec: G115 -- mark is a small non-negative constant.
 	rule.Table = tableID
 	rule.Priority = priority
 	if err := netlink.RuleAdd(rule); err != nil {
@@ -128,7 +128,7 @@ func ReplaceFWmarkRule(mark, newTableID, priority int, ipv6 bool) error {
 	// Add the new rule first so packets are never left without a matching rule.
 	newRule := netlink.NewRule()
 	newRule.Family = family
-	newRule.Mark = uint32(mark) //nolint:gosec
+	newRule.Mark = uint32(mark) // #nosec: G115 -- mark is a small non-negative constant.
 	newRule.Table = newTableID
 	newRule.Priority = priority
 	if err := netlink.RuleAdd(newRule); err != nil {
@@ -144,7 +144,7 @@ func ReplaceFWmarkRule(mark, newTableID, priority int, ipv6 bool) error {
 		return fmt.Errorf("error listing ip rules: %w", err)
 	}
 	for _, r := range rules {
-		if r.Mark == uint32(mark) && r.Priority == priority && r.Table != newTableID { //nolint:gosec
+		if r.Mark == uint32(mark) && r.Priority == priority && r.Table != newTableID { // #nosec: G115 -- mark is a small non-negative constant.
 			if err := netlink.RuleDel(&r); err != nil {
 				return fmt.Errorf("error deleting stale ip rule fwmark %d table %d: %w", mark, r.Table, err)
 			}
