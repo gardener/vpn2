@@ -128,7 +128,7 @@ func (r *clientRouter) reconcileRoutingPolicy(client netip.Addr, healthy bool, a
 		}
 		r.log.Info("client not healthy, setting single-path routing policy to surviving client", "ip", client)
 		// Delete the neighbor cache entry for the failed client to avoid stale entries causing ping failures after recovery.
-		r.updateNeighborCache(client, healthy)
+		r.deleteNeighborCache(client)
 	case !healthy:
 		r.log.Info("client is still down", "ip", client)
 		return
@@ -143,15 +143,13 @@ func (r *clientRouter) reconcileRoutingPolicy(client netip.Addr, healthy bool, a
 	}
 }
 
-// updateNeighborCache deletes the neighbor table entry for a failed clientIP.
+// deleteNeighborCache deletes the neighbor table entry for a failed clientIP.
 // This is necessary because the neighbor entry may be stale and cause the ping to fail even after the client has recovered.
-func (r *clientRouter) updateNeighborCache(clientIP netip.Addr, healthy bool) {
-	if !healthy {
-		err := network.DeleteNeighborEntry(clientIP.AsSlice(), constants.BondDevice)
+func (r *clientRouter) deleteNeighborCache(clientIP netip.Addr) {
+	err := network.DeleteNeighborEntry(clientIP.AsSlice(), constants.BondDevice)
 
-		if err != nil {
-			r.log.Error(err, "failed to delete neighbor cache entry", "clientIP", clientIP)
-		}
+	if err != nil {
+		r.log.Error(err, "failed to delete neighbor cache entry", "clientIP", clientIP)
 	}
 }
 
