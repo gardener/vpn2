@@ -557,7 +557,7 @@ func startEchoServer(networkName, addr string) (func(), error) {
 
 // dialAndGetMark opens a TCP connection from localIP to remoteAddr, sends one echo exchange,
 // and returns the conntrack mark set by iptables mangle OUTPUT CONNMARK --save-mark.
-// It reads the mark from /proc/net/nf_conntrack while the connection is still open.
+// It reads the mark from the conntrack CLI while the connection is still open.
 func dialAndGetMark(network_, localIP, remoteAddr string) (int, error) {
 	ip := net.ParseIP(localIP)
 	var localAddr net.Addr
@@ -584,9 +584,9 @@ func dialAndGetMark(network_, localIP, remoteAddr string) (int, error) {
 	// Determine the local port to find the right conntrack entry.
 	localPort := conn.LocalAddr().(*net.TCPAddr).Port
 
-	data, err := os.ReadFile("/proc/net/nf_conntrack")
+	out, err := exec.Command("conntrack", "-L").CombinedOutput()
 	if err != nil {
-		return 0, fmt.Errorf("reading nf_conntrack: %w", err)
+		return 0, fmt.Errorf("conntrack -L: %w: %s", err, strings.TrimSpace(string(out)))
 	}
 	// Match on all four tuple fields to avoid collisions with TIME_WAIT entries from other tests.
 	remoteHost, remotePort, _ := net.SplitHostPort(remoteAddr)
@@ -594,7 +594,7 @@ func dialAndGetMark(network_, localIP, remoteAddr string) (int, error) {
 	dstMatch := fmt.Sprintf("dst=%s", remoteHost)
 	sportMatch := fmt.Sprintf("sport=%d", localPort)
 	dportMatch := fmt.Sprintf("dport=%s", remotePort)
-	for _, line := range strings.Split(string(data), "\n") {
+	for _, line := range strings.Split(string(out), "\n") {
 		if !strings.Contains(line, srcMatch) ||
 			!strings.Contains(line, dstMatch) ||
 			!strings.Contains(line, sportMatch) ||
