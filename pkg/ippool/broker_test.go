@@ -138,19 +138,27 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 	}
 
 	var waitGroup sync.WaitGroup
+	errs := make([]error, count)
 	for i := range count {
 		waitGroup.Add(1)
 		go func(broker IPAddressBroker) {
 			ctx := context.TODO()
 			_, err2 := broker.AcquireIP(ctx)
 			if err2 != nil {
-				err = fmt.Errorf("pod-%d failed: %s", i, err2)
-
+				errs[i] = fmt.Errorf("pod-%d failed: %s", i, err2)
 			}
 			waitGroup.Done()
 		}(brokers[i])
 	}
 	waitGroup.Wait()
+
+	// Collect first error from any goroutine (each index written by exactly one goroutine).
+	for _, e := range errs {
+		if e != nil {
+			err = e
+			break
+		}
+	}
 
 	manager.waitSetIPAddressComplete()
 

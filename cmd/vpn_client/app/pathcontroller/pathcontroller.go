@@ -103,5 +103,6 @@ func run(ctx context.Context, _ context.CancelFunc, log logr.Logger) error {
 	if err != nil {
 		return err
 	}
+
 	return router.Run(ctx, clientIPs)
 }
