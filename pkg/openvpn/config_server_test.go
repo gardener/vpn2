@@ -89,6 +89,7 @@ var _ = Describe("#SeedServerConfig", func() {
 			content, err := generateSeedServerConfig(cfgIPv4)
 			Expect(err).NotTo(HaveOccurred())
 
+			Expect(content).To(ContainSubstring(`stale-routes-check 300 600`))
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
@@ -111,6 +112,7 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 			content, err := generateSeedServerConfig(cfgIPv4)
 			Expect(err).NotTo(HaveOccurred())
 
+			Expect(content).To(ContainSubstring(`stale-routes-check 300 600`))
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
@@ -142,6 +144,7 @@ status-version 2`))
 			content, err := generateSeedServerConfig(cfgIPv6)
 			Expect(err).NotTo(HaveOccurred())
 
+			Expect(content).To(ContainSubstring(`stale-routes-check 300 600`))
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
@@ -162,6 +165,7 @@ down "/bin/vpn-server firewall --mode down --device tun0"`))
 			content, err := generateSeedServerConfig(cfgDualStack)
 			Expect(err).NotTo(HaveOccurred())
 
+			Expect(content).To(ContainSubstring(`stale-routes-check 300 600`))
 			Expect(content).To(ContainSubstring(`tls-auth "/srv/secrets/tlsauth/vpn.tlsauth" 0
 `))
 			Expect(content).To(ContainSubstring(`proto tcp6-server
