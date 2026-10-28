@@ -222,7 +222,7 @@ func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 			for _, n := range nw {
 				dst := n.ToIPNet()
 				r.log.Info("replacing route in per-client table", "net", n, "link", linkName, "table", tableID)
-				if err := network.ReplaceRouteViaDevice(dst, linkName, tableID); err != nil {
+				if err := network.ReplaceRouteInTable(dst, linkName, tableID); err != nil {
 					return fmt.Errorf("error replacing route for %s in table %d: %w", n, tableID, err)
 				}
 			}
