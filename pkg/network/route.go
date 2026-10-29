@@ -39,17 +39,12 @@ func getDefaultRoute() (*netlink.Route, error) {
 	return defaultRoute, nil
 }
 
-func routeForNetwork(net *net.IPNet, device netlink.Link) netlink.Route {
-	// ip route replace $net dev $device
-	route := netlink.Route{
-		Dst:       net,
-		LinkIndex: device.Attrs().Index,
-	}
-	return route
-}
-
 func ReplaceRoute(log logr.Logger, ipnet *net.IPNet, dev netlink.Link) error {
-	route := routeForNetwork(ipnet, dev)
+	route := netlink.Route{
+		Dst:       ipnet,
+		LinkIndex: dev.Attrs().Index,
+	}
+
 	log.Info("replacing route", "route", route, "ipnet", ipnet)
 	if err := netlink.RouteReplace(&route); err != nil {
 		return fmt.Errorf("error replacing route for %s: %w", ipnet, err)
@@ -57,9 +52,9 @@ func ReplaceRoute(log logr.Logger, ipnet *net.IPNet, dev netlink.Link) error {
 	return nil
 }
 
-// ReplaceRouteViaDevice installs or replaces a route to dst that forwards via the named device in
+// ReplaceRouteInTable installs or replaces a route to dst that forwards via the named device in
 // the given routing table. Use unix.RT_TABLE_MAIN (254) for the main routing table.
-func ReplaceRouteViaDevice(dst *net.IPNet, linkName string, tableID int) error {
+func ReplaceRouteInTable(dst *net.IPNet, linkName string, tableID int) error {
 	link, err := netlink.LinkByName(linkName)
 	if err != nil {
 		return fmt.Errorf("failed to find link %s: %w", linkName, err)
