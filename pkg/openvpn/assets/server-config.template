@@ -26,9 +26,8 @@ keepalive 10 30
 # max number of routes per client.
 max-routes-per-client {{ .MaxRoutesPerClient }}
 
-## disabled until https://github.com/OpenVPN/openvpn/issues/1063 is resolved
 # routes go stale after 5 minutes, clean up every 10 minutes
-# stale-routes-check 300 600
+stale-routes-check 300 600
 
 # client-config-dir to push client specific configuration
 client-config-dir /client-config-dir
