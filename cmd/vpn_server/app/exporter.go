@@ -5,6 +5,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/go-logr/logr"
@@ -25,14 +26,15 @@ func exporterCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
-			return runExporter(log)
+			ctx := cmd.Context()
+			return runExporter(ctx, log)
 		},
 	}
 
 	return cmd
 }
 
-func runExporter(log logr.Logger) error {
+func runExporter(ctx context.Context, log logr.Logger) error {
 	cfg, err := config.GetVPNServerConfig(log)
 	if err != nil {
 		return fmt.Errorf("could not parse environment")
@@ -40,7 +42,7 @@ func runExporter(log logr.Logger) error {
 	exporterConfig := exporter.NewDefaultConfig()
 	exporterConfig.OpenvpnStatusPaths = cfg.StatusPath
 	exporterConfig.ListenAddress = fmt.Sprintf(":%d", metricsPort)
-	if err := exporter.Start(log, exporterConfig); err != nil {
+	if err := exporter.Start(ctx, log, exporterConfig); err != nil {
 		return fmt.Errorf("starting metrics exporter failed: %w", err)
 	}
 	return nil
