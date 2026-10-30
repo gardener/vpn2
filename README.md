@@ -2,7 +2,7 @@
 
 [![REUSE status](https://api.reuse.software/badge/github.com/gardener/vpn2)](https://api.reuse.software/info/github.com/gardener/vpn2)
 
-This repository contains components to establish network connectivity for Shoot clusters.
+This repository contains components to establish network connectivity for Shoot clusters..
 
 ## What's inside
 
