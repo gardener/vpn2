@@ -8,6 +8,7 @@ package exporter
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -88,5 +89,8 @@ func Start(ctx context.Context, log logr.Logger, cfg Config) error {
 		_ = srv.Close()
 	}()
 
-	return srv.ListenAndServe()
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
