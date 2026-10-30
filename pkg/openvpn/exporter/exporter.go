@@ -7,6 +7,8 @@
 package exporter
 
 import (
+	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -41,7 +43,7 @@ func NewDefaultConfig() Config {
 }
 
 // Start listens and serves the metrics service.
-func Start(log logr.Logger, cfg Config) error {
+func Start(ctx context.Context, log logr.Logger, cfg Config) error {
 	log.Info("Starting OpenVPN Exporter")
 	log.Info(fmt.Sprintf("OpenVPN Exporter Configuration: %+v", cfg))
 
@@ -75,10 +77,20 @@ func Start(log logr.Logger, cfg Config) error {
 			</html>`))
 	})
 
-	return (&http.Server{
+	srv := &http.Server{
 		Addr:         cfg.ListenAddress,
 		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
-	}).ListenAndServe()
+	}
+
+	go func() {
+		<-ctx.Done()
+		_ = srv.Close()
+	}()
+
+	if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		return err
+	}
+	return nil
 }
