@@ -81,7 +81,7 @@ func run(_ context.Context, log logr.Logger) error {
 	if cfg.AutoMTU {
 		tunMTU, err = network.DetectTunnelMTU(constants.TunnelMTUOverhead)
 		if err != nil {
-			return fmt.Errorf("failed to detect tunnel MTU: %w", err)
+			return err
 		}
 		log.Info("detected tunnel MTU", "MTU", tunMTU)
 	}

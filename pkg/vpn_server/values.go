@@ -21,6 +21,7 @@ import (
 func BuildValues(cfg config.VPNServer) (openvpn.SeedServerValues, error) {
 	v := openvpn.SeedServerValues{
 		StatusPath: cfg.StatusPath,
+		Protocol:   cfg.Protocol,
 	}
 
 	if cfg.VPNNetwork.IP == nil {
