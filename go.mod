@@ -3,7 +3,7 @@ module github.com/gardener/vpn2
 go 1.26.8
 
 require (
-	github.com/caarlos0/env/v11 v11.4.1
+	github.com/caarlos0/env/v11 v11.4.2
 	github.com/coreos/go-iptables v0.8.0
 	github.com/gardener/gardener v1.154.2
 	github.com/gardener/gardener/hack/tools v1.154.2
