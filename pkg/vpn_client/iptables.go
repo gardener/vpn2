@@ -22,8 +22,9 @@ import (
 // shootNetworks is marked; all other traffic is unaffected. The mark is persisted in conntrack so
 // all packets of an established connection carry the same mark without re-evaluation. Rules are
 // idempotent (AppendUnique). numClients must equal the number of ip6tnl tunnel devices created by
-// setup.
-func SetMarkRules(log logr.Logger, shootNetworks []network.CIDR, numClients int) error {
+// setup. When overlap is true, jump rules are gated on GID EnvoyVPNGroupId so only Envoy traffic
+// is marked; other traffic to the same CIDRs (seed-bound, different GID) passes through unmarked.
+func SetMarkRules(log logr.Logger, shootNetworks []network.CIDR, numClients int, overlap bool) error {
 	for _, protocol := range []iptables.Protocol{iptables.ProtocolIPv4, iptables.ProtocolIPv6} {
 		ipt, err := network.NewIPTables(log, protocol)
 		if err != nil {
@@ -67,16 +68,19 @@ func SetMarkRules(log logr.Logger, shootNetworks []network.CIDR, numClients int)
 		}
 
 		// Jump into the chain only for shoot-destined traffic so seed and other traffic is unaffected.
+		// In the overlap case also gate on GID so non-Envoy traffic to the same real CIDRs is not marked.
 		isIPv6 := protocol == iptables.ProtocolIPv6
 		for _, cidr := range shootNetworks {
 			networkIsIPv6 := cidr.IP.To4() == nil
 			if networkIsIPv6 != isIPv6 {
 				continue
 			}
-			if err := ipt.AppendUnique("mangle", "OUTPUT",
-				"-d", cidr.String(),
-				"-j", constants.ShootMarkChain,
-			); err != nil {
+			args := []string{"-d", cidr.String()}
+			if overlap && !networkIsIPv6 {
+				args = append(args, "-m", "owner", "--gid-owner", strconv.Itoa(constants.EnvoyVPNGroupId))
+			}
+			args = append(args, "-j", constants.ShootMarkChain)
+			if err := ipt.AppendUnique("mangle", "OUTPUT", args...); err != nil {
 				return fmt.Errorf("error adding OUTPUT jump rule for %s: %w", cidr, err)
 			}
 		}
