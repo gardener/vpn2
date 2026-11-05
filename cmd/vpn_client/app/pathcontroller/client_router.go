@@ -256,9 +256,18 @@ func (r *netlinkRouter) setupRouting(clientIPs []netip.Addr) error {
 	}
 
 	// Install iptables MARK/CONNMARK rules to distribute new connections across shoot clients.
-	// Pass the effective (post-overlap-mapping) networks so only shoot-destined traffic is marked.
+	// In the overlap case mangle OUTPUT fires before nat OUTPUT, so the packet still carries the
+	// real shoot CIDR when mangle runs. Pass the real (pre-mapping) networks so the jump rules
+	// actually match. The GID gate (added by SetMarkRules when overlap=true) ensures only Envoy
+	// traffic is marked; other traffic to the same CIDRs reaches the seed cluster normally.
 	allNets := slices.Concat(nets...)
-	if err := vpnclient.SetMarkRules(r.log, allNets, len(clientIPs)); err != nil {
+	var markNets []network.CIDR
+	if overlap {
+		markNets = slices.Concat(r.shootServiceNetworks, r.shootPodNetworks, r.shootNodeNetworks)
+	} else {
+		markNets = allNets
+	}
+	if err := vpnclient.SetMarkRules(r.log, markNets, len(clientIPs), overlap); err != nil {
 		return fmt.Errorf("error setting iptables mark rules: %w", err)
 	}
 
