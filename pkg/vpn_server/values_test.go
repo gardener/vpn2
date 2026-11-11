@@ -51,20 +51,20 @@ var _ = Describe("BuildValues", func() {
 				Expect(err).To(MatchError("VPN_NETWORK must be a IPv6 CIDR: " + cfg.VPNNetwork.String()))
 			})
 		})
-		Context("when VPN_NETWORK is not a /96 IPv6 CIDR", func() {
+		Context("when VPN_NETWORK is not a /64 IPv6 CIDR", func() {
 			BeforeEach(func() {
-				cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/64")
+				cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
 			})
 
 			It("should return an error", func() {
 				_, err := vpn_server.BuildValues(cfg)
 				Expect(err).To(HaveOccurred())
-				Expect(err).To(MatchError("invalid prefix length for VPN_NETWORK, must be /96, vpn network: " + cfg.VPNNetwork.String()))
+				Expect(err).To(MatchError("invalid prefix length for VPN_NETWORK, must be /64, vpn network: " + cfg.VPNNetwork.String()))
 			})
 		})
-		Context("when VPN_NETWORK is a /96 IPv6 CIDR", func() {
+		Context("when VPN_NETWORK is a /64 IPv6 CIDR", func() {
 			BeforeEach(func() {
-				cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
+				cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/64")
 			})
 
 			It("should pass", func() {
@@ -76,7 +76,7 @@ var _ = Describe("BuildValues", func() {
 
 	Describe("HA", func() {
 		BeforeEach(func() {
-			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
+			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/64")
 		})
 		Context("when IS_HA is set", func() {
 			BeforeEach(func() {
@@ -268,7 +268,7 @@ var _ = Describe("BuildValues", func() {
 
 	Describe("non-HA", func() {
 		BeforeEach(func() {
-			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
+			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/64")
 		})
 		Context("when IS_HA is not set", func() {
 			It("should be false", func() {
@@ -403,7 +403,7 @@ var _ = Describe("BuildValues", func() {
 
 	Describe("MaxRoutesPerClient", func() {
 		BeforeEach(func() {
-			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/96")
+			cfg.VPNNetwork = network.ParseIPNetIgnoreError("2001:db8::/64")
 			cfg.PodName = "vpn-seed-server-5d99b56fcb-2h58x"
 		})
 
