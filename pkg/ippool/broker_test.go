@@ -25,8 +25,7 @@ type ipdata struct {
 }
 type mockManager struct {
 	sync.Mutex
-	data         map[string]ipdata
-	setWaitGroup sync.WaitGroup
+	data map[string]ipdata
 }
 
 var _ IPPoolManager = &mockManager{}
@@ -63,19 +62,12 @@ func (m *mockManager) UsageLookup(ctx context.Context, podName string) (*IPPoolU
 }
 
 func (m *mockManager) SetIPAddress(ctx context.Context, podName, ip string, used bool) error {
-	m.setWaitGroup.Go(func() {
-		time.Sleep(baseWait / 3)
-		m.Lock()
-		defer m.Unlock()
+	m.Lock()
+	defer m.Unlock()
 
-		m.data[podName] = ipdata{ip: ip, used: used}
-	})
+	m.data[podName] = ipdata{ip: ip, used: used}
 
 	return nil
-}
-
-func (m *mockManager) waitSetIPAddressComplete() {
-	m.setWaitGroup.Wait()
 }
 
 func (m *mockManager) getData() map[string]ipdata {
@@ -159,8 +151,6 @@ func testBroker(t *testing.T, count, space int, ipv6 bool) {
 			break
 		}
 	}
-
-	manager.waitSetIPAddressComplete()
 
 	if space < count {
 		if err == nil {
