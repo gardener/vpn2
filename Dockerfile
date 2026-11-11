@@ -3,7 +3,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ## base
-FROM alpine:3.24.4 AS base
+FROM alpine:3.24.4@sha256:f59abe656b692d901e184be3445e084786602108599d2a51d229c0f5a48c71bf AS base
 
 RUN apk add --update openvpn iptables iptables-legacy && \
     rm -rf /var/cache/apk/*
@@ -80,7 +80,7 @@ RUN if [ "$DEBUG" = "true" ]; then \
     fi
 
 ## gobuilder
-FROM --platform=$BUILDPLATFORM golang:1.27.4 AS gobuilder
+FROM --platform=$BUILDPLATFORM golang:1.27.4@sha256:08bcb99a38f85a265f9a93d1d3323e2440eec333380f3ea26ee0dec9264bb41c AS gobuilder
 WORKDIR /build
 COPY ./VERSION ./VERSION
 COPY ./go.mod /go.sum ./
