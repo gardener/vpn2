@@ -29,7 +29,14 @@
       matchPackageNames: [
         '/^github\\.com/gardener/',
       ],
-      "matchUpdateTypes": ["patch", "digest"],
+    },
+    {
+      // Auto-merge minor and patch updates for gardener dependencies.
+      matchManagers: ["gomod"],
+      matchPackageNames: [
+        '/^github\\.com/gardener/',
+      ],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
       "automerge": true
     },
     {
