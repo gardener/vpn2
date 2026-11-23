@@ -12,7 +12,7 @@ on:
 
 jobs:
   prepare:
-    uses: gardener/cc-utils/.github/workflows/prepare.yaml@v1
+    uses: gardener/cc-utils/.github/workflows/prepare.yaml@bce63f62928717a11f610ec8022af9feb497d5df # v1
     with:
       mode: ${{ inputs.mode }}
     permissions:
@@ -27,7 +27,7 @@ jobs:
       packages: write
       id-token: write
     secrets: inherit
-    uses: gardener/cc-utils/.github/workflows/oci-ocm.yaml@v1
+    uses: gardener/cc-utils/.github/workflows/oci-ocm.yaml@bce63f62928717a11f610ec8022af9feb497d5df # v1
     strategy:
       matrix:
         args:
@@ -66,7 +66,7 @@ jobs:
       extra-tags:
 
   sast-lint:
-    uses: gardener/cc-utils/.github/workflows/sastlint-ocm.yaml@v1
+    uses: gardener/cc-utils/.github/workflows/sastlint-ocm.yaml@bce63f62928717a11f610ec8022af9feb497d5df # v1
     permissions:
       contents: read
     with:
@@ -78,7 +78,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - uses: gardener/cc-utils/.github/actions/trusted-checkout@v1
+      - uses: gardener/cc-utils/.github/actions/trusted-checkout@bce63f62928717a11f610ec8022af9feb497d5df # v1
       - name: run-test
         run: |
           set -euo pipefail
@@ -91,7 +91,7 @@ jobs:
           tar czf /tmp/blobs.d/verify-log.tar.gz -C /tmp/blobs.d verify-log.txt
 
       - name: add-test-result-to-component-descriptor
-        uses: gardener/cc-utils/.github/actions/export-ocm-fragments@v1
+        uses: gardener/cc-utils/.github/actions/export-ocm-fragments@bce63f62928717a11f610ec8022af9feb497d5df # v1
         with:
           blobs-directory: /tmp/blobs.d
           ocm-resources: |
